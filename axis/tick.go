@@ -46,27 +46,60 @@ func NiceNumber(value float64, round bool) float64 {
 
 // GenerateNiceTicks generates evenly-spaced tick values for the
 // given data range, targeting approximately maxTicks ticks.
+// Non-finite or degenerate inputs produce a safe fallback.
 func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 	if maxTicks < 2 {
 		maxTicks = 2
 	}
+
+	// Guard: non-finite inputs.
+	if !finiteF64(dataMin) || !finiteF64(dataMax) {
+		if finiteF64(dataMin) {
+			return []float64{dataMin}
+		}
+		if finiteF64(dataMax) {
+			return []float64{dataMax}
+		}
+		return nil
+	}
+
 	rangeVal := NiceNumber(dataMax-dataMin, false)
+	if !finiteF64(rangeVal) {
+		return []float64{dataMin}
+	}
+
 	spacing := NiceNumber(rangeVal/float64(maxTicks-1), true)
-	if spacing == 0 {
+	if spacing <= 0 || !finiteF64(spacing) {
 		return []float64{dataMin}
 	}
 
 	niceMin := math.Floor(dataMin/spacing) * spacing
 	niceMax := math.Ceil(dataMax/spacing) * spacing
+	if !finiteF64(niceMin) || !finiteF64(niceMax) {
+		return []float64{dataMin}
+	}
 
 	const maxTickCount = 500
-	cap := int((niceMax-niceMin)/spacing) + 2
-	ticks := make([]float64, 0, min(cap, maxTickCount))
+	estCap := (niceMax - niceMin) / spacing
+	capVal := maxTickCount
+	if estCap >= 0 && estCap < float64(maxTickCount) {
+		capVal = int(estCap) + 2
+	}
+	ticks := make([]float64, 0, capVal)
 	for v := niceMin; v <= niceMax+spacing*0.5; v += spacing {
 		ticks = append(ticks, v)
 		if len(ticks) >= maxTickCount {
 			break
 		}
+		// Guard: float64 stall (v+spacing == v).
+		if v+spacing == v {
+			break
+		}
 	}
 	return ticks
+}
+
+// finiteF64 reports whether v is neither NaN nor +/-Inf.
+func finiteF64(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }

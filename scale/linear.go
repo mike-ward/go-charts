@@ -1,5 +1,7 @@
 package scale
 
+import "math"
+
 // Linear is a linear data-to-pixel scale.
 type Linear struct {
 	min, max float64
@@ -21,13 +23,24 @@ func (s *Linear) Domain() (float64, float64) {
 	return s.min, s.max
 }
 
-// Map implements Scale.
+// Map implements Scale. Non-finite values or domains return
+// pixelMin.
 func (s *Linear) Map(value float64, pixelMin, pixelMax float32) float32 {
-	if s.max == s.min {
+	if s.max == s.min || !finiteF64(value) ||
+		!finiteF64(s.min) || !finiteF64(s.max) {
 		return pixelMin
 	}
-	t := (value - s.min) / (s.max - s.min)
+	denom := s.max - s.min
+	if !finiteF64(denom) {
+		return pixelMin
+	}
+	t := (value - s.min) / denom
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
+}
+
+// finiteF64 reports whether v is neither NaN nor +/-Inf.
+func finiteF64(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
 // Invert implements Scale.

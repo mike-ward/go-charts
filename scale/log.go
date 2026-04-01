@@ -11,9 +11,10 @@ type Log struct {
 	base     float64
 }
 
-// NewLog creates a logarithmic scale.
+// NewLog creates a logarithmic scale. Base defaults to 10 when
+// <= 0 or == 1 (log(1) == 0 causes division by zero).
 func NewLog(min, max, base float64) *Log {
-	if base <= 0 {
+	if base <= 0 || base == 1 {
 		base = 10
 	}
 	return &Log{min: min, max: max, base: base}
@@ -30,9 +31,11 @@ func (s *Log) Domain() (float64, float64) {
 	return s.min, s.max
 }
 
-// Map implements Scale.
+// Map implements Scale. Non-finite values and non-positive
+// domain/value return pixelMin.
 func (s *Log) Map(value float64, pixelMin, pixelMax float32) float32 {
-	if value <= 0 || s.min <= 0 || s.max <= s.min {
+	if value <= 0 || s.min <= 0 || s.max <= s.min ||
+		!finiteF64(value) {
 		if value <= 0 {
 			slog.Debug("log scale: non-positive value",
 				"value", value)
@@ -46,6 +49,9 @@ func (s *Log) Map(value float64, pixelMin, pixelMax float32) float32 {
 	logBase := math.Log(s.base)
 	logMin := math.Log(s.min) / logBase
 	logMax := math.Log(s.max) / logBase
+	if logMax == logMin {
+		return pixelMin
+	}
 	logVal := math.Log(value) / logBase
 	t := (logVal - logMin) / (logMax - logMin)
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
@@ -59,6 +65,9 @@ func (s *Log) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	logBase := math.Log(s.base)
 	logMin := math.Log(s.min) / logBase
 	logMax := math.Log(s.max) / logBase
+	if logMax == logMin {
+		return s.min
+	}
 	t := float64(pixel-pixelMin) / float64(pixelMax-pixelMin)
 	logVal := logMin + t*(logMax-logMin)
 	return math.Pow(s.base, logVal)

@@ -62,6 +62,9 @@ func (a *Category) Inverse(pixel, pixelMin, pixelMax float32) float64 {
 	}
 	span := pixelMax - pixelMin
 	step := span / float32(n)
+	if step == 0 {
+		return 0
+	}
 	v := float64((pixel - pixelMin) / step)
 	return max(0, min(float64(n-1), v))
 }

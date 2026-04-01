@@ -3,6 +3,7 @@ package chart
 
 import (
 	"log/slog"
+	"math"
 
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-charts/theme"
@@ -83,6 +84,11 @@ func seriesColor(
 		return gui.Hex(0x808080)
 	}
 	return palette[index%len(palette)]
+}
+
+// finite reports whether v is neither NaN nor +/-Inf.
+func finite(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
 // resolveSize returns width/height, falling back to window

@@ -118,6 +118,14 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 			return
 		}
 
+		// Defense-in-depth: reject non-finite bounds that
+		// slipped through series filtering.
+		if !finite(minX) || !finite(maxX) ||
+			!finite(minY) || !finite(maxY) {
+			slog.Warn("non-finite bounds", "chart", cfg.ID)
+			return
+		}
+
 		yRange := maxY - minY
 		if yRange == 0 {
 			yRange = 1

@@ -106,6 +106,9 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		maxVal := 0.0
 		for _, s := range cfg.Series {
 			for _, v := range s.Values {
+				if !finite(v.Value) {
+					continue
+				}
 				minVal = min(minVal, v.Value)
 				maxVal = max(maxVal, v.Value)
 			}
@@ -185,6 +188,9 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 				continue
 			}
 			v := s.Values[ci].Value
+			if !finite(v) {
+				continue
+			}
 			color := seriesColor(s.Color(), si, th.Palette)
 
 			bx := barStart + float32(si)*(barWidth+barGap)

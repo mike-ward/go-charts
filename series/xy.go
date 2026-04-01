@@ -1,6 +1,10 @@
 package series
 
-import "github.com/mike-ward/go-gui/gui"
+import (
+	"math"
+
+	"github.com/mike-ward/go-gui/gui"
+)
 
 // Point represents a single (X, Y) data point.
 type Point struct {
@@ -39,14 +43,33 @@ func (s XY) Len() int { return len(s.Points) }
 // Color implements Series.
 func (s XY) Color() gui.Color { return s.color }
 
-// Bounds returns the min/max X and Y values.
+// finite reports whether v is neither NaN nor +/-Inf.
+func finite(v float64) bool {
+	return !math.IsNaN(v) && !math.IsInf(v, 0)
+}
+
+// Bounds returns the min/max X and Y values. Non-finite points
+// (NaN, +/-Inf) are skipped. If no finite points exist, all
+// returned values are zero.
 func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
-	if len(s.Points) == 0 {
-		return
+	// Find first finite point to seed min/max.
+	i := 0
+	for i < len(s.Points) {
+		p := s.Points[i]
+		if finite(p.X) && finite(p.Y) {
+			break
+		}
+		i++
 	}
-	minX, maxX = s.Points[0].X, s.Points[0].X
-	minY, maxY = s.Points[0].Y, s.Points[0].Y
-	for _, p := range s.Points[1:] {
+	if i >= len(s.Points) {
+		return // no finite points
+	}
+	minX, maxX = s.Points[i].X, s.Points[i].X
+	minY, maxY = s.Points[i].Y, s.Points[i].Y
+	for _, p := range s.Points[i+1:] {
+		if !finite(p.X) || !finite(p.Y) {
+			continue
+		}
 		if p.X < minX {
 			minX = p.X
 		}
