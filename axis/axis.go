@@ -1,0 +1,46 @@
+// Package axis provides axis types for chart positioning and labeling.
+package axis
+
+import "github.com/mike-ward/go-gui/gui"
+
+// Axis defines the interface for chart axes.
+type Axis interface {
+	// Label returns the axis title.
+	Label() string
+
+	// Ticks returns the tick positions and labels for the given
+	// pixel range and data domain.
+	Ticks(pixelMin, pixelMax float32) []Tick
+
+	// Transform converts a data value to a pixel position.
+	Transform(value float64, pixelMin, pixelMax float32) float32
+
+	// Inverse converts a pixel position back to a data value.
+	Inverse(pixel, pixelMin, pixelMax float32) float64
+}
+
+// Position indicates where an axis is drawn.
+type Position uint8
+
+// Position constants.
+const (
+	Bottom Position = iota
+	Top
+	Left
+	Right
+)
+
+// Tick represents a single tick mark on an axis.
+type Tick struct {
+	Value    float64
+	Label    string
+	Position float32
+	Minor    bool
+}
+
+// GridLine describes a grid line associated with a tick.
+type GridLine struct {
+	Position float32
+	Color    gui.Color
+	Width    float32
+}

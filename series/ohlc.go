@@ -1,0 +1,49 @@
+package series
+
+import (
+	"time"
+
+	"github.com/mike-ward/go-gui/gui"
+)
+
+// OHLC represents a single open/high/low/close candlestick.
+type OHLC struct {
+	Time                   time.Time
+	Open, High, Low, Close float64
+	Volume                 float64
+}
+
+// OHLCSeries is a series of OHLC data for candlestick charts.
+type OHLCSeries struct {
+	name      string
+	colorUp   gui.Color
+	colorDown gui.Color
+	Points    []OHLC
+}
+
+// OHLCCfg configures an OHLC series.
+type OHLCCfg struct {
+	Name      string
+	ColorUp   gui.Color
+	ColorDown gui.Color
+	Points    []OHLC
+}
+
+// NewOHLC creates a new OHLC data series.
+func NewOHLC(cfg OHLCCfg) OHLCSeries {
+	return OHLCSeries{
+		name:      cfg.Name,
+		colorUp:   cfg.ColorUp,
+		colorDown: cfg.ColorDown,
+		Points:    cfg.Points,
+	}
+}
+
+// Name implements Series.
+func (s OHLCSeries) Name() string { return s.name }
+
+// Len implements Series.
+func (s OHLCSeries) Len() int { return len(s.Points) }
+
+// Color implements Series.
+func (s OHLCSeries) Color() gui.Color { return s.colorUp }
