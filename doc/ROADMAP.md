@@ -14,20 +14,24 @@ Scaffold and core infrastructure.
 - [x] Theme system inheriting gui.CurrentTheme()
 - [x] Color palettes: Tableau 10, Pastel, Vivid
 - [x] Nice-number tick generation algorithm
-- [ ] Plot area calculation (padding, axis label space)
-- [ ] Axis rendering (tick marks, labels, grid lines)
+- [x] Plot area calculation (padding, axis label space)
+- [x] Axis rendering (tick marks, labels, grid lines)
+- [ ] Axis label text rendering (requires gui.TextMeasurer)
 - [ ] Legend rendering
 
 ## Phase 2 — Core Charts
 
 First renderable chart types.
 
-- [ ] Line chart with polyline rendering
-- [ ] Bar chart (vertical/horizontal, grouped/stacked)
+- [x] Line chart with polyline rendering
+- [x] Line chart markers and filled area under line
+- [x] Bar chart (vertical, grouped)
+- [ ] Bar chart horizontal orientation
+- [ ] Bar chart stacked mode
 - [ ] Area chart (filled, stacked)
 - [ ] Scatter plot with marker shapes (circle, square, triangle, diamond, cross)
-- [ ] Auto-scaling axes from series data bounds
-- [ ] Multi-series support with palette cycling
+- [x] Auto-scaling axes from series data bounds
+- [x] Multi-series support with palette cycling
 
 ## Phase 3 — Circular Charts
 

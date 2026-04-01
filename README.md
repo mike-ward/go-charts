@@ -21,31 +21,43 @@ import (
     "github.com/mike-ward/go-charts/chart"
     "github.com/mike-ward/go-charts/series"
     "github.com/mike-ward/go-gui/gui"
+    "github.com/mike-ward/go-gui/gui/backend"
 )
 
+type App struct{}
+
 func main() {
+    gui.SetTheme(gui.ThemeDarkBordered)
+
     w := gui.NewWindow(gui.WindowCfg{
-        Title: "Line Chart",
-        Width: 800, Height: 600,
-        View: func(w *gui.Window) gui.View {
-            return chart.Line(chart.LineCfg{
-                ID: "demo",
-                Series: []series.XY{
-                    series.NewXY(series.XYCfg{
-                        Name:  "Sales",
-                        Color: gui.Hex(0x4E79A7),
-                        Points: []series.Point{
-                            {X: 1, Y: 10},
-                            {X: 2, Y: 25},
-                            {X: 3, Y: 18},
-                            {X: 4, Y: 32},
-                        },
-                    }),
-                },
-            })
+        State:  &App{},
+        Title:  "Line Chart",
+        Width:  800,
+        Height: 600,
+        OnInit: func(w *gui.Window) {
+            w.UpdateView(view)
         },
     })
-    w.Run()
+
+    backend.Run(w)
+}
+
+func view(w *gui.Window) gui.View {
+    return chart.Line(chart.LineCfg{
+        ID: "demo",
+        Series: []series.XY{
+            series.NewXY(series.XYCfg{
+                Name:  "Sales",
+                Color: gui.Hex(0x4E79A7),
+                Points: []series.Point{
+                    {X: 1, Y: 10},
+                    {X: 2, Y: 25},
+                    {X: 3, Y: 18},
+                    {X: 4, Y: 32},
+                },
+            }),
+        },
+    })
 }
 ```
 
@@ -64,8 +76,8 @@ func main() {
 
 | Type    | Function         | Status |
 |---------|------------------|--------|
-| Line    | `chart.Line()`   | Stub   |
-| Bar     | `chart.Bar()`    | Stub   |
+| Line    | `chart.Line()`   | Done   |
+| Bar     | `chart.Bar()`    | Done   |
 | Area    | `chart.Area()`   | Stub   |
 | Scatter | `chart.Scatter()`| Stub   |
 | Pie     | `chart.Pie()`    | Stub   |
