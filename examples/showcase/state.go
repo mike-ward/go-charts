@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"sort"
+	"strings"
+)
 
 const (
 	groupAll     = "all"
@@ -74,15 +77,15 @@ var demoEntries = []DemoEntry{
 	{ID: "bar_wide", Label: "Wide Bars", Group: groupBar, Summary: "Department headcount with custom bar width.", Tags: []string{"bar", "wide", "headcount"}},
 	{ID: "bar_rounded", Label: "Rounded Bars", Group: groupBar, Summary: "Product category revenue with rounded corners.", Tags: []string{"bar", "rounded", "radius"}},
 
-	// Pie (stubs)
+	// Pie
 	{ID: "pie_basic", Label: "Basic Pie", Group: groupPie, Summary: "Browser market share distribution.", Tags: []string{"pie", "share", "percent"}},
 	{ID: "pie_donut", Label: "Donut Chart", Group: groupPie, Summary: "Budget allocation with inner radius.", Tags: []string{"pie", "donut", "budget"}},
 
-	// Area (stubs)
+	// Area
 	{ID: "area_basic", Label: "Basic Area", Group: groupArea, Summary: "User signups over time.", Tags: []string{"area", "signups", "time"}},
 	{ID: "area_stacked", Label: "Stacked Area", Group: groupArea, Summary: "Revenue breakdown by product line.", Tags: []string{"area", "stacked", "revenue"}},
 
-	// Scatter (stubs)
+	// Scatter
 	{ID: "scatter_basic", Label: "Basic Scatter", Group: groupScatter, Summary: "Height versus weight correlation.", Tags: []string{"scatter", "correlation", "points"}},
 	{ID: "scatter_markers", Label: "Marker Shapes", Group: groupScatter, Summary: "Wind speed versus temperature with different marker shapes.", Tags: []string{"scatter", "markers", "shapes"}},
 }
@@ -92,6 +95,9 @@ func init() {
 		demoEntries[i].idLower = strings.ToLower(demoEntries[i].ID)
 		demoEntries[i].labelLower = strings.ToLower(demoEntries[i].Label)
 	}
+	sort.SliceStable(demoEntries, func(i, j int) bool {
+		return entrySortBefore(demoEntries[i], demoEntries[j])
+	})
 }
 
 func entryMatchesQuery(entry DemoEntry, query string) bool {
@@ -147,7 +153,7 @@ func selectedEntry(entries []DemoEntry, selected string) DemoEntry {
 	return entries[0]
 }
 
-func preferredComponentForGroup(_ string, entries []DemoEntry) string {
+func preferredComponentForGroup(entries []DemoEntry) string {
 	if len(entries) == 0 {
 		return ""
 	}

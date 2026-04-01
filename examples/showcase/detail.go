@@ -2,10 +2,9 @@ package main
 
 import "github.com/mike-ward/go-gui/gui"
 
-func detailPanel(w *gui.Window) gui.View {
+func detailPanel(w *gui.Window, entries []DemoEntry) gui.View {
 	t := gui.CurrentTheme()
 	app := gui.State[ShowcaseApp](w)
-	entries := filteredEntries(app)
 
 	if len(entries) == 0 {
 		return gui.Column(gui.ContainerCfg{
@@ -23,11 +22,6 @@ func detailPanel(w *gui.Window) gui.View {
 				}),
 			},
 		})
-	}
-
-	if !hasEntry(entries, app.SelectedComponent) {
-		app.SelectedComponent = preferredComponentForGroup(
-			app.SelectedGroup, entries)
 	}
 
 	entry := selectedEntry(entries, app.SelectedComponent)
@@ -92,12 +86,12 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"bar_single":      demoBarSingle,
 	"bar_wide":        demoBarWide,
 	"bar_rounded":     demoBarRounded,
-	"pie_basic":       demoStubPie,
-	"pie_donut":       demoStubDonut,
-	"area_basic":      demoStubArea,
-	"area_stacked":    demoStubAreaStacked,
-	"scatter_basic":   demoStubScatter,
-	"scatter_markers": demoStubScatterMarkers,
+	"pie_basic":       demoPie,
+	"pie_donut":       demoDonut,
+	"area_basic":      demoArea,
+	"area_stacked":    demoAreaStacked,
+	"scatter_basic":   demoScatter,
+	"scatter_markers": demoScatterMarkers,
 }
 
 func componentDemo(w *gui.Window, id string) gui.View {
