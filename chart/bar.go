@@ -77,6 +77,9 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		return
 	}
 
+	// Title.
+	drawTitle(ctx, cfg.Title, th)
+
 	// Collect all category labels from the first series.
 	labels := cfg.Series[0].Values
 	nCategories := len(labels)
@@ -215,4 +218,14 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		ctx.Text(cx-lw/2, bottom+tickLen+2,
 			label, tickStyle)
 	}
+
+	// Legend.
+	entries := make([]legendEntry, len(cfg.Series))
+	for i, s := range cfg.Series {
+		entries[i] = legendEntry{
+			Name:  s.Name(),
+			Color: seriesColor(s.Color(), i, th.Palette),
+		}
+	}
+	drawLegend(ctx, entries, th, right, top)
 }

@@ -42,6 +42,16 @@ func view(w *gui.Window) gui.View {
 					{Label: "West", Value: 41},
 				},
 			}),
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Q2",
+				Color: gui.Hex(0xF28E2B),
+				Values: []series.CategoryValue{
+					{Label: "North", Value: 52},
+					{Label: "South", Value: 38},
+					{Label: "East", Value: 49},
+					{Label: "West", Value: 55},
+				},
+			}),
 		},
 	})
 }

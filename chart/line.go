@@ -85,6 +85,9 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		return
 	}
 
+	// Title.
+	drawTitle(ctx, cfg.Title, th)
+
 	// Recompute axes only when version changes.
 	if lv.xAxis == nil || cfg.Version != lv.lastVersion {
 		// Use user-supplied axes or auto-create from bounds.
@@ -217,4 +220,14 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 			}
 		}
 	}
+
+	// Legend.
+	entries := make([]legendEntry, len(cfg.Series))
+	for i, s := range cfg.Series {
+		entries[i] = legendEntry{
+			Name:  s.Name(),
+			Color: seriesColor(s.Color(), i, th.Palette),
+		}
+	}
+	drawLegend(ctx, entries, th, right, top)
 }
