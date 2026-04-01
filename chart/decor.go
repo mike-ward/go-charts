@@ -13,11 +13,11 @@ type legendEntry struct {
 }
 
 const (
-	legendSwatchW  float32 = 12
-	legendSwatchH  float32 = 12
-	legendItemGap  float32 = 4
-	legendPadding  float32 = 6
-	legendRowGap   float32 = 2
+	legendSwatchW float32 = 12
+	legendSwatchH float32 = 12
+	legendItemGap float32 = 4
+	legendPadding float32 = 6
+	legendRowGap  float32 = 2
 )
 
 // drawTitle renders the chart title centered above the plot area.

@@ -64,6 +64,62 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	}).GenerateLayout(w)
 }
 
+// updateAxes recomputes axes from config or series bounds.
+// Returns false if bounds are invalid (empty or non-finite).
+func (lv *lineView) updateAxes() bool {
+	cfg := &lv.cfg
+
+	needBounds := cfg.XAxis == nil || cfg.YAxis == nil
+	minX, maxX := math.MaxFloat64, -math.MaxFloat64
+	minY, maxY := math.MaxFloat64, -math.MaxFloat64
+
+	if needBounds {
+		for _, s := range cfg.Series {
+			if s.Len() == 0 {
+				continue
+			}
+			sx0, sx1, sy0, sy1 := s.Bounds()
+			minX = min(minX, sx0)
+			maxX = max(maxX, sx1)
+			minY = min(minY, sy0)
+			maxY = max(maxY, sy1)
+		}
+		if minX > maxX {
+			slog.Warn("all series empty", "chart", cfg.ID)
+			return false
+		}
+		if !finite(minX) || !finite(maxX) ||
+			!finite(minY) || !finite(maxY) {
+			slog.Warn("non-finite bounds", "chart", cfg.ID)
+			return false
+		}
+	}
+
+	if cfg.XAxis != nil {
+		lv.xAxis = cfg.XAxis
+	} else {
+		lv.xAxis = axis.NewLinear(
+			axis.LinearCfg{AutoRange: true})
+		lv.xAxis.SetRange(minX, maxX)
+	}
+
+	if cfg.YAxis != nil {
+		lv.yAxis = cfg.YAxis
+	} else {
+		yRange := maxY - minY
+		if yRange == 0 {
+			yRange = 1
+		}
+		minY -= yRange * 0.05
+		maxY += yRange * 0.05
+		lv.yAxis = axis.NewLinear(
+			axis.LinearCfg{AutoRange: true})
+		lv.yAxis.SetRange(minY, maxY)
+	}
+	lv.lastVersion = cfg.Version
+	return true
+}
+
 func (lv *lineView) draw(dc *gui.DrawContext) {
 	ctx := render.NewContext(dc)
 	cfg := &lv.cfg
@@ -90,55 +146,9 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	// Recompute axes only when version changes.
 	if lv.xAxis == nil || cfg.Version != lv.lastVersion {
-		// Use user-supplied axes or auto-create from bounds.
-		needBounds := cfg.XAxis == nil || cfg.YAxis == nil
-		minX, maxX := math.MaxFloat64, -math.MaxFloat64
-		minY, maxY := math.MaxFloat64, -math.MaxFloat64
-
-		if needBounds {
-			for _, s := range cfg.Series {
-				if s.Len() == 0 {
-					continue
-				}
-				sx0, sx1, sy0, sy1 := s.Bounds()
-				minX = min(minX, sx0)
-				maxX = max(maxX, sx1)
-				minY = min(minY, sy0)
-				maxY = max(maxY, sy1)
-			}
-			if minX > maxX {
-				slog.Warn("all series empty", "chart", cfg.ID)
-				return
-			}
-			if !finite(minX) || !finite(maxX) ||
-				!finite(minY) || !finite(maxY) {
-				slog.Warn("non-finite bounds", "chart", cfg.ID)
-				return
-			}
+		if !lv.updateAxes() {
+			return
 		}
-
-		if cfg.XAxis != nil {
-			lv.xAxis = cfg.XAxis
-		} else {
-			lv.xAxis = axis.NewLinear(
-				axis.LinearCfg{AutoRange: true})
-			lv.xAxis.SetRange(minX, maxX)
-		}
-
-		if cfg.YAxis != nil {
-			lv.yAxis = cfg.YAxis
-		} else {
-			yRange := maxY - minY
-			if yRange == 0 {
-				yRange = 1
-			}
-			minY -= yRange * 0.05
-			maxY += yRange * 0.05
-			lv.yAxis = axis.NewLinear(
-				axis.LinearCfg{AutoRange: true})
-			lv.yAxis.SetRange(minY, maxY)
-		}
-		lv.lastVersion = cfg.Version
 	}
 
 	xAxis := lv.xAxis
