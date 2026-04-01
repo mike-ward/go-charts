@@ -1,24 +1,18 @@
 package render
 
-// TextAnchor controls text alignment relative to a point.
-type TextAnchor uint8
+import "github.com/mike-ward/go-gui/gui"
 
-// TextAnchor constants.
-const (
-	TextAnchorStart TextAnchor = iota
-	TextAnchorMiddle
-	TextAnchorEnd
-)
+// Text draws text at (x, y) using the given style.
+func (c *Context) Text(x, y float32, text string, style gui.TextStyle) {
+	c.DC.Text(x, y, text, style)
+}
 
-// TextBaseline controls vertical text alignment.
-type TextBaseline uint8
+// TextWidth returns the measured width of text in the given style.
+func (c *Context) TextWidth(text string, style gui.TextStyle) float32 {
+	return c.DC.TextWidth(text, style)
+}
 
-// TextBaseline constants.
-const (
-	TextBaselineTop TextBaseline = iota
-	TextBaselineMiddle
-	TextBaselineBottom
-)
-
-// TODO: Text rendering requires gui.TextMeasurer integration
-// for measuring text width/height before positioning labels.
+// FontHeight returns the line height for the given text style.
+func (c *Context) FontHeight(style gui.TextStyle) float32 {
+	return c.DC.FontHeight(style)
+}

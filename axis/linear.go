@@ -45,6 +45,13 @@ func (a *Linear) Label() string { return a.title }
 func (a *Linear) Ticks(pixelMin, pixelMax float32) []Tick {
 	dMin, dMax := a.sc.Domain()
 	values := GenerateNiceTicks(dMin, dMax, 8)
+
+	// Expand domain to match nice tick range so gridlines and
+	// data points use the same coordinate space.
+	if a.autoRange && len(values) >= 2 {
+		a.sc.SetDomain(values[0], values[len(values)-1])
+	}
+
 	ticks := make([]Tick, 0, len(values))
 	for _, v := range values {
 		label := formatTickValue(v)

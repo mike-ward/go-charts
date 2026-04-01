@@ -67,3 +67,28 @@ func (c *Context) Arc(cx, cy, rx, ry, start, sweep float32, color gui.Color, wid
 func (c *Context) FilledPolygon(points []float32, color gui.Color) {
 	c.DC.FilledPolygon(points, color)
 }
+
+// FilledRoundedRect draws a filled rectangle with rounded corners.
+func (c *Context) FilledRoundedRect(x, y, w, h, radius float32, color gui.Color) {
+	c.DC.FilledRoundedRect(x, y, w, h, radius, color)
+}
+
+// RoundedRect draws a stroked rectangle with rounded corners.
+func (c *Context) RoundedRect(x, y, w, h, radius float32, color gui.Color, width float32) {
+	c.DC.RoundedRect(x, y, w, h, radius, color, width)
+}
+
+// DashedLine draws a dashed line segment.
+func (c *Context) DashedLine(x0, y0, x1, y1 float32, color gui.Color, width, dashLen, gapLen float32) {
+	c.DC.DashedLine(x0, y0, x1, y1, color, width, dashLen, gapLen)
+}
+
+// DashedPolyline draws a polyline with a continuous dash pattern.
+func (c *Context) DashedPolyline(points []float32, color gui.Color, width, dashLen, gapLen float32) {
+	c.DC.DashedPolyline(points, color, width, dashLen, gapLen)
+}
+
+// PolylineJoined draws a polyline with miter joins at vertices.
+func (c *Context) PolylineJoined(points []float32, color gui.Color, width float32) {
+	c.DC.PolylineJoined(points, color, width)
+}

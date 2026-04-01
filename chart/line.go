@@ -159,15 +159,23 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	ctx.Line(left, bottom, right, bottom, th.AxisColor, th.AxisWidth) // X
 	ctx.Line(left, top, left, bottom, th.AxisColor, th.AxisWidth)     // Y
 
-	// Draw tick marks on axes.
+	// Draw tick marks and labels on axes.
 	const tickLen float32 = 5
+	tickStyle := th.TickStyle
+	fh := ctx.FontHeight(tickStyle)
 	for _, t := range lv.xTicks {
 		ctx.Line(t.Position, bottom, t.Position, bottom+tickLen,
 			th.AxisColor, th.AxisWidth)
+		lw := ctx.TextWidth(t.Label, tickStyle)
+		ctx.Text(t.Position-lw/2, bottom+tickLen+2,
+			t.Label, tickStyle)
 	}
 	for _, t := range lv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
 			th.AxisColor, th.AxisWidth)
+		tw := ctx.TextWidth(t.Label, tickStyle)
+		ctx.Text(left-tickLen-tw-2, t.Position-fh/2,
+			t.Label, tickStyle)
 	}
 
 	// Draw each series.

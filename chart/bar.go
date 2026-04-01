@@ -110,11 +110,21 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 				rangeVal = 1
 			}
 			pad := rangeVal * 0.05
+			// Pad away from zero only; bars anchor at the
+			// baseline so the domain must include zero exactly.
+			lo := minVal
+			if lo < 0 {
+				lo -= pad
+			}
+			hi := maxVal
+			if hi > 0 {
+				hi += pad
+			}
 			bv.yAxis = axis.NewLinear(
 				axis.LinearCfg{AutoRange: true})
 			bv.yAxis.SetRange(
-				min(0, minVal-pad),
-				max(0, maxVal+pad),
+				min(0, lo),
+				max(0, hi),
 			)
 		}
 		bv.lastVersion = cfg.Version
@@ -135,11 +145,16 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	ctx.Line(left, bottom, right, bottom, th.AxisColor, th.AxisWidth)
 	ctx.Line(left, top, left, bottom, th.AxisColor, th.AxisWidth)
 
-	// Tick marks on Y axis.
+	// Tick marks and labels on Y axis.
 	const tickLen float32 = 5
+	tickStyle := th.TickStyle
+	fh := ctx.FontHeight(tickStyle)
 	for _, t := range bv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
 			th.AxisColor, th.AxisWidth)
+		tw := ctx.TextWidth(t.Label, tickStyle)
+		ctx.Text(left-tickLen-tw-2, t.Position-fh/2,
+			t.Label, tickStyle)
 	}
 
 	// Baseline (y=0) pixel position.
@@ -191,9 +206,13 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			ctx.FilledRect(bx, barTop, barWidth, bh, color)
 		}
 
-		// Tick mark at center of group on X axis.
+		// Tick mark and label at center of group on X axis.
 		cx := groupX + groupWidth/2
 		ctx.Line(cx, bottom, cx, bottom+tickLen,
 			th.AxisColor, th.AxisWidth)
+		label := labels[ci].Label
+		lw := ctx.TextWidth(label, tickStyle)
+		ctx.Text(cx-lw/2, bottom+tickLen+2,
+			label, tickStyle)
 	}
 }
