@@ -1,5 +1,6 @@
 # Go-Charts
 
+[![CI](https://github.com/mike-ward/go-charts/actions/workflows/ci.yml/badge.svg)](https://github.com/mike-ward/go-charts/actions/workflows/ci.yml)
 [![Go 1.26+](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go)](https://go.dev)
 [![License: PolyForm NC 1.0](https://img.shields.io/badge/License-PolyForm%20NC%201.0-blue)](LICENSE)
 
