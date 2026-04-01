@@ -6,8 +6,8 @@ import (
 	"github.com/mike-ward/go-gui/gui"
 )
 
-func demoLineBasic(_ *gui.Window) gui.View {
-	return chart.Line(chart.LineCfg{
+func demoLineBasic(w *gui.Window) gui.View {
+	return demoWithCode(w, "line-basic", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "line-basic",
 			Title:  "Monthly Revenue",
@@ -36,11 +36,31 @@ func demoLineBasic(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Monthly Revenue",
+    },
+    Series: []series.XY{
+        series.NewXY(series.XYCfg{
+            Name:   "2025",
+            Color:  gui.Hex(0x4E79A7),
+            Points: []series.Point{
+                {X: 1, Y: 12}, {X: 2, Y: 19}, {X: 3, Y: 15},
+                {X: 4, Y: 28}, {X: 5, Y: 24}, {X: 6, Y: 31},
+                // ...
+            },
+        }),
+        series.NewXY(series.XYCfg{
+            Name:   "2024",
+            Color:  gui.Hex(0xF28E2B),
+            Points: []series.Point{ ... },
+        }),
+    },
+})`)
 }
 
-func demoLineMarkers(_ *gui.Window) gui.View {
-	return chart.Line(chart.LineCfg{
+func demoLineMarkers(w *gui.Window) gui.View {
+	return demoWithCode(w, "line-markers", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "line-markers",
 			Title:  "Daily Temperature (C)",
@@ -59,11 +79,27 @@ func demoLineMarkers(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Daily Temperature (C)",
+    },
+    ShowMarkers: true,
+    Series: []series.XY{
+        series.NewXY(series.XYCfg{
+            Name:   "This Week",
+            Color:  gui.Hex(0xE15759),
+            Points: []series.Point{
+                {X: 1, Y: 18}, {X: 2, Y: 21}, {X: 3, Y: 24},
+                {X: 4, Y: 22}, {X: 5, Y: 28}, {X: 6, Y: 26},
+                {X: 7, Y: 20},
+            },
+        }),
+    },
+})`)
 }
 
-func demoLineArea(_ *gui.Window) gui.View {
-	return chart.Line(chart.LineCfg{
+func demoLineArea(w *gui.Window) gui.View {
+	return demoWithCode(w, "line-area", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "line-area",
 			Title:  "Website Traffic (thousands)",
@@ -81,11 +117,26 @@ func demoLineArea(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Website Traffic (thousands)",
+    },
+    ShowArea: true,
+    Series: []series.XY{
+        series.NewXY(series.XYCfg{
+            Name:   "Visitors",
+            Color:  gui.Hex(0x59A14F),
+            Points: []series.Point{
+                {X: 1, Y: 15}, {X: 2, Y: 22}, {X: 3, Y: 28},
+                {X: 4, Y: 35}, {X: 5, Y: 31}, {X: 6, Y: 45},
+            },
+        }),
+    },
+})`)
 }
 
-func demoLineMulti(_ *gui.Window) gui.View {
-	return chart.Line(chart.LineCfg{
+func demoLineMulti(w *gui.Window) gui.View {
+	return demoWithCode(w, "line-multi", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "line-multi",
 			Title:  "Stock Index Comparison",
@@ -125,5 +176,29 @@ func demoLineMulti(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Stock Index Comparison",
+    },
+    LineWidth: 1.5,
+    Series: []series.XY{
+        series.NewXY(series.XYCfg{
+            Name:   "S&P 500",
+            Color:  gui.Hex(0x4E79A7),
+            Points: []series.Point{
+                {X: 1, Y: 100}, {X: 2, Y: 103}, ...
+            },
+        }),
+        series.NewXY(series.XYCfg{
+            Name:   "FTSE 100",
+            Color:  gui.Hex(0xF28E2B),
+            Points: []series.Point{ ... },
+        }),
+        series.NewXY(series.XYCfg{
+            Name:   "Nikkei 225",
+            Color:  gui.Hex(0xE15759),
+            Points: []series.Point{ ... },
+        }),
+    },
+})`)
 }

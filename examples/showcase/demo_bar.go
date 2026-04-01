@@ -6,8 +6,8 @@ import (
 	"github.com/mike-ward/go-gui/gui"
 )
 
-func demoBarBasic(_ *gui.Window) gui.View {
-	return chart.Bar(chart.BarCfg{
+func demoBarBasic(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-basic", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "bar-basic",
 			Title:  "Sales by Region",
@@ -36,11 +36,32 @@ func demoBarBasic(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Sales by Region",
+    },
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Q1",
+            Color: gui.Hex(0x4E79A7),
+            Values: []series.CategoryValue{
+                {Label: "North", Value: 45},
+                {Label: "South", Value: 32},
+                {Label: "East", Value: 58},
+                {Label: "West", Value: 41},
+            },
+        }),
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Q2",
+            Color: gui.Hex(0xF28E2B),
+            Values: []series.CategoryValue{ ... },
+        }),
+    },
+})`)
 }
 
-func demoBarSingle(_ *gui.Window) gui.View {
-	return chart.Bar(chart.BarCfg{
+func demoBarSingle(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-single", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "bar-single",
 			Title:  "Monthly Rainfall (mm)",
@@ -61,11 +82,29 @@ func demoBarSingle(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Monthly Rainfall (mm)",
+    },
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "2025",
+            Color: gui.Hex(0x76B7B2),
+            Values: []series.CategoryValue{
+                {Label: "Jan", Value: 78},
+                {Label: "Feb", Value: 63},
+                {Label: "Mar", Value: 85},
+                {Label: "Apr", Value: 92},
+                {Label: "May", Value: 110},
+                {Label: "Jun", Value: 72},
+            },
+        }),
+    },
+})`)
 }
 
-func demoBarWide(_ *gui.Window) gui.View {
-	return chart.Bar(chart.BarCfg{
+func demoBarWide(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-wide", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "bar-wide",
 			Title:  "Department Headcount",
@@ -86,11 +125,29 @@ func demoBarWide(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Department Headcount",
+    },
+    BarWidth: 40,
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Employees",
+            Color: gui.Hex(0xB07AA1),
+            Values: []series.CategoryValue{
+                {Label: "Eng", Value: 120},
+                {Label: "Sales", Value: 85},
+                {Label: "Mktg", Value: 42},
+                {Label: "Ops", Value: 67},
+                {Label: "HR", Value: 28},
+            },
+        }),
+    },
+})`)
 }
 
-func demoBarRounded(_ *gui.Window) gui.View {
-	return chart.Bar(chart.BarCfg{
+func demoBarRounded(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-rounded", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
 			ID:     "bar-rounded",
 			Title:  "Product Revenue",
@@ -120,5 +177,27 @@ func demoBarRounded(_ *gui.Window) gui.View {
 				},
 			}),
 		},
-	})
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Product Revenue",
+    },
+    Radius: 4,
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Online",
+            Color: gui.Hex(0x59A14F),
+            Values: []series.CategoryValue{
+                {Label: "Widgets", Value: 340},
+                {Label: "Gadgets", Value: 280},
+                {Label: "Gizmos", Value: 195},
+                {Label: "Doohickeys", Value: 150},
+            },
+        }),
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Retail",
+            Color: gui.Hex(0xEDC948),
+            Values: []series.CategoryValue{ ... },
+        }),
+    },
+})`)
 }
