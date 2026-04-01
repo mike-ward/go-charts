@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"math"
+
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -33,6 +35,45 @@ func drawTitle(
 	fh := ctx.FontHeight(style)
 	y := (th.PaddingTop - fh) / 2
 	ctx.Text(x, y, title, style)
+}
+
+// drawXAxisLabel renders the X axis title centered below the
+// tick labels. bottom is the Y coordinate of the X axis line.
+func drawXAxisLabel(
+	ctx *render.Context, label string, th *theme.Theme,
+	left, right, bottom float32,
+) {
+	if label == "" {
+		return
+	}
+	style := th.LabelStyle
+	tw := ctx.TextWidth(label, style)
+	tickFh := ctx.FontHeight(th.TickStyle)
+	// Position below tick marks (5px) + tick labels + gap.
+	x := (left + right - tw) / 2
+	y := bottom + 5 + tickFh + 6
+	ctx.Text(x, y, label, style)
+}
+
+// drawYAxisLabel renders the Y axis title rotated 90° CCW,
+// centered vertically along the left edge of the plot area.
+func drawYAxisLabel(
+	ctx *render.Context, label string, th *theme.Theme,
+	top, bottom float32,
+) {
+	if label == "" {
+		return
+	}
+	style := th.LabelStyle
+	style.RotationRadians = -math.Pi / 2
+	fh := ctx.FontHeight(style)
+	tw := ctx.TextWidth(label, style)
+	// After -90° rotation, the text's visual width becomes its
+	// height and vice versa. Position so the label is centered
+	// vertically in the plot area, offset from the left edge.
+	x := fh / 2
+	y := (top + bottom + tw) / 2
+	ctx.Text(x, y, label, style)
 }
 
 // drawLegend renders a legend in the top-right corner of the

@@ -166,6 +166,9 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			t.Label, tickStyle)
 	}
 
+	// Axis labels.
+	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
+
 	// Baseline (y=0) pixel position.
 	baseline := yAxis.Transform(0, bottom, top)
 
@@ -224,6 +227,10 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		ctx.Text(cx-lw/2, bottom+tickLen+2,
 			label, tickStyle)
 	}
+
+	// X axis label (bar uses the first series name or a custom label
+	// when a category axis is configured; skip for now since BarCfg
+	// has no XAxis field — users set it via YAxis.Label()).
 
 	// Legend.
 	entries := make([]legendEntry, len(cfg.Series))

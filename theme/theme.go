@@ -9,7 +9,7 @@ import (
 const (
 	DefaultPaddingTop    float32 = 40
 	DefaultPaddingRight  float32 = 40
-	DefaultPaddingBottom float32 = 40
+	DefaultPaddingBottom float32 = 60
 	DefaultPaddingLeft   float32 = 60
 )
 

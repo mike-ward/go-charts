@@ -71,7 +71,15 @@ func ExportPNG(v gui.View, width, height int, path string) error {
 
 	for _, t := range dc.Texts() {
 		cfg := toGlyphConfig(t.Style)
-		_ = textSys.DrawText(t.X, t.Y, t.Text, cfg)
+		if t.Style.RotationRadians != 0 {
+			layout, lerr := textSys.LayoutText(t.Text, cfg)
+			if lerr == nil {
+				textSys.DrawLayoutRotated(
+					layout, t.X, t.Y, t.Style.RotationRadians)
+			}
+		} else {
+			_ = textSys.DrawText(t.X, t.Y, t.Text, cfg)
+		}
 	}
 	textSys.Commit()
 	backend.flush()
@@ -202,6 +210,8 @@ type pendingDraw struct {
 	id       glyph.TextureID
 	src, dst glyph.Rect
 	color    glyph.Color
+	xform    glyph.AffineTransform
+	hasXform bool
 }
 
 // imageBackend implements glyph.DrawBackend, compositing glyph
@@ -239,7 +249,9 @@ func (b *imageBackend) DeleteTexture(id glyph.TextureID) {
 func (b *imageBackend) DrawTexturedQuad(
 	id glyph.TextureID, src, dst glyph.Rect, c glyph.Color,
 ) {
-	b.pending = append(b.pending, pendingDraw{id, src, dst, c})
+	b.pending = append(b.pending, pendingDraw{
+		id: id, src: src, dst: dst, color: c,
+	})
 }
 
 func (b *imageBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
@@ -263,18 +275,23 @@ func (b *imageBackend) DrawFilledRect(dst glyph.Rect, c glyph.Color) {
 
 func (b *imageBackend) DrawTexturedQuadTransformed(
 	id glyph.TextureID, src, dst glyph.Rect,
-	c glyph.Color, _ glyph.AffineTransform,
+	c glyph.Color, t glyph.AffineTransform,
 ) {
-	// Chart text uses identity transforms; ignore the
-	// transform and fall back to the untransformed path.
-	b.DrawTexturedQuad(id, src, dst, c)
+	b.pending = append(b.pending, pendingDraw{
+		id: id, src: src, dst: dst, color: c, xform: t,
+		hasXform: true,
+	})
 }
 
 // flush replays recorded draw commands after atlas textures
 // have been committed via UpdateTexture.
 func (b *imageBackend) flush() {
 	for _, d := range b.pending {
-		b.blitQuad(d.id, d.src, d.dst, d.color)
+		if d.hasXform {
+			b.blitQuadTransformed(d.id, d.src, d.dst, d.color, d.xform)
+		} else {
+			b.blitQuad(d.id, d.src, d.dst, d.color)
+		}
 	}
 	b.pending = b.pending[:0]
 }
@@ -338,6 +355,99 @@ func (b *imageBackend) blitQuad(
 			img.Pix[imgOff+2] = uint8((cb*ga + uint32(img.Pix[imgOff+2])*inv) / 255)
 			img.Pix[imgOff+3] = uint8(ga + uint32(img.Pix[imgOff+3])*inv/255)
 			imgOff += 4
+		}
+	}
+}
+
+// blitQuadTransformed draws a textured quad with an affine
+// transform applied. The transform maps local glyph coords to
+// image coords. We iterate over the bounding box of the
+// transformed quad and inverse-map each pixel to source coords.
+func (b *imageBackend) blitQuadTransformed(
+	id glyph.TextureID, src, dst glyph.Rect,
+	c glyph.Color, xf glyph.AffineTransform,
+) {
+	page, ok := b.textures[id]
+	if !ok || dst.Width <= 0 || dst.Height <= 0 {
+		return
+	}
+
+	img := b.target
+	imgW := img.Bounds().Max.X
+	imgH := img.Bounds().Max.Y
+
+	// Transform the four corners of the dst rect to find
+	// the bounding box in image space.
+	corners := [4][2]float32{
+		{dst.X, dst.Y},
+		{dst.X + dst.Width, dst.Y},
+		{dst.X, dst.Y + dst.Height},
+		{dst.X + dst.Width, dst.Y + dst.Height},
+	}
+	bMinX, bMinY := float32(math.MaxFloat32), float32(math.MaxFloat32)
+	bMaxX, bMaxY := float32(-math.MaxFloat32), float32(-math.MaxFloat32)
+	for _, corner := range corners {
+		tx, ty := xf.Apply(corner[0], corner[1])
+		bMinX = min(bMinX, tx)
+		bMinY = min(bMinY, ty)
+		bMaxX = max(bMaxX, tx)
+		bMaxY = max(bMaxY, ty)
+	}
+
+	mnX := max(int(math.Floor(float64(bMinX))), 0)
+	mnY := max(int(math.Floor(float64(bMinY))), 0)
+	mxX := min(int(math.Ceil(float64(bMaxX))), imgW-1)
+	mxY := min(int(math.Ceil(float64(bMaxY))), imgH-1)
+
+	// Inverse transform: map image pixel back to local dst coords.
+	det := xf.XX*xf.YY - xf.XY*xf.YX
+	if det == 0 {
+		return
+	}
+	invDet := 1.0 / det
+	inv := glyph.AffineTransform{
+		XX: xf.YY * invDet,
+		XY: -xf.XY * invDet,
+		YX: -xf.YX * invDet,
+		YY: xf.XX * invDet,
+		X0: (xf.XY*xf.Y0 - xf.YY*xf.X0) * invDet,
+		Y0: (xf.YX*xf.X0 - xf.XX*xf.Y0) * invDet,
+	}
+
+	scaleX := src.Width / dst.Width
+	scaleY := src.Height / dst.Height
+	cr, cg, cb, ca := uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+
+	for py := mnY; py <= mxY; py++ {
+		for px := mnX; px <= mxX; px++ {
+			// Map image pixel to local dst space.
+			lx, ly := inv.Apply(float32(px)+0.5, float32(py)+0.5)
+			// Check if inside the dst rect.
+			if lx < dst.X || lx >= dst.X+dst.Width ||
+				ly < dst.Y || ly >= dst.Y+dst.Height {
+				continue
+			}
+			// Map to source texture coords.
+			sx := int(src.X + (lx-dst.X)*scaleX)
+			sy := int(src.Y + (ly-dst.Y)*scaleY)
+			if sx < 0 || sx >= page.width || sy < 0 || sy >= page.height {
+				continue
+			}
+			sOff := (sy*page.width + sx) * 4
+			texA := uint32(page.data[sOff+3])
+			if texA == 0 {
+				continue
+			}
+			ga := texA * ca / 255
+			if ga == 0 {
+				continue
+			}
+			imgOff := py*img.Stride + px*4
+			iinv := 255 - ga
+			img.Pix[imgOff] = uint8((cr*ga + uint32(img.Pix[imgOff])*iinv) / 255)
+			img.Pix[imgOff+1] = uint8((cg*ga + uint32(img.Pix[imgOff+1])*iinv) / 255)
+			img.Pix[imgOff+2] = uint8((cb*ga + uint32(img.Pix[imgOff+2])*iinv) / 255)
+			img.Pix[imgOff+3] = uint8(ga + uint32(img.Pix[imgOff+3])*iinv/255)
 		}
 	}
 }

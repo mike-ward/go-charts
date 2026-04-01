@@ -75,35 +75,39 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 func (lv *lineView) updateAxes() bool {
 	cfg := &lv.cfg
 
-	needBounds := cfg.XAxis == nil || cfg.YAxis == nil
+	// Always compute bounds from series data so explicit
+	// AutoRange axes can be sized correctly.
 	minX, maxX := math.MaxFloat64, -math.MaxFloat64
 	minY, maxY := math.MaxFloat64, -math.MaxFloat64
 
-	if needBounds {
-		for _, s := range cfg.Series {
-			if s.Len() == 0 {
-				continue
-			}
-			sx0, sx1, sy0, sy1 := s.Bounds()
-			minX = min(minX, sx0)
-			maxX = max(maxX, sx1)
-			minY = min(minY, sy0)
-			maxY = max(maxY, sy1)
+	for _, s := range cfg.Series {
+		if s.Len() == 0 {
+			continue
 		}
-		if minX > maxX {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		if !finite(minX) || !finite(maxX) ||
-			!finite(minY) || !finite(maxY) {
-			slog.Warn("non-finite bounds", "chart", cfg.ID)
-			return false
-		}
+		sx0, sx1, sy0, sy1 := s.Bounds()
+		minX = min(minX, sx0)
+		maxX = max(maxX, sx1)
+		minY = min(minY, sy0)
+		maxY = max(maxY, sy1)
+	}
+
+	hasBounds := minX <= maxX
+	if hasBounds && (!finite(minX) || !finite(maxX) ||
+		!finite(minY) || !finite(maxY)) {
+		slog.Warn("non-finite bounds", "chart", cfg.ID)
+		return false
 	}
 
 	if cfg.XAxis != nil {
 		lv.xAxis = cfg.XAxis
+		if hasBounds {
+			lv.xAxis.SetRange(minX, maxX)
+		}
 	} else {
+		if !hasBounds {
+			slog.Warn("all series empty", "chart", cfg.ID)
+			return false
+		}
 		lv.xAxis = axis.NewLinear(
 			axis.LinearCfg{AutoRange: true})
 		lv.xAxis.SetRange(minX, maxX)
@@ -111,7 +115,14 @@ func (lv *lineView) updateAxes() bool {
 
 	if cfg.YAxis != nil {
 		lv.yAxis = cfg.YAxis
+		if hasBounds {
+			lv.yAxis.SetRange(minY, maxY)
+		}
 	} else {
+		if !hasBounds {
+			slog.Warn("all series empty", "chart", cfg.ID)
+			return false
+		}
 		yRange := maxY - minY
 		if yRange == 0 {
 			yRange = 1
@@ -196,6 +207,10 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		ctx.Text(left-tickLen-tw-2, t.Position-fh/2,
 			t.Label, tickStyle)
 	}
+
+	// Axis labels.
+	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
+	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
 	// Draw each series.
 	for i, s := range cfg.Series {

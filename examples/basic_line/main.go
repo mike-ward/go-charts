@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/chart"
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-gui/gui"
@@ -37,6 +38,12 @@ func lineChart() gui.View {
 			Sizing: gui.FillFixed,
 			Height: 520,
 		},
+		XAxis: axis.NewLinear(axis.LinearCfg{
+			Title: "Month", AutoRange: true,
+		}),
+		YAxis: axis.NewLinear(axis.LinearCfg{
+			Title: "Revenue ($K)", AutoRange: true,
+		}),
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
 				Name:  "2025",
