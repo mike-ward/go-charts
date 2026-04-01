@@ -21,8 +21,8 @@ type AreaCfg struct {
 	// Appearance
 	Theme     *theme.Theme
 	Stacked   bool
-	LineWidth float32
-	Opacity   float32 // fill opacity (0-1)
+	LineWidth float32 // 0 means default (2)
+	Opacity   float32 // fill opacity 0-1; 0 means default (0.3)
 
 	// Interaction
 	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
@@ -56,11 +56,12 @@ func (av *areaView) Content() []gui.View { return nil }
 
 func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &av.cfg
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,
-		Width:   c.Width,
-		Height:  c.Height,
+		Width:   width,
+		Height:  height,
 		Version: c.Version,
 		Clip:    true,
 		OnDraw:  av.draw,

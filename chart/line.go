@@ -23,7 +23,7 @@ type LineCfg struct {
 
 	// Appearance
 	Theme       *theme.Theme
-	LineWidth   float32
+	LineWidth   float32 // 0 means default (2)
 	ShowMarkers bool
 	ShowArea    bool // filled area under the line
 
@@ -56,16 +56,7 @@ func (lv *lineView) Content() []gui.View { return nil }
 
 func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &lv.cfg
-	width, height := c.Width, c.Height
-	if width == 0 || height == 0 {
-		ww, wh := w.WindowSize()
-		if width == 0 {
-			width = float32(ww)
-		}
-		if height == 0 {
-			height = float32(wh)
-		}
-	}
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,

@@ -32,7 +32,7 @@ type ScatterCfg struct {
 
 	// Appearance
 	Theme      *theme.Theme
-	MarkerSize float32
+	MarkerSize float32 // 0 means default (6)
 	Marker     MarkerShape
 
 	// Interaction
@@ -64,11 +64,12 @@ func (sv *scatterView) Content() []gui.View { return nil }
 
 func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &sv.cfg
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,
-		Width:   c.Width,
-		Height:  c.Height,
+		Width:   width,
+		Height:  height,
 		Version: c.Version,
 		Clip:    true,
 		OnDraw:  sv.draw,

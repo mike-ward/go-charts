@@ -2,7 +2,6 @@
 package chart
 
 import (
-	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-charts/theme"
@@ -16,10 +15,6 @@ type Cfg struct {
 	Sizing gui.Sizing
 	Width  float32
 	Height float32
-
-	// Axes
-	XAxis axis.Axis
-	YAxis axis.Axis
 
 	// Data
 	Series []series.Series
@@ -56,16 +51,7 @@ func (cv *chartView) Content() []gui.View { return nil }
 
 func (cv *chartView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &cv.cfg
-	width, height := c.Width, c.Height
-	if width == 0 || height == 0 {
-		ww, wh := w.WindowSize()
-		if width == 0 {
-			width = float32(ww)
-		}
-		if height == 0 {
-			height = float32(wh)
-		}
-	}
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,
@@ -82,4 +68,19 @@ func (cv *chartView) GenerateLayout(w *gui.Window) gui.Layout {
 func (cv *chartView) draw(dc *gui.DrawContext) {
 	ctx := render.NewContext(dc)
 	_ = ctx // TODO: render chart content
+}
+
+// resolveSize returns width/height, falling back to window
+// dimensions when either is zero.
+func resolveSize(width, height float32, w *gui.Window) (float32, float32) {
+	if width == 0 || height == 0 {
+		ww, wh := w.WindowSize()
+		if width == 0 {
+			width = float32(ww)
+		}
+		if height == 0 {
+			height = float32(wh)
+		}
+	}
+	return width, height
 }

@@ -52,11 +52,12 @@ func (pv *pieView) Content() []gui.View { return nil }
 
 func (pv *pieView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &pv.cfg
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,
-		Width:   c.Width,
-		Height:  c.Height,
+		Width:   width,
+		Height:  height,
 		Version: c.Version,
 		Clip:    true,
 		OnDraw:  pv.draw,

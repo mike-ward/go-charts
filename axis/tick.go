@@ -9,7 +9,12 @@ func NiceNumber(value float64, round bool) float64 {
 	if value == 0 {
 		return 0
 	}
-	exp := math.Floor(math.Log10(math.Abs(value)))
+	sign := 1.0
+	if value < 0 {
+		sign = -1
+		value = -value
+	}
+	exp := math.Floor(math.Log10(value))
 	frac := value / math.Pow(10, exp)
 
 	var nice float64
@@ -36,7 +41,7 @@ func NiceNumber(value float64, round bool) float64 {
 			nice = 10
 		}
 	}
-	return nice * math.Pow(10, exp)
+	return sign * nice * math.Pow(10, exp)
 }
 
 // GenerateNiceTicks generates evenly-spaced tick values for the
@@ -54,7 +59,8 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 	niceMin := math.Floor(dataMin/spacing) * spacing
 	niceMax := math.Ceil(dataMax/spacing) * spacing
 
-	var ticks []float64
+	cap := int((niceMax-niceMin)/spacing) + 2
+	ticks := make([]float64, 0, cap)
 	for v := niceMin; v <= niceMax+spacing*0.5; v += spacing {
 		ticks = append(ticks, v)
 	}

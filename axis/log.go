@@ -1,12 +1,11 @@
 package axis
 
-import "math"
+import "github.com/mike-ward/go-charts/scale"
 
 // Log is a logarithmic axis.
 type Log struct {
-	title    string
-	min, max float64
-	base     float64
+	title string
+	sc    *scale.Log
 }
 
 // LogCfg configures a logarithmic axis.
@@ -25,9 +24,7 @@ func NewLog(cfg LogCfg) *Log {
 	}
 	return &Log{
 		title: cfg.Title,
-		min:   cfg.Min,
-		max:   cfg.Max,
-		base:  base,
+		sc:    scale.NewLog(cfg.Min, cfg.Max, base),
 	}
 }
 
@@ -42,26 +39,10 @@ func (a *Log) Ticks(pixelMin, pixelMax float32) []Tick {
 
 // Transform implements Axis.
 func (a *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	if value <= 0 || a.min <= 0 || a.max <= a.min {
-		return pixelMin
-	}
-	logBase := math.Log(a.base)
-	logMin := math.Log(a.min) / logBase
-	logMax := math.Log(a.max) / logBase
-	logVal := math.Log(value) / logBase
-	t := (logVal - logMin) / (logMax - logMin)
-	return pixelMin + float32(t)*(pixelMax-pixelMin)
+	return a.sc.Map(value, pixelMin, pixelMax)
 }
 
 // Inverse implements Axis.
 func (a *Log) Inverse(pixel, pixelMin, pixelMax float32) float64 {
-	if pixelMax == pixelMin || a.min <= 0 {
-		return a.min
-	}
-	logBase := math.Log(a.base)
-	logMin := math.Log(a.min) / logBase
-	logMax := math.Log(a.max) / logBase
-	t := float64(pixel-pixelMin) / float64(pixelMax-pixelMin)
-	logVal := logMin + t*(logMax-logMin)
-	return math.Pow(a.base, logVal)
+	return a.sc.Invert(pixel, pixelMin, pixelMax)
 }

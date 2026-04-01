@@ -16,6 +16,6 @@ func TestChartCreatesView(t *testing.T) {
 func TestChartDefaultSizing(t *testing.T) {
 	cv := Chart(Cfg{ID: "test"}).(*chartView)
 	if cv.cfg.Sizing != gui.FillFill {
-		t.Errorf("expected GrowGrow, got %v", cv.cfg.Sizing)
+		t.Errorf("expected FillFill, got %v", cv.cfg.Sizing)
 	}
 }

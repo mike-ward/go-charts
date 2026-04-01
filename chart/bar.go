@@ -8,24 +8,6 @@ import (
 	"github.com/mike-ward/go-gui/gui"
 )
 
-// BarOrientation controls bar direction.
-type BarOrientation uint8
-
-// BarOrientation constants.
-const (
-	BarVertical BarOrientation = iota
-	BarHorizontal
-)
-
-// BarMode controls multi-series bar arrangement.
-type BarMode uint8
-
-// BarMode constants.
-const (
-	BarGrouped BarMode = iota
-	BarStacked
-)
-
 // BarCfg configures a bar chart.
 type BarCfg struct {
 	ID     string
@@ -38,12 +20,10 @@ type BarCfg struct {
 	Series []series.Category
 
 	// Appearance
-	Theme       *theme.Theme
-	Orientation BarOrientation
-	Mode        BarMode
-	BarWidth    float32
-	BarGap      float32
-	Radius      float32 // corner radius for bars
+	Theme    *theme.Theme
+	BarWidth float32
+	BarGap   float32
+	Radius   float32 // corner radius for bars
 
 	// Interaction
 	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
@@ -71,16 +51,7 @@ func (bv *barView) Content() []gui.View { return nil }
 
 func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &bv.cfg
-	width, height := c.Width, c.Height
-	if width == 0 || height == 0 {
-		ww, wh := w.WindowSize()
-		if width == 0 {
-			width = float32(ww)
-		}
-		if height == 0 {
-			height = float32(wh)
-		}
-	}
+	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:      c.ID,
 		Sizing:  c.Sizing,
