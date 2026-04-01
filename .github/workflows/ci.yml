@@ -12,10 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/checkout@v4
-        with:
-          repository: mike-ward/go-gui
-          path: ../go-gui
+      - name: Clone go-gui
+        run: git clone --depth 1 https://github.com/mike-ward/go-gui.git ../go-gui
 
       - uses: actions/setup-go@v5
         with:
