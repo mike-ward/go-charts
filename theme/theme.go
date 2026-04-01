@@ -13,6 +13,38 @@ const (
 	DefaultPaddingLeft   float32 = 60
 )
 
+// TickMarkStyle controls axis tick mark appearance. Zero values
+// fall back to the axis line style (AxisColor / AxisWidth / 5px).
+type TickMarkStyle struct {
+	Length float32   // 0 → default (5)
+	Color  gui.Color // zero → AxisColor
+	Width  float32   // 0 → AxisWidth
+}
+
+// LegendPosition selects where the legend box is placed within
+// the plot area.
+type LegendPosition uint8
+
+// Legend position constants.
+const (
+	LegendTopRight LegendPosition = iota
+	LegendTopLeft
+	LegendBottomRight
+	LegendBottomLeft
+)
+
+// LegendStyle controls legend appearance. Zero values preserve
+// the original defaults.
+type LegendStyle struct {
+	Position   LegendPosition
+	TextStyle  gui.TextStyle // zero → Theme.LabelStyle
+	Background gui.Color     // zero → RGBA(0,0,0,120)
+	SwatchSize float32       // zero → 12
+	Padding    float32       // zero → 6
+	ItemGap    float32       // zero → 4
+	RowGap     float32       // zero → 2
+}
+
 // Theme defines the visual style for charts.
 type Theme struct {
 	// Background
@@ -28,6 +60,12 @@ type Theme struct {
 	AxisWidth float32
 	GridColor gui.Color
 	GridWidth float32
+
+	// Tick marks
+	TickMark TickMarkStyle
+
+	// Legend
+	Legend LegendStyle
 
 	// Series palette
 	Palette []gui.Color

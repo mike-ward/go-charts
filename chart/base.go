@@ -22,6 +22,14 @@ type BaseCfg struct {
 	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
 	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
 
+	// XTickRotation rotates X-axis tick labels (radians).
+	// 0 = horizontal.
+	XTickRotation float32
+
+	// LegendPosition overrides the theme legend position for
+	// this chart. nil = use theme default.
+	LegendPosition *theme.LegendPosition
+
 	Version uint64
 }
 

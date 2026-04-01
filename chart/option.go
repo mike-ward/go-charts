@@ -34,6 +34,24 @@ func WithSizing(s gui.Sizing) Option {
 	return func(b *BaseCfg) { b.Sizing = s }
 }
 
+// WithXTickRotation sets X-axis tick label rotation (radians).
+func WithXTickRotation(radians float32) Option {
+	return func(b *BaseCfg) { b.XTickRotation = radians }
+}
+
+// WithLegendPosition overrides the theme legend position.
+func WithLegendPosition(pos theme.LegendPosition) Option {
+	return func(b *BaseCfg) { b.LegendPosition = &pos }
+}
+
+// Legend position constants re-exported for convenience.
+const (
+	LegendTopRight    = theme.LegendTopRight
+	LegendTopLeft     = theme.LegendTopLeft
+	LegendBottomRight = theme.LegendBottomRight
+	LegendBottomLeft  = theme.LegendBottomLeft
+)
+
 // Apply applies options to a BaseCfg. Chart constructors can
 // call cfg.Apply(opts...) to process options.
 func (b *BaseCfg) Apply(opts ...Option) {

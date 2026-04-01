@@ -155,12 +155,12 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	ctx.Line(left, top, left, bottom, th.AxisColor, th.AxisWidth)
 
 	// Tick marks and labels on Y axis.
-	const tickLen float32 = 5
+	tickLen, tickWidth, tickColor := resolvedTickMark(th)
 	tickStyle := th.TickStyle
 	fh := ctx.FontHeight(tickStyle)
 	for _, t := range bv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
-			th.AxisColor, th.AxisWidth)
+			tickColor, tickWidth)
 		tw := ctx.TextWidth(t.Label, tickStyle)
 		ctx.Text(left-tickLen-tw-2, t.Position-fh/2,
 			t.Label, tickStyle)
@@ -221,11 +221,16 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		// Tick mark and label at center of group on X axis.
 		cx := groupX + groupWidth/2
 		ctx.Line(cx, bottom, cx, bottom+tickLen,
-			th.AxisColor, th.AxisWidth)
+			tickColor, tickWidth)
 		label := labels[ci].Label
-		lw := ctx.TextWidth(label, tickStyle)
-		ctx.Text(cx-lw/2, bottom+tickLen+2,
-			label, tickStyle)
+		xts := tickStyle
+		if cfg.XTickRotation != 0 {
+			xts.RotationRadians = cfg.XTickRotation
+			ctx.Text(cx, bottom+tickLen+2, label, xts)
+		} else {
+			lw := ctx.TextWidth(label, xts)
+			ctx.Text(cx-lw/2, bottom+tickLen+2, label, xts)
+		}
 	}
 
 	// X axis label (bar uses the first series name or a custom label
@@ -240,5 +245,6 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			Color: seriesColor(s.Color(), i, th.Palette),
 		}
 	}
-	drawLegend(ctx, entries, th, right, top)
+	drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition)
 }

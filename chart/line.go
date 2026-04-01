@@ -190,19 +190,26 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	ctx.Line(left, top, left, bottom, th.AxisColor, th.AxisWidth)     // Y
 
 	// Draw tick marks and labels on axes.
-	const tickLen float32 = 5
+	tickLen, tickWidth, tickColor := resolvedTickMark(th)
 	tickStyle := th.TickStyle
 	fh := ctx.FontHeight(tickStyle)
 	for _, t := range lv.xTicks {
 		ctx.Line(t.Position, bottom, t.Position, bottom+tickLen,
-			th.AxisColor, th.AxisWidth)
-		lw := ctx.TextWidth(t.Label, tickStyle)
-		ctx.Text(t.Position-lw/2, bottom+tickLen+2,
-			t.Label, tickStyle)
+			tickColor, tickWidth)
+		xts := tickStyle
+		if cfg.XTickRotation != 0 {
+			xts.RotationRadians = cfg.XTickRotation
+			ctx.Text(t.Position, bottom+tickLen+2,
+				t.Label, xts)
+		} else {
+			lw := ctx.TextWidth(t.Label, xts)
+			ctx.Text(t.Position-lw/2, bottom+tickLen+2,
+				t.Label, xts)
+		}
 	}
 	for _, t := range lv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
-			th.AxisColor, th.AxisWidth)
+			tickColor, tickWidth)
 		tw := ctx.TextWidth(t.Label, tickStyle)
 		ctx.Text(left-tickLen-tw-2, t.Position-fh/2,
 			t.Label, tickStyle)
@@ -260,5 +267,6 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 			Color: seriesColor(s.Color(), i, th.Palette),
 		}
 	}
-	drawLegend(ctx, entries, th, right, top)
+	drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition)
 }

@@ -7,4 +7,5 @@ const (
 	DefaultBarGap      float32 = 4
 	DefaultMarkerSize  float32 = 6
 	DefaultAreaOpacity float32 = 0.3
+	DefaultTickLength  float32 = 5
 )

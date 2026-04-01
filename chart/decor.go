@@ -14,13 +14,26 @@ type legendEntry struct {
 	Color gui.Color
 }
 
-const (
-	legendSwatchW float32 = 12
-	legendSwatchH float32 = 12
-	legendItemGap float32 = 4
-	legendPadding float32 = 6
-	legendRowGap  float32 = 2
-)
+// resolvedTickMark returns the tick mark visual properties,
+// falling back to axis defaults from the theme.
+func resolvedTickMark(
+	th *theme.Theme,
+) (length, width float32, color gui.Color) {
+	tms := th.TickMark
+	length = tms.Length
+	if length == 0 {
+		length = DefaultTickLength
+	}
+	color = tms.Color
+	if !color.IsSet() {
+		color = th.AxisColor
+	}
+	width = tms.Width
+	if width == 0 {
+		width = th.AxisWidth
+	}
+	return
+}
 
 // drawTitle renders the chart title centered above the plot area.
 func drawTitle(
@@ -76,13 +89,15 @@ func drawYAxisLabel(
 	ctx.Text(x, y, label, style)
 }
 
-// drawLegend renders a legend in the top-right corner of the
-// plot area. Skipped when no entries have names.
+// drawLegend renders the legend in the plot area. Position is
+// determined by the theme LegendStyle with an optional per-chart
+// override. Skipped when no entries have names.
 func drawLegend(
 	ctx *render.Context,
 	entries []legendEntry,
 	th *theme.Theme,
-	right, top float32,
+	left, right, top, bottom float32,
+	posOverride *theme.LegendPosition,
 ) {
 	// Filter to entries with names.
 	named := make([]legendEntry, 0, len(entries))
@@ -95,9 +110,36 @@ func drawLegend(
 		return
 	}
 
-	style := th.LabelStyle
+	ls := th.Legend
+
+	// Resolve style fields with defaults.
+	style := ls.TextStyle
+	if !style.Color.IsSet() && style.Size == 0 {
+		style = th.LabelStyle
+	}
+	bgColor := ls.Background
+	if !bgColor.IsSet() {
+		bgColor = gui.RGBA(0, 0, 0, 120)
+	}
+	swatchSize := ls.SwatchSize
+	if swatchSize == 0 {
+		swatchSize = 12
+	}
+	padding := ls.Padding
+	if padding == 0 {
+		padding = 6
+	}
+	itemGap := ls.ItemGap
+	if itemGap == 0 {
+		itemGap = 4
+	}
+	rowGap := ls.RowGap
+	if rowGap == 0 {
+		rowGap = 2
+	}
+
 	fh := ctx.FontHeight(style)
-	rowH := max(fh, legendSwatchH)
+	rowH := max(fh, swatchSize)
 
 	// Measure widest entry.
 	maxW := float32(0)
@@ -106,29 +148,46 @@ func drawLegend(
 		maxW = max(maxW, w)
 	}
 
-	boxW := legendPadding*2 + legendSwatchW + legendItemGap + maxW
-	boxH := legendPadding*2 +
+	boxW := padding*2 + swatchSize + itemGap + maxW
+	boxH := padding*2 +
 		float32(len(named))*rowH +
-		float32(len(named)-1)*legendRowGap
+		float32(len(named)-1)*rowGap
 
-	bx := right - boxW - 4
-	by := top + 4
+	// Determine position.
+	pos := ls.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+	var bx, by float32
+	switch pos {
+	case theme.LegendTopLeft:
+		bx = left + 4
+		by = top + 4
+	case theme.LegendBottomRight:
+		bx = right - boxW - 4
+		by = bottom - boxH - 4
+	case theme.LegendBottomLeft:
+		bx = left + 4
+		by = bottom - boxH - 4
+	default: // LegendTopRight
+		bx = right - boxW - 4
+		by = top + 4
+	}
 
 	// Background.
-	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4,
-		gui.RGBA(0, 0, 0, 120))
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
 
 	// Entries.
 	for i, e := range named {
-		ey := by + legendPadding +
-			float32(i)*(rowH+legendRowGap)
+		ey := by + padding +
+			float32(i)*(rowH+rowGap)
 		// Color swatch.
-		sx := bx + legendPadding
-		sy := ey + (rowH-legendSwatchH)/2
+		sx := bx + padding
+		sy := ey + (rowH-swatchSize)/2
 		ctx.FilledRoundedRect(sx, sy,
-			legendSwatchW, legendSwatchH, 2, e.Color)
+			swatchSize, swatchSize, 2, e.Color)
 		// Label.
-		tx := sx + legendSwatchW + legendItemGap
+		tx := sx + swatchSize + itemGap
 		ty := ey + (rowH-fh)/2
 		ctx.Text(tx, ty, e.Name, style)
 	}

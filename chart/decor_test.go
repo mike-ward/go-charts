@@ -65,7 +65,7 @@ func TestDrawLegendRendersEntries(t *testing.T) {
 		{Name: "Series A", Color: gui.Hex(0xFF0000)},
 		{Name: "Series B", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 380, 40)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
 	// Background rect + 2 swatches = 3 rounded rects → batches.
 	if len(dc.Batches()) == 0 {
 		t.Error("expected batches for legend background/swatches")
@@ -83,7 +83,7 @@ func TestDrawLegendSkipsUnnamedEntries(t *testing.T) {
 		{Name: "", Color: gui.Hex(0xFF0000)},
 		{Name: "Visible", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 380, 40)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
 	// Only 1 named entry → 1 text label.
 	if len(dc.Texts()) != 1 {
 		t.Errorf("texts = %d, want 1", len(dc.Texts()))
@@ -97,7 +97,7 @@ func TestDrawLegendAllUnnamedSkipped(t *testing.T) {
 		{Name: "", Color: gui.Hex(0xFF0000)},
 		{Name: "", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 380, 40)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
 	if len(dc.Texts()) != 0 {
 		t.Errorf("all-unnamed should produce no text, got %d",
 			len(dc.Texts()))
@@ -111,7 +111,7 @@ func TestDrawLegendAllUnnamedSkipped(t *testing.T) {
 func TestDrawLegendEmptyEntries(t *testing.T) {
 	ctx, dc := testCtx(400, 300)
 	th := testTheme()
-	drawLegend(ctx, nil, th, 380, 40)
+	drawLegend(ctx, nil, th, 60, 380, 40, 260, nil)
 	if len(dc.Texts()) != 0 || len(dc.Batches()) != 0 {
 		t.Error("nil entries should produce no output")
 	}
@@ -241,5 +241,126 @@ func TestBarDrawNoTitleNoLegend(t *testing.T) {
 		if txt.Text == "test-bar-bare" {
 			t.Error("ID should not appear as title")
 		}
+	}
+}
+
+// --- Legend position ---
+
+func TestDrawLegendTopLeft(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	th.Legend.Position = theme.LegendTopLeft
+	entries := []legendEntry{
+		{Name: "A", Color: gui.Hex(0xFF0000)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	if len(dc.Texts()) != 1 {
+		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
+	}
+}
+
+func TestDrawLegendPerChartOverride(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	// Theme says TopRight, override to BottomLeft.
+	pos := theme.LegendBottomLeft
+	entries := []legendEntry{
+		{Name: "A", Color: gui.Hex(0xFF0000)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos)
+	if len(dc.Texts()) != 1 {
+		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
+	}
+}
+
+func TestDrawLegendCustomBackground(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	th.Legend.Background = gui.RGBA(255, 0, 0, 200)
+	entries := []legendEntry{
+		{Name: "A", Color: gui.Hex(0x00FF00)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	if len(dc.Batches()) == 0 {
+		t.Error("expected batches for legend background")
+	}
+}
+
+func TestDrawLegendCustomTextStyle(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	th.Legend.TextStyle = gui.TextStyle{
+		Size: 20, Color: gui.Hex(0xFF0000),
+	}
+	entries := []legendEntry{
+		{Name: "Big", Color: gui.Hex(0x0000FF)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	if len(dc.Texts()) != 1 {
+		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
+	}
+}
+
+// --- Tick mark style ---
+
+func TestResolvedTickMarkDefaults(t *testing.T) {
+	th := testTheme()
+	length, width, color := resolvedTickMark(th)
+	if length != DefaultTickLength {
+		t.Errorf("length = %v, want %v", length, DefaultTickLength)
+	}
+	if width != th.AxisWidth {
+		t.Errorf("width = %v, want %v", width, th.AxisWidth)
+	}
+	if color != th.AxisColor {
+		t.Errorf("color = %v, want %v", color, th.AxisColor)
+	}
+}
+
+func TestResolvedTickMarkCustom(t *testing.T) {
+	th := testTheme()
+	th.TickMark = theme.TickMarkStyle{
+		Length: 10,
+		Color:  gui.Hex(0xFF0000),
+		Width:  3,
+	}
+	length, width, color := resolvedTickMark(th)
+	if length != 10 {
+		t.Errorf("length = %v, want 10", length)
+	}
+	if width != 3 {
+		t.Errorf("width = %v, want 3", width)
+	}
+	if color != gui.Hex(0xFF0000) {
+		t.Errorf("color = %v, want red", color)
+	}
+}
+
+// --- X tick rotation ---
+
+func TestLineXTickRotation(t *testing.T) {
+	lv := Line(LineCfg{
+		BaseCfg: BaseCfg{
+			ID:            "rot-test",
+			XTickRotation: -0.5,
+		},
+		Series: []series.XY{
+			series.XYFromYValues("S", []float64{1, 2, 3}),
+		},
+	}).(*lineView)
+
+	dc := gui.DrawContext{Width: 400, Height: 300}
+	lv.draw(&dc)
+
+	// At least one X tick label should have rotation set.
+	found := false
+	for _, txt := range dc.Texts() {
+		if txt.Style.RotationRadians == -0.5 {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("no X tick label with expected rotation")
 	}
 }
