@@ -79,6 +79,11 @@ func viewTitleBar(entry DemoEntry) gui.View {
 }
 
 var componentDemos = map[string]func(*gui.Window) gui.View{
+	"type_basecfg":    demoBaseCfg,
+	"type_series_xy":  demoSeriesXY,
+	"type_series_cat": demoSeriesCategory,
+	"type_theme":      demoTheme,
+	"type_axis":       demoAxisLinear,
 	"line_basic":      demoLineBasic,
 	"line_markers":    demoLineMarkers,
 	"line_area":       demoLineArea,

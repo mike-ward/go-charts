@@ -4,6 +4,7 @@ import "strings"
 
 const (
 	groupAll     = "all"
+	groupTypes   = "types"
 	groupLine    = "line"
 	groupBar     = "bar"
 	groupPie     = "pie"
@@ -45,6 +46,7 @@ type DemoGroup struct {
 
 var demoGroups = []DemoGroup{
 	{groupAll, "All"},
+	{groupTypes, "Types"},
 	{groupLine, "Line"},
 	{groupBar, "Bar"},
 	{groupPie, "Pie"},
@@ -53,6 +55,13 @@ var demoGroups = []DemoGroup{
 }
 
 var demoEntries = []DemoEntry{
+	// Types
+	{ID: "type_basecfg", Label: "BaseCfg", Group: groupTypes, Summary: "Common configuration fields embedded by all chart types.", Tags: []string{"base", "config", "id", "title", "sizing", "theme", "version"}},
+	{ID: "type_series_xy", Label: "series.XY", Group: groupTypes, Summary: "XY data series for Line, Area, and Scatter charts.", Tags: []string{"series", "xy", "point", "data", "slices"}},
+	{ID: "type_series_cat", Label: "series.Category", Group: groupTypes, Summary: "Categorical data series for Bar charts.", Tags: []string{"series", "category", "label", "value", "map"}},
+	{ID: "type_theme", Label: "theme.Theme", Group: groupTypes, Summary: "Visual style: colors, fonts, padding, palette.", Tags: []string{"theme", "palette", "color", "style", "tableau", "pastel", "vivid"}},
+	{ID: "type_axis", Label: "axis.Linear", Group: groupTypes, Summary: "Linear numeric axis with auto-tick generation.", Tags: []string{"axis", "linear", "tick", "range", "format", "auto"}},
+
 	// Line
 	{ID: "line_basic", Label: "Basic Line", Group: groupLine, Summary: "Monthly revenue comparison across two years.", Tags: []string{"line", "multi", "revenue"}},
 	{ID: "line_markers", Label: "Line with Markers", Group: groupLine, Summary: "Temperature readings with visible data points.", Tags: []string{"line", "markers", "temperature"}},

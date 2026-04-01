@@ -23,6 +23,7 @@ func demoWithCode(
 				ID:      "code-" + id,
 				Source:  source,
 				Padding: gui.NoPadding,
+				Style:   gui.DefaultMarkdownStyle(),
 			}),
 		},
 	})
