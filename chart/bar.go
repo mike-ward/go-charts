@@ -7,6 +7,7 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -38,6 +39,11 @@ func Bar(cfg BarCfg) gui.View {
 	cfg.applyDefaults()
 	return &barView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (bv *barView) Draw(dc *gui.DrawContext) { bv.draw(dc) }
+
+func (bv *barView) chartTheme() *theme.Theme { return bv.cfg.Theme }
 
 func (bv *barView) Content() []gui.View { return nil }
 

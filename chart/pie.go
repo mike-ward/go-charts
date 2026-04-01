@@ -2,6 +2,7 @@ package chart
 
 import (
 	"github.com/mike-ward/go-charts/render"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -35,6 +36,11 @@ func Pie(cfg PieCfg) gui.View {
 	cfg.applyDefaults()
 	return &pieView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (pv *pieView) Draw(dc *gui.DrawContext) { pv.draw(dc) }
+
+func (pv *pieView) chartTheme() *theme.Theme { return pv.cfg.Theme }
 
 func (pv *pieView) Content() []gui.View { return nil }
 

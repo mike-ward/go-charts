@@ -4,6 +4,7 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -47,6 +48,11 @@ func Scatter(cfg ScatterCfg) gui.View {
 	}
 	return &scatterView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (sv *scatterView) Draw(dc *gui.DrawContext) { sv.draw(dc) }
+
+func (sv *scatterView) chartTheme() *theme.Theme { return sv.cfg.Theme }
 
 func (sv *scatterView) Content() []gui.View { return nil }
 

@@ -1,13 +1,17 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/mike-ward/go-charts/chart"
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-gui/gui"
 	"github.com/mike-ward/go-gui/gui/backend"
 )
 
-type App struct{}
+type App struct {
+	Status string
+}
 
 func main() {
 	gui.SetTheme(gui.ThemeDarkBordered)
@@ -25,11 +29,13 @@ func main() {
 	backend.Run(w)
 }
 
-func view(w *gui.Window) gui.View {
+func lineChart() gui.View {
 	return chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:    "line-demo",
-			Title: "Monthly Revenue",
+			ID:     "line-demo",
+			Title:  "Monthly Revenue",
+			Sizing: gui.FillFixed,
+			Height: 520,
 		},
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
@@ -54,6 +60,36 @@ func view(w *gui.Window) gui.View {
 					{X: 4, Y: 22},
 					{X: 5, Y: 19},
 					{X: 6, Y: 26},
+				},
+			}),
+		},
+	})
+}
+
+func view(w *gui.Window) gui.View {
+	app := gui.State[App](w)
+	return gui.Column(gui.ContainerCfg{
+		Content: []gui.View{
+			lineChart(),
+			gui.Row(gui.ContainerCfg{
+				Sizing:  gui.FillFit,
+				Padding: gui.SomeP(8, 8, 8, 8),
+				Spacing: gui.SomeF(8),
+				Content: []gui.View{
+					gui.Button(gui.ButtonCfg{
+						Content: []gui.View{gui.Text(gui.TextCfg{Text: "Export PNG"})},
+						OnClick: func(_ *gui.Layout, _ *gui.Event, w *gui.Window) {
+							v := lineChart()
+							err := chart.ExportPNG(v, 800, 600, "line-chart.png")
+							a := gui.State[App](w)
+							if err != nil {
+								a.Status = fmt.Sprintf("Export failed: %v", err)
+							} else {
+								a.Status = "Exported to line-chart.png"
+							}
+						},
+					}),
+					gui.Text(gui.TextCfg{Text: app.Status}),
 				},
 			}),
 		},

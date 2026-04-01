@@ -4,6 +4,7 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -39,6 +40,11 @@ func Area(cfg AreaCfg) gui.View {
 	}
 	return &areaView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (av *areaView) Draw(dc *gui.DrawContext) { av.draw(dc) }
+
+func (av *areaView) chartTheme() *theme.Theme { return av.cfg.Theme }
 
 func (av *areaView) Content() []gui.View { return nil }
 

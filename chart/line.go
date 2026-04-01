@@ -7,6 +7,7 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -45,6 +46,11 @@ func Line(cfg LineCfg) gui.View {
 	}
 	return &lineView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (lv *lineView) Draw(dc *gui.DrawContext) { lv.draw(dc) }
+
+func (lv *lineView) chartTheme() *theme.Theme { return lv.cfg.Theme }
 
 func (lv *lineView) Content() []gui.View { return nil }
 

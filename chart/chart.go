@@ -6,6 +6,7 @@ import (
 	"math"
 
 	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -30,6 +31,11 @@ func Chart(cfg Cfg) gui.View {
 	cfg.applyDefaults()
 	return &chartView{cfg: cfg}
 }
+
+// Draw renders the chart onto dc for headless export.
+func (cv *chartView) Draw(dc *gui.DrawContext) { cv.draw(dc) }
+
+func (cv *chartView) chartTheme() *theme.Theme { return cv.cfg.Theme }
 
 func (cv *chartView) Content() []gui.View { return nil }
 

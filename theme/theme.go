@@ -8,7 +8,7 @@ import (
 // Default padding values for chart themes.
 const (
 	DefaultPaddingTop    float32 = 40
-	DefaultPaddingRight  float32 = 20
+	DefaultPaddingRight  float32 = 40
 	DefaultPaddingBottom float32 = 40
 	DefaultPaddingLeft   float32 = 60
 )
