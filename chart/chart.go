@@ -6,31 +6,18 @@ import (
 	"math"
 
 	"github.com/mike-ward/go-charts/series"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
 // Cfg configures a chart widget.
 type Cfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Series []series.Series
 
 	// Appearance
-	Theme   *theme.Theme
 	Padding gui.Padding
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	// Internal
-	Version uint64
 }
 
 // chartView implements gui.View for charts.
@@ -40,12 +27,7 @@ type chartView struct {
 
 // Chart creates a new chart view.
 func Chart(cfg Cfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
-	}
+	cfg.applyDefaults()
 	return &chartView{cfg: cfg}
 }
 

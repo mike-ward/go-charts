@@ -27,8 +27,10 @@ func main() {
 
 func view(w *gui.Window) gui.View {
 	return chart.Bar(chart.BarCfg{
-		ID:    "bar-demo",
-		Title: "Sales by Region",
+		BaseCfg: chart.BaseCfg{
+			ID:    "bar-demo",
+			Title: "Sales by Region",
+		},
 		Series: []series.Category{
 			series.NewCategory(series.CategoryCfg{
 				Name:  "Q1",

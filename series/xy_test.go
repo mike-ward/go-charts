@@ -29,3 +29,47 @@ func TestXYEmpty(t *testing.T) {
 		t.Errorf("Len = %d, want 0", s.Len())
 	}
 }
+
+func TestXYFromSlices(t *testing.T) {
+	s := XYFromSlices("test", []float64{1, 2, 3}, []float64{10, 20, 30})
+	if s.Name() != "test" {
+		t.Errorf("Name = %q, want %q", s.Name(), "test")
+	}
+	if s.Len() != 3 {
+		t.Fatalf("Len = %d, want 3", s.Len())
+	}
+	if s.Points[1].X != 2 || s.Points[1].Y != 20 {
+		t.Errorf("Points[1] = %v, want {2, 20}", s.Points[1])
+	}
+}
+
+func TestXYFromSlicesEmpty(t *testing.T) {
+	s := XYFromSlices("empty", nil, nil)
+	if s.Len() != 0 {
+		t.Errorf("Len = %d, want 0", s.Len())
+	}
+}
+
+func TestXYFromSlicesPanic(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic on mismatched lengths")
+		}
+	}()
+	XYFromSlices("bad", []float64{1}, []float64{1, 2})
+}
+
+func TestXYFromYValues(t *testing.T) {
+	s := XYFromYValues("auto", []float64{10, 20, 30})
+	if s.Len() != 3 {
+		t.Fatalf("Len = %d, want 3", s.Len())
+	}
+	for i, p := range s.Points {
+		if p.X != float64(i) {
+			t.Errorf("Points[%d].X = %v, want %v", i, p.X, float64(i))
+		}
+	}
+	if s.Points[2].Y != 30 {
+		t.Errorf("Points[2].Y = %v, want 30", s.Points[2].Y)
+	}
+}

@@ -1,7 +1,11 @@
 // Package axis provides axis types for chart positioning and labeling.
 package axis
 
-import "github.com/mike-ward/go-gui/gui"
+import (
+	"fmt"
+
+	"github.com/mike-ward/go-gui/gui"
+)
 
 // Axis defines the interface for chart axes.
 type Axis interface {
@@ -44,3 +48,12 @@ type GridLine struct {
 	Color    gui.Color
 	Width    float32
 }
+
+// String implements fmt.Stringer.
+func (t Tick) String() string {
+	return fmt.Sprintf("Tick{%q @ %.1f}", t.Label, t.Position)
+}
+
+// TickFormat converts a numeric axis value to its display string.
+// When nil, the axis uses its default formatting.
+type TickFormat func(float64) string

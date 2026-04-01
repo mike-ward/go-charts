@@ -1,9 +1,9 @@
 package chart
 
 import (
+	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -21,25 +21,18 @@ const (
 
 // ScatterCfg configures a scatter plot.
 type ScatterCfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Series []series.XY
 
+	// Axes (optional; auto-created from series bounds when nil)
+	XAxis *axis.Linear
+	YAxis *axis.Linear
+
 	// Appearance
-	Theme      *theme.Theme
 	MarkerSize float32 // 0 means default (6)
 	Marker     MarkerShape
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	Version uint64
 }
 
 type scatterView struct {
@@ -48,14 +41,9 @@ type scatterView struct {
 
 // Scatter creates a scatter plot view.
 func Scatter(cfg ScatterCfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
+	cfg.applyDefaults()
 	if cfg.MarkerSize == 0 {
-		cfg.MarkerSize = 6
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
+		cfg.MarkerSize = DefaultMarkerSize
 	}
 	return &scatterView{cfg: cfg}
 }

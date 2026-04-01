@@ -7,32 +7,23 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
 // BarCfg configures a bar chart.
 type BarCfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Series []series.Category
 
+	// Axes (optional; Y auto-created from series bounds when nil)
+	YAxis *axis.Linear
+
 	// Appearance
-	Theme    *theme.Theme
 	BarWidth float32
 	BarGap   float32
 	Radius   float32 // corner radius for bars
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	Version uint64
 }
 
 type barView struct {
@@ -44,12 +35,7 @@ type barView struct {
 
 // Bar creates a bar chart view.
 func Bar(cfg BarCfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
-	}
+	cfg.applyDefaults()
 	return &barView{cfg: cfg}
 }
 
@@ -102,31 +88,35 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	// Recompute Y axis only when version changes.
 	if bv.yAxis == nil || cfg.Version != bv.lastVersion {
-		minVal := 0.0
-		maxVal := 0.0
-		for _, s := range cfg.Series {
-			for _, v := range s.Values {
-				if !finite(v.Value) {
-					continue
+		if cfg.YAxis != nil {
+			bv.yAxis = cfg.YAxis
+		} else {
+			minVal := 0.0
+			maxVal := 0.0
+			for _, s := range cfg.Series {
+				for _, v := range s.Values {
+					if !finite(v.Value) {
+						continue
+					}
+					minVal = min(minVal, v.Value)
+					maxVal = max(maxVal, v.Value)
 				}
-				minVal = min(minVal, v.Value)
-				maxVal = max(maxVal, v.Value)
 			}
+			if minVal == 0 && maxVal == 0 {
+				maxVal = 1
+			}
+			rangeVal := maxVal - minVal
+			if rangeVal == 0 {
+				rangeVal = 1
+			}
+			pad := rangeVal * 0.05
+			bv.yAxis = axis.NewLinear(
+				axis.LinearCfg{AutoRange: true})
+			bv.yAxis.SetRange(
+				min(0, minVal-pad),
+				max(0, maxVal+pad),
+			)
 		}
-		if minVal == 0 && maxVal == 0 {
-			maxVal = 1
-		}
-		// 5% headroom; range always includes zero baseline.
-		rangeVal := maxVal - minVal
-		if rangeVal == 0 {
-			rangeVal = 1
-		}
-		pad := rangeVal * 0.05
-		bv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		bv.yAxis.SetRange(
-			min(0, minVal-pad),
-			max(0, maxVal+pad),
-		)
 		bv.lastVersion = cfg.Version
 	}
 
@@ -161,7 +151,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	barGap := cfg.BarGap
 	if barGap == 0 {
-		barGap = 4
+		barGap = DefaultBarGap
 	}
 
 	barWidth := cfg.BarWidth

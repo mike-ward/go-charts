@@ -1,6 +1,7 @@
 package axis
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -37,5 +38,37 @@ func TestGenerateNiceTicks(t *testing.T) {
 	last := ticks[len(ticks)-1]
 	if last < 100 {
 		t.Errorf("last tick %v should be >= 100", last)
+	}
+}
+
+func TestLinearTickFormat(t *testing.T) {
+	a := NewLinear(LinearCfg{
+		Min: 0, Max: 100,
+		TickFormat: func(v float64) string {
+			return fmt.Sprintf("$%.0f", v)
+		},
+	})
+	ticks := a.Ticks(0, 500)
+	if len(ticks) == 0 {
+		t.Fatal("expected ticks")
+	}
+	for _, tk := range ticks {
+		if tk.Label[0] != '$' {
+			t.Errorf("tick label %q missing $ prefix", tk.Label)
+		}
+	}
+}
+
+func TestLinearTickFormatNil(t *testing.T) {
+	a := NewLinear(LinearCfg{Min: 0, Max: 10})
+	ticks := a.Ticks(0, 100)
+	if len(ticks) == 0 {
+		t.Fatal("expected ticks")
+	}
+	// Default format should not be empty.
+	for _, tk := range ticks {
+		if tk.Label == "" {
+			t.Errorf("tick label should not be empty")
+		}
 	}
 }

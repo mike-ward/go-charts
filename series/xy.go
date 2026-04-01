@@ -1,6 +1,7 @@
 package series
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/mike-ward/go-gui/gui"
@@ -34,6 +35,31 @@ func NewXY(cfg XYCfg) XY {
 	}
 }
 
+// XYFromSlices creates an XY series from parallel X and Y slices.
+// Panics if len(xVals) != len(yVals).
+func XYFromSlices(name string, xVals, yVals []float64) XY {
+	if len(xVals) != len(yVals) {
+		panic(fmt.Sprintf(
+			"series.XYFromSlices: len(xVals)=%d != len(yVals)=%d",
+			len(xVals), len(yVals)))
+	}
+	pts := make([]Point, len(xVals))
+	for i := range xVals {
+		pts[i] = Point{X: xVals[i], Y: yVals[i]}
+	}
+	return XY{name: name, Points: pts}
+}
+
+// XYFromYValues creates an XY series with auto-indexed X values
+// (0, 1, 2, ...).
+func XYFromYValues(name string, yVals []float64) XY {
+	pts := make([]Point, len(yVals))
+	for i, y := range yVals {
+		pts[i] = Point{X: float64(i), Y: y}
+	}
+	return XY{name: name, Points: pts}
+}
+
 // Name implements Series.
 func (s XY) Name() string { return s.name }
 
@@ -42,6 +68,16 @@ func (s XY) Len() int { return len(s.Points) }
 
 // Color implements Series.
 func (s XY) Color() gui.Color { return s.color }
+
+// String implements fmt.Stringer.
+func (s XY) String() string {
+	return fmt.Sprintf("XY{%q, %d points}", s.name, len(s.Points))
+}
+
+// String implements fmt.Stringer.
+func (p Point) String() string {
+	return fmt.Sprintf("(%.4g, %.4g)", p.X, p.Y)
+}
 
 // finite reports whether v is neither NaN nor +/-Inf.
 func finite(v float64) bool {

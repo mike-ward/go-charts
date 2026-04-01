@@ -27,8 +27,10 @@ func main() {
 
 func view(w *gui.Window) gui.View {
 	return chart.Line(chart.LineCfg{
-		ID:    "line-demo",
-		Title: "Monthly Revenue",
+		BaseCfg: chart.BaseCfg{
+			ID:    "line-demo",
+			Title: "Monthly Revenue",
+		},
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
 				Name:  "2025",

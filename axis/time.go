@@ -4,9 +4,10 @@ import "time"
 
 // Time is a time-based axis.
 type Time struct {
-	title    string
-	min, max time.Time
-	format   string
+	title      string
+	min, max   time.Time
+	format     string
+	tickFormat TickFormat
 }
 
 // TimeCfg configures a time axis.
@@ -15,6 +16,11 @@ type TimeCfg struct {
 	Min    time.Time
 	Max    time.Time
 	Format string // Go time format string
+
+	// TickFormat overrides the default time formatting. The
+	// function receives seconds (float64) as produced by
+	// timeToSeconds.
+	TickFormat TickFormat
 }
 
 // NewTime creates a time axis.
@@ -24,10 +30,21 @@ func NewTime(cfg TimeCfg) *Time {
 		format = "2006-01-02"
 	}
 	return &Time{
-		title:  cfg.Title,
-		min:    cfg.Min,
-		max:    cfg.Max,
-		format: format,
+		title:      cfg.Title,
+		min:        cfg.Min,
+		max:        cfg.Max,
+		format:     format,
+		tickFormat: cfg.TickFormat,
+	}
+}
+
+// FormatTime returns a TickFormat that converts seconds (float64)
+// to a string using the given Go time layout.
+func FormatTime(layout string) TickFormat {
+	return func(seconds float64) string {
+		sec := int64(seconds)
+		nsec := int64((seconds - float64(sec)) * 1e9)
+		return time.Unix(sec, nsec).Format(layout)
 	}
 }
 

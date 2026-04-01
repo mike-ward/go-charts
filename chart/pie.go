@@ -2,7 +2,6 @@ package chart
 
 import (
 	"github.com/mike-ward/go-charts/render"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -15,27 +14,16 @@ type PieSlice struct {
 
 // PieCfg configures a pie or donut chart.
 type PieCfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Slices []PieSlice
 
 	// Appearance
-	Theme       *theme.Theme
 	InnerRadius float32 // >0 makes it a donut chart
 	StartAngle  float32 // in radians
 	ShowLabels  bool
 	ShowPercent bool
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	Version uint64
 }
 
 type pieView struct {
@@ -44,12 +32,7 @@ type pieView struct {
 
 // Pie creates a pie or donut chart view.
 func Pie(cfg PieCfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
-	}
+	cfg.applyDefaults()
 	return &pieView{cfg: cfg}
 }
 

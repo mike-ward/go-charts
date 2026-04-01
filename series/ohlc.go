@@ -1,6 +1,7 @@
 package series
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/mike-ward/go-gui/gui"
@@ -54,3 +55,9 @@ func (s OHLCSeries) ColorUp() gui.Color { return s.colorUp }
 
 // ColorDown returns the color for downward (close < open) candles.
 func (s OHLCSeries) ColorDown() gui.Color { return s.colorDown }
+
+// String implements fmt.Stringer.
+func (s OHLCSeries) String() string {
+	return fmt.Sprintf("OHLC{%q, %d candles}",
+		s.name, len(s.Points))
+}

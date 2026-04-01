@@ -1,34 +1,27 @@
 package chart
 
 import (
+	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
 // AreaCfg configures an area chart.
 type AreaCfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Series []series.XY
 
+	// Axes (optional; auto-created from series bounds when nil)
+	XAxis *axis.Linear
+	YAxis *axis.Linear
+
 	// Appearance
-	Theme     *theme.Theme
 	Stacked   bool
 	LineWidth float32 // 0 means default (2)
 	Opacity   float32 // fill opacity 0-1; 0 means default (0.3)
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	Version uint64
 }
 
 type areaView struct {
@@ -37,17 +30,12 @@ type areaView struct {
 
 // Area creates an area chart view.
 func Area(cfg AreaCfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
-	}
+	cfg.applyDefaults()
 	if cfg.LineWidth == 0 {
-		cfg.LineWidth = 2
+		cfg.LineWidth = DefaultLineWidth
 	}
 	if cfg.Opacity == 0 {
-		cfg.Opacity = 0.3
+		cfg.Opacity = DefaultAreaOpacity
 	}
 	return &areaView{cfg: cfg}
 }

@@ -1,0 +1,87 @@
+package chart
+
+// Validate checks LineCfg for invalid or contradictory settings.
+// Returns nil when valid.
+func (c *LineCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.LineWidth < 0 {
+		errs = append(errs, "negative LineWidth")
+	}
+	return buildError("chart.Line", errs)
+}
+
+// Validate checks BarCfg for invalid or contradictory settings.
+// Returns nil when valid.
+func (c *BarCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.BarWidth < 0 {
+		errs = append(errs, "negative BarWidth")
+	}
+	if c.BarGap < 0 {
+		errs = append(errs, "negative BarGap")
+	}
+	return buildError("chart.Bar", errs)
+}
+
+// Validate checks AreaCfg for invalid or contradictory settings.
+// Returns nil when valid.
+func (c *AreaCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.LineWidth < 0 {
+		errs = append(errs, "negative LineWidth")
+	}
+	if c.Opacity < 0 || c.Opacity > 1 {
+		errs = append(errs, "Opacity out of range [0,1]")
+	}
+	return buildError("chart.Area", errs)
+}
+
+// Validate checks ScatterCfg for invalid or contradictory
+// settings. Returns nil when valid.
+func (c *ScatterCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.MarkerSize < 0 {
+		errs = append(errs, "negative MarkerSize")
+	}
+	return buildError("chart.Scatter", errs)
+}
+
+// Validate checks PieCfg for invalid or contradictory settings.
+// Returns nil when valid.
+func (c *PieCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Slices) == 0 {
+		errs = append(errs, "no slice data")
+	}
+	if c.InnerRadius < 0 {
+		errs = append(errs, "negative InnerRadius")
+	}
+	return buildError("chart.Pie", errs)
+}

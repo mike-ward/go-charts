@@ -4,24 +4,27 @@ import "github.com/mike-ward/go-charts/scale"
 
 // Log is a logarithmic axis.
 type Log struct {
-	title string
-	sc    *scale.Log
+	title      string
+	sc         *scale.Log
+	tickFormat TickFormat
 }
 
 // LogCfg configures a logarithmic axis.
 type LogCfg struct {
-	Title string
-	Min   float64
-	Max   float64
-	Base  float64
+	Title      string
+	Min        float64
+	Max        float64
+	Base       float64
+	TickFormat TickFormat
 }
 
 // NewLog creates a logarithmic axis. Base defaults to 10 via
 // scale.NewLog when <= 0.
 func NewLog(cfg LogCfg) *Log {
 	return &Log{
-		title: cfg.Title,
-		sc:    scale.NewLog(cfg.Min, cfg.Max, cfg.Base),
+		title:      cfg.Title,
+		sc:         scale.NewLog(cfg.Min, cfg.Max, cfg.Base),
+		tickFormat: cfg.TickFormat,
 	}
 }
 

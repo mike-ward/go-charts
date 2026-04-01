@@ -8,25 +8,28 @@ import (
 
 // Linear is a linear numeric axis with auto-tick generation.
 type Linear struct {
-	title     string
-	sc        *scale.Linear
-	autoRange bool
+	title      string
+	sc         *scale.Linear
+	autoRange  bool
+	tickFormat TickFormat
 }
 
 // LinearCfg configures a linear axis.
 type LinearCfg struct {
-	Title     string
-	Min       float64
-	Max       float64
-	AutoRange bool
+	Title      string
+	Min        float64
+	Max        float64
+	AutoRange  bool
+	TickFormat TickFormat
 }
 
 // NewLinear creates a linear axis.
 func NewLinear(cfg LinearCfg) *Linear {
 	return &Linear{
-		title:     cfg.Title,
-		sc:        scale.NewLinear(cfg.Min, cfg.Max),
-		autoRange: cfg.AutoRange,
+		title:      cfg.Title,
+		sc:         scale.NewLinear(cfg.Min, cfg.Max),
+		autoRange:  cfg.AutoRange,
+		tickFormat: cfg.TickFormat,
 	}
 }
 
@@ -44,9 +47,13 @@ func (a *Linear) Ticks(pixelMin, pixelMax float32) []Tick {
 	values := GenerateNiceTicks(dMin, dMax, 8)
 	ticks := make([]Tick, 0, len(values))
 	for _, v := range values {
+		label := formatTickValue(v)
+		if a.tickFormat != nil {
+			label = a.tickFormat(v)
+		}
 		ticks = append(ticks, Tick{
 			Value:    v,
-			Label:    formatTickValue(v),
+			Label:    label,
 			Position: a.Transform(v, pixelMin, pixelMax),
 		})
 	}

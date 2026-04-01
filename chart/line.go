@@ -7,32 +7,24 @@ import (
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
-	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
 // LineCfg configures a line chart.
 type LineCfg struct {
-	ID     string
-	Title  string
-	Sizing gui.Sizing
-	Width  float32
-	Height float32
+	BaseCfg
 
 	// Data
 	Series []series.XY
 
+	// Axes (optional; auto-created from series bounds when nil)
+	XAxis *axis.Linear
+	YAxis *axis.Linear
+
 	// Appearance
-	Theme       *theme.Theme
 	LineWidth   float32 // 0 means default (2)
 	ShowMarkers bool
 	ShowArea    bool // filled area under the line
-
-	// Interaction
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
-
-	Version uint64
 }
 
 type lineView struct {
@@ -47,14 +39,9 @@ type lineView struct {
 
 // Line creates a line chart view.
 func Line(cfg LineCfg) gui.View {
-	if cfg.Sizing == (gui.Sizing{}) {
-		cfg.Sizing = gui.FillFill
-	}
+	cfg.applyDefaults()
 	if cfg.LineWidth == 0 {
-		cfg.LineWidth = 2
-	}
-	if cfg.Theme == nil {
-		cfg.Theme = theme.Default()
+		cfg.LineWidth = DefaultLineWidth
 	}
 	return &lineView{cfg: cfg}
 }
@@ -100,43 +87,54 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	// Recompute axes only when version changes.
 	if lv.xAxis == nil || cfg.Version != lv.lastVersion {
+		// Use user-supplied axes or auto-create from bounds.
+		needBounds := cfg.XAxis == nil || cfg.YAxis == nil
 		minX, maxX := math.MaxFloat64, -math.MaxFloat64
 		minY, maxY := math.MaxFloat64, -math.MaxFloat64
-		for _, s := range cfg.Series {
-			if s.Len() == 0 {
-				continue
+
+		if needBounds {
+			for _, s := range cfg.Series {
+				if s.Len() == 0 {
+					continue
+				}
+				sx0, sx1, sy0, sy1 := s.Bounds()
+				minX = min(minX, sx0)
+				maxX = max(maxX, sx1)
+				minY = min(minY, sy0)
+				maxY = max(maxY, sy1)
 			}
-			sx0, sx1, sy0, sy1 := s.Bounds()
-			minX = min(minX, sx0)
-			maxX = max(maxX, sx1)
-			minY = min(minY, sy0)
-			maxY = max(maxY, sy1)
-		}
-		if minX > maxX {
-			// All series empty.
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return
-		}
-
-		// Defense-in-depth: reject non-finite bounds that
-		// slipped through series filtering.
-		if !finite(minX) || !finite(maxX) ||
-			!finite(minY) || !finite(maxY) {
-			slog.Warn("non-finite bounds", "chart", cfg.ID)
-			return
+			if minX > maxX {
+				slog.Warn("all series empty", "chart", cfg.ID)
+				return
+			}
+			if !finite(minX) || !finite(maxX) ||
+				!finite(minY) || !finite(maxY) {
+				slog.Warn("non-finite bounds", "chart", cfg.ID)
+				return
+			}
 		}
 
-		yRange := maxY - minY
-		if yRange == 0 {
-			yRange = 1
+		if cfg.XAxis != nil {
+			lv.xAxis = cfg.XAxis
+		} else {
+			lv.xAxis = axis.NewLinear(
+				axis.LinearCfg{AutoRange: true})
+			lv.xAxis.SetRange(minX, maxX)
 		}
-		minY -= yRange * 0.05
-		maxY += yRange * 0.05
 
-		lv.xAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		lv.xAxis.SetRange(minX, maxX)
-		lv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		lv.yAxis.SetRange(minY, maxY)
+		if cfg.YAxis != nil {
+			lv.yAxis = cfg.YAxis
+		} else {
+			yRange := maxY - minY
+			if yRange == 0 {
+				yRange = 1
+			}
+			minY -= yRange * 0.05
+			maxY += yRange * 0.05
+			lv.yAxis = axis.NewLinear(
+				axis.LinearCfg{AutoRange: true})
+			lv.yAxis.SetRange(minY, maxY)
+		}
 		lv.lastVersion = cfg.Version
 	}
 
