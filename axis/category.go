@@ -50,7 +50,8 @@ func (a *Category) Transform(value float64, pixelMin, pixelMax float32) float32 
 	}
 	span := pixelMax - pixelMin
 	step := span / float32(n)
-	return pixelMin + step*float32(value) + step/2
+	pos := pixelMin + step*float32(value) + step/2
+	return max(pixelMin, min(pixelMax, pos))
 }
 
 // Inverse implements Axis.
@@ -61,5 +62,6 @@ func (a *Category) Inverse(pixel, pixelMin, pixelMax float32) float64 {
 	}
 	span := pixelMax - pixelMin
 	step := span / float32(n)
-	return float64((pixel - pixelMin) / step)
+	v := float64((pixel - pixelMin) / step)
+	return max(0, min(float64(n-1), v))
 }

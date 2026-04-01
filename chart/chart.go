@@ -2,7 +2,8 @@
 package chart
 
 import (
-	"github.com/mike-ward/go-charts/render"
+	"log/slog"
+
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -66,8 +67,22 @@ func (cv *chartView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (cv *chartView) draw(dc *gui.DrawContext) {
-	ctx := render.NewContext(dc)
-	_ = ctx // TODO: render chart content
+	slog.Debug("chart.Chart has no renderer; use Line, Bar, etc.",
+		"chart", cv.cfg.ID)
+}
+
+// seriesColor returns the explicit color if set, otherwise wraps
+// into the palette. Falls back to visible gray if palette is empty.
+func seriesColor(
+	color gui.Color, index int, palette []gui.Color,
+) gui.Color {
+	if color != (gui.Color{}) {
+		return color
+	}
+	if len(palette) == 0 {
+		return gui.Hex(0x808080)
+	}
+	return palette[index%len(palette)]
 }
 
 // resolveSize returns width/height, falling back to window

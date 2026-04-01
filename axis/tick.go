@@ -59,10 +59,14 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 	niceMin := math.Floor(dataMin/spacing) * spacing
 	niceMax := math.Ceil(dataMax/spacing) * spacing
 
+	const maxTickCount = 500
 	cap := int((niceMax-niceMin)/spacing) + 2
-	ticks := make([]float64, 0, cap)
+	ticks := make([]float64, 0, min(cap, maxTickCount))
 	for v := niceMin; v <= niceMax+spacing*0.5; v += spacing {
 		ticks = append(ticks, v)
+		if len(ticks) >= maxTickCount {
+			break
+		}
 	}
 	return ticks
 }

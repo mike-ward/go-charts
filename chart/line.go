@@ -36,7 +36,13 @@ type LineCfg struct {
 }
 
 type lineView struct {
-	cfg LineCfg
+	cfg         LineCfg
+	lastVersion uint64
+	xAxis       *axis.Linear
+	yAxis       *axis.Linear
+	xTicks      []axis.Tick
+	yTicks      []axis.Tick
+	ptsBuf      []float32
 }
 
 // Line creates a line chart view.
@@ -92,39 +98,53 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		return
 	}
 
-	// Compute bounds across all series.
-	minX, maxX := math.MaxFloat64, -math.MaxFloat64
-	minY, maxY := math.MaxFloat64, -math.MaxFloat64
-	for _, s := range cfg.Series {
-		sx0, sx1, sy0, sy1 := s.Bounds()
-		minX = min(minX, sx0)
-		maxX = max(maxX, sx1)
-		minY = min(minY, sy0)
-		maxY = max(maxY, sy1)
+	// Recompute axes only when version changes.
+	if lv.xAxis == nil || cfg.Version != lv.lastVersion {
+		minX, maxX := math.MaxFloat64, -math.MaxFloat64
+		minY, maxY := math.MaxFloat64, -math.MaxFloat64
+		for _, s := range cfg.Series {
+			if s.Len() == 0 {
+				continue
+			}
+			sx0, sx1, sy0, sy1 := s.Bounds()
+			minX = min(minX, sx0)
+			maxX = max(maxX, sx1)
+			minY = min(minY, sy0)
+			maxY = max(maxY, sy1)
+		}
+		if minX > maxX {
+			// All series empty.
+			slog.Warn("all series empty", "chart", cfg.ID)
+			return
+		}
+
+		yRange := maxY - minY
+		if yRange == 0 {
+			yRange = 1
+		}
+		minY -= yRange * 0.05
+		maxY += yRange * 0.05
+
+		lv.xAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
+		lv.xAxis.SetRange(minX, maxX)
+		lv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
+		lv.yAxis.SetRange(minY, maxY)
+		lv.lastVersion = cfg.Version
 	}
 
-	// Pad Y range so lines don't sit on the edges.
-	yRange := maxY - minY
-	if yRange == 0 {
-		yRange = 1
-	}
-	minY -= yRange * 0.05
-	maxY += yRange * 0.05
+	xAxis := lv.xAxis
+	yAxis := lv.yAxis
 
-	// Create axes for scaling.
-	xAxis := axis.NewLinear(axis.LinearCfg{AutoRange: true})
-	xAxis.SetRange(minX, maxX)
-	yAxis := axis.NewLinear(axis.LinearCfg{AutoRange: true})
-	yAxis.SetRange(minY, maxY)
+	// Generate ticks.
+	lv.yTicks = yAxis.Ticks(bottom, top)
+	lv.xTicks = xAxis.Ticks(left, right)
 
 	// Draw grid lines.
-	yTicks := yAxis.Ticks(bottom, top) // Y pixel: bottom=min, top=max
-	for _, t := range yTicks {
+	for _, t := range lv.yTicks {
 		ctx.Line(left, t.Position, right, t.Position,
 			th.GridColor, th.GridWidth)
 	}
-	xTicks := xAxis.Ticks(left, right)
-	for _, t := range xTicks {
+	for _, t := range lv.xTicks {
 		ctx.Line(t.Position, top, t.Position, bottom,
 			th.GridColor, th.GridWidth)
 	}
@@ -135,11 +155,11 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	// Draw tick marks on axes.
 	const tickLen float32 = 5
-	for _, t := range xTicks {
+	for _, t := range lv.xTicks {
 		ctx.Line(t.Position, bottom, t.Position, bottom+tickLen,
 			th.AxisColor, th.AxisWidth)
 	}
-	for _, t := range yTicks {
+	for _, t := range lv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
 			th.AxisColor, th.AxisWidth)
 	}
@@ -149,29 +169,25 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		if s.Len() == 0 {
 			continue
 		}
-		color := s.Color()
-		if color == (gui.Color{}) {
-			if i < len(th.Palette) {
-				color = th.Palette[i]
-			} else {
-				slog.Warn("no color for series",
-					"chart", cfg.ID, "series", i)
-			}
-		}
+		color := seriesColor(s.Color(), i, th.Palette)
 
-		// Build polyline points (flat x,y pairs).
-		pts := make([]float32, 0, s.Len()*2)
+		// Build polyline points (flat x,y pairs), reusing buffer.
+		needed := s.Len() * 2
+		if cap(lv.ptsBuf) < needed {
+			lv.ptsBuf = make([]float32, 0, needed)
+		}
+		pts := lv.ptsBuf[:0]
 		for _, p := range s.Points {
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
 			pts = append(pts, px, py)
 		}
+		lv.ptsBuf = pts
 
 		// Filled area under the line.
 		if cfg.ShowArea && len(pts) >= 4 {
 			area := make([]float32, len(pts), len(pts)+4)
 			copy(area, pts)
-			// Close polygon along the bottom.
 			area = append(area, pts[len(pts)-2], bottom)
 			area = append(area, pts[0], bottom)
 			fill := gui.RGBA(color.R, color.G, color.B, 40)

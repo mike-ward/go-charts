@@ -6,6 +6,13 @@ import (
 	"github.com/mike-ward/go-gui/gui"
 )
 
+// PieSlice represents a single slice of a pie chart.
+type PieSlice struct {
+	Label string
+	Value float64
+	Color gui.Color
+}
+
 // PieCfg configures a pie or donut chart.
 type PieCfg struct {
 	ID     string
@@ -15,9 +22,7 @@ type PieCfg struct {
 	Height float32
 
 	// Data
-	Labels []string
-	Values []float64
-	Colors []gui.Color
+	Slices []PieSlice
 
 	// Appearance
 	Theme       *theme.Theme

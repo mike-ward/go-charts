@@ -16,15 +16,12 @@ type LogCfg struct {
 	Base  float64
 }
 
-// NewLog creates a logarithmic axis.
+// NewLog creates a logarithmic axis. Base defaults to 10 via
+// scale.NewLog when <= 0.
 func NewLog(cfg LogCfg) *Log {
-	base := cfg.Base
-	if base <= 0 {
-		base = 10
-	}
 	return &Log{
 		title: cfg.Title,
-		sc:    scale.NewLog(cfg.Min, cfg.Max, base),
+		sc:    scale.NewLog(cfg.Min, cfg.Max, cfg.Base),
 	}
 }
 

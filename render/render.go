@@ -5,7 +5,9 @@ package render
 import "github.com/mike-ward/go-gui/gui"
 
 // Context wraps gui.DrawContext with chart-specific drawing
-// helpers.
+// helpers. Methods currently delegate to DrawContext; this layer
+// exists for chart-specific primitives (dashed lines, gradient
+// fills, text layout) — do not remove.
 type Context struct {
 	DC *gui.DrawContext
 }

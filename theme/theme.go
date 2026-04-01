@@ -29,8 +29,9 @@ type Theme struct {
 	PaddingLeft   float32
 }
 
-// Default returns the default chart theme that inherits from
-// the current gui theme.
+// Default returns a new chart theme inheriting from the current
+// gui theme. Allocates on each call; callers rendering at
+// interactive frame rates should cache the returned value.
 func Default() *Theme {
 	t := gui.CurrentTheme()
 	return &Theme{

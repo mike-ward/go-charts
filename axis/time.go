@@ -40,24 +40,24 @@ func (a *Time) Ticks(pixelMin, pixelMax float32) []Tick {
 	return nil
 }
 
-// Transform implements Axis.
+// Transform implements Axis. Value is expected as UnixNano.
 func (a *Time) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	minNano := float64(a.min.UnixNano())
-	maxNano := float64(a.max.UnixNano())
-	if maxNano == minNano {
+	minNano := a.min.UnixNano()
+	rangeNano := a.max.UnixNano() - minNano
+	if rangeNano == 0 {
 		return pixelMin
 	}
-	t := (value - minNano) / (maxNano - minNano)
+	t := float64(int64(value)-minNano) / float64(rangeNano)
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
 }
 
-// Inverse implements Axis.
+// Inverse implements Axis. Returns UnixNano as float64.
 func (a *Time) Inverse(pixel, pixelMin, pixelMax float32) float64 {
-	minNano := float64(a.min.UnixNano())
-	maxNano := float64(a.max.UnixNano())
+	minNano := a.min.UnixNano()
+	rangeNano := a.max.UnixNano() - minNano
 	if pixelMax == pixelMin {
-		return minNano
+		return float64(minNano)
 	}
 	t := float64(pixel-pixelMin) / float64(pixelMax-pixelMin)
-	return minNano + t*(maxNano-minNano)
+	return float64(minNano) + t*float64(rangeNano)
 }

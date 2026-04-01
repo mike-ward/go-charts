@@ -2,6 +2,7 @@ package chart
 
 import (
 	"log/slog"
+	"math"
 
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
@@ -35,7 +36,10 @@ type BarCfg struct {
 }
 
 type barView struct {
-	cfg BarCfg
+	cfg         BarCfg
+	lastVersion uint64
+	yAxis       *axis.Linear
+	yTicks      []axis.Tick
 }
 
 // Bar creates a bar chart view.
@@ -96,24 +100,40 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	}
 	nSeries := len(cfg.Series)
 
-	// Find value range across all series.
-	maxVal := 0.0
-	for _, s := range cfg.Series {
-		for _, v := range s.Values {
-			maxVal = max(maxVal, v.Value)
+	// Recompute Y axis only when version changes.
+	if bv.yAxis == nil || cfg.Version != bv.lastVersion {
+		minVal := 0.0
+		maxVal := 0.0
+		for _, s := range cfg.Series {
+			for _, v := range s.Values {
+				minVal = min(minVal, v.Value)
+				maxVal = max(maxVal, v.Value)
+			}
 		}
-	}
-	if maxVal == 0 {
-		maxVal = 1
+		if minVal == 0 && maxVal == 0 {
+			maxVal = 1
+		}
+		// 5% headroom; range always includes zero baseline.
+		rangeVal := maxVal - minVal
+		if rangeVal == 0 {
+			rangeVal = 1
+		}
+		pad := rangeVal * 0.05
+		bv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
+		bv.yAxis.SetRange(
+			min(0, minVal-pad),
+			max(0, maxVal+pad),
+		)
+		bv.lastVersion = cfg.Version
 	}
 
-	// Y-axis for value scaling (0 to maxVal with 5% headroom).
-	yAxis := axis.NewLinear(axis.LinearCfg{AutoRange: true})
-	yAxis.SetRange(0, maxVal*1.05)
+	yAxis := bv.yAxis
+
+	// Generate ticks.
+	bv.yTicks = yAxis.Ticks(bottom, top)
 
 	// Draw grid lines.
-	yTicks := yAxis.Ticks(bottom, top)
-	for _, t := range yTicks {
+	for _, t := range bv.yTicks {
 		ctx.Line(left, t.Position, right, t.Position,
 			th.GridColor, th.GridWidth)
 	}
@@ -124,10 +144,13 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	// Tick marks on Y axis.
 	const tickLen float32 = 5
-	for _, t := range yTicks {
+	for _, t := range bv.yTicks {
 		ctx.Line(left-tickLen, t.Position, left, t.Position,
 			th.AxisColor, th.AxisWidth)
 	}
+
+	// Baseline (y=0) pixel position.
+	baseline := yAxis.Transform(0, bottom, top)
 
 	// Bar layout.
 	chartW := right - left
@@ -162,16 +185,14 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 				continue
 			}
 			v := s.Values[ci].Value
-			color := s.Color()
-			if color == (gui.Color{}) && si < len(th.Palette) {
-				color = th.Palette[si]
-			}
+			color := seriesColor(s.Color(), si, th.Palette)
 
 			bx := barStart + float32(si)*(barWidth+barGap)
 			by := yAxis.Transform(v, bottom, top)
-			bh := bottom - by
+			barTop := min(by, baseline)
+			bh := float32(math.Abs(float64(by - baseline)))
 
-			ctx.FilledRect(bx, by, barWidth, bh, color)
+			ctx.FilledRect(bx, barTop, barWidth, bh, color)
 		}
 
 		// Tick mark at center of group on X axis.

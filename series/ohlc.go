@@ -45,5 +45,12 @@ func (s OHLCSeries) Name() string { return s.name }
 // Len implements Series.
 func (s OHLCSeries) Len() int { return len(s.Points) }
 
-// Color implements Series.
+// Color implements Series. Returns ColorUp; OHLC renderers
+// should use ColorUp/ColorDown directly.
 func (s OHLCSeries) Color() gui.Color { return s.colorUp }
+
+// ColorUp returns the color for upward (close >= open) candles.
+func (s OHLCSeries) ColorUp() gui.Color { return s.colorUp }
+
+// ColorDown returns the color for downward (close < open) candles.
+func (s OHLCSeries) ColorDown() gui.Color { return s.colorDown }
