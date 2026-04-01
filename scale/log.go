@@ -1,6 +1,9 @@
 package scale
 
-import "math"
+import (
+	"log/slog"
+	"math"
+)
 
 // Log is a logarithmic data-to-pixel scale.
 type Log struct {
@@ -30,6 +33,14 @@ func (s *Log) Domain() (float64, float64) {
 // Map implements Scale.
 func (s *Log) Map(value float64, pixelMin, pixelMax float32) float32 {
 	if value <= 0 || s.min <= 0 || s.max <= s.min {
+		if value <= 0 {
+			slog.Debug("log scale: non-positive value",
+				"value", value)
+		}
+		if s.min <= 0 {
+			slog.Debug("log scale: non-positive domain min",
+				"min", s.min)
+		}
 		return pixelMin
 	}
 	logBase := math.Log(s.base)

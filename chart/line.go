@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"log/slog"
 	"math"
 
 	"github.com/mike-ward/go-charts/axis"
@@ -76,6 +77,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	th := cfg.Theme
 
 	if len(cfg.Series) == 0 {
+		slog.Warn("no series data", "chart", cfg.ID)
 		return
 	}
 
@@ -86,6 +88,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	bottom := ctx.Height() - th.PaddingBottom
 
 	if right <= left || bottom <= top {
+		slog.Warn("plot area too small", "chart", cfg.ID)
 		return
 	}
 
@@ -147,8 +150,13 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 			continue
 		}
 		color := s.Color()
-		if color == (gui.Color{}) && i < len(th.Palette) {
-			color = th.Palette[i]
+		if color == (gui.Color{}) {
+			if i < len(th.Palette) {
+				color = th.Palette[i]
+			} else {
+				slog.Warn("no color for series",
+					"chart", cfg.ID, "series", i)
+			}
 		}
 
 		// Build polyline points (flat x,y pairs).

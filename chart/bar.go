@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"log/slog"
+
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
@@ -71,6 +73,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	th := cfg.Theme
 
 	if len(cfg.Series) == 0 {
+		slog.Warn("no series data", "chart", cfg.ID)
 		return
 	}
 
@@ -80,6 +83,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	bottom := ctx.Height() - th.PaddingBottom
 
 	if right <= left || bottom <= top {
+		slog.Warn("plot area too small", "chart", cfg.ID)
 		return
 	}
 
@@ -87,6 +91,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	labels := cfg.Series[0].Values
 	nCategories := len(labels)
 	if nCategories == 0 {
+		slog.Warn("no category data", "chart", cfg.ID)
 		return
 	}
 	nSeries := len(cfg.Series)
@@ -152,6 +157,8 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 		for si, s := range cfg.Series {
 			if ci >= len(s.Values) {
+				slog.Warn("series length mismatch",
+					"chart", cfg.ID, "series", si)
 				continue
 			}
 			v := s.Values[ci].Value
