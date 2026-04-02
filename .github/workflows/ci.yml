@@ -8,7 +8,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -19,8 +22,34 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install SDL2
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libfreetype6-dev libharfbuzz-dev libpango1.0-dev libfontconfig1-dev libhunspell-dev
+
+      - name: Install MSYS2 and dependencies (Windows)
+        if: runner.os == 'Windows'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: false
+          install: >-
+            mingw-w64-ucrt-x86_64-gcc
+            mingw-w64-ucrt-x86_64-pkg-config
+            mingw-w64-ucrt-x86_64-SDL2
+            mingw-w64-ucrt-x86_64-freetype
+            mingw-w64-ucrt-x86_64-harfbuzz
+            mingw-w64-ucrt-x86_64-pango
+            mingw-w64-ucrt-x86_64-fontconfig
+            mingw-w64-ucrt-x86_64-hunspell
+
+      - name: Set CGo environment (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          echo "CGO_ENABLED=1" >> "$GITHUB_ENV"
+          echo "CC=C:/msys64/ucrt64/bin/gcc.exe" >> "$GITHUB_ENV"
+          echo "PKG_CONFIG_PATH=C:/msys64/ucrt64/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "C:/msys64/ucrt64/bin" >> "$GITHUB_PATH"
 
       - run: go build ./...
       - run: go vet ./...
