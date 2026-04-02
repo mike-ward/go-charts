@@ -75,8 +75,8 @@ func (a *Time) Transform(value float64, pixelMin, pixelMax float32) float32 {
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
 }
 
-// Inverse implements Axis. Returns seconds as float64.
-func (a *Time) Inverse(pixel, pixelMin, pixelMax float32) float64 {
+// Invert implements Axis. Returns seconds as float64.
+func (a *Time) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	minSec := timeToSeconds(a.min)
 	rangeSec := timeToSeconds(a.max) - minSec
 	if pixelMax == pixelMin || rangeSec == 0 {

@@ -32,6 +32,9 @@ func (c *BarCfg) Validate() error {
 	if c.BarGap < 0 {
 		errs = append(errs, "negative BarGap")
 	}
+	if c.Radius < 0 {
+		errs = append(errs, "negative Radius")
+	}
 	return buildError("chart.Bar", errs)
 }
 

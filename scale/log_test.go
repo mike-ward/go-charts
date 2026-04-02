@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-func TestLogMap(t *testing.T) {
+func TestLogTransform(t *testing.T) {
 	s := NewLog(1, 1000, 10)
-	got := s.Map(100, 0, 300)
+	got := s.Transform(100, 0, 300)
 	want := float32(200)
 	if math.Abs(float64(got-want)) > 0.01 {
-		t.Errorf("Map(100) = %v, want %v", got, want)
+		t.Errorf("Transform(100) = %v, want %v", got, want)
 	}
 }
 
@@ -24,8 +24,8 @@ func TestLogInvert(t *testing.T) {
 
 func TestLogInvalidInput(t *testing.T) {
 	s := NewLog(1, 1000, 10)
-	got := s.Map(-1, 0, 300)
+	got := s.Transform(-1, 0, 300)
 	if got != 0 {
-		t.Errorf("Map(-1) = %v, want 0", got)
+		t.Errorf("Transform(-1) = %v, want 0", got)
 	}
 }

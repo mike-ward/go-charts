@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestLogMapEdgeCases(t *testing.T) {
+func TestLogTransformEdgeCases(t *testing.T) {
 	tests := []struct {
 		name         string
 		min, max     float64
@@ -33,15 +33,15 @@ func TestLogMapEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewLog(tt.min, tt.max, tt.base)
-			got := s.Map(tt.value, tt.pMin, tt.pMax)
+			got := s.Transform(tt.value, tt.pMin, tt.pMax)
 			if math.IsNaN(float64(got)) {
-				t.Fatalf("Map returned NaN")
+				t.Fatalf("Transform returned NaN")
 			}
 			if math.IsInf(float64(got), 0) {
-				t.Fatalf("Map returned Inf")
+				t.Fatalf("Transform returned Inf")
 			}
 			if tt.wantPixelMin && got != tt.pMin {
-				t.Errorf("Map = %v, want pixelMin %v", got, tt.pMin)
+				t.Errorf("Transform = %v, want pixelMin %v", got, tt.pMin)
 			}
 		})
 	}

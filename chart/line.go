@@ -35,7 +35,7 @@ type lineView struct {
 	yAxis       *axis.Linear
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
-	ptsBuf []float32
+	ptsBuf      []float32
 }
 
 // Line creates a line chart view.

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestLinearMapEdgeCases(t *testing.T) {
+func TestLinearTransformEdgeCases(t *testing.T) {
 	tests := []struct {
 		name     string
 		min, max float64
@@ -30,13 +30,13 @@ func TestLinearMapEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewLinear(tt.min, tt.max)
-			got := s.Map(tt.value, tt.pMin, tt.pMax)
+			got := s.Transform(tt.value, tt.pMin, tt.pMax)
 			if math.IsNaN(float64(got)) {
-				t.Errorf("Map returned NaN")
+				t.Errorf("Transform returned NaN")
 				return
 			}
 			if math.Abs(float64(got-tt.want)) > 0.5 {
-				t.Errorf("Map(%v) = %v, want %v",
+				t.Errorf("Transform(%v) = %v, want %v",
 					tt.value, got, tt.want)
 			}
 		})

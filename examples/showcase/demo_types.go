@@ -105,10 +105,13 @@ s := series.NewXY(series.XYCfg{
 })
 
 // From parallel slices
-s := series.XYFromSlices("Revenue",
+s, err := series.XYFromSlices("Revenue",
     []float64{1, 2, 3},     // X values
     []float64{12, 19, 15},  // Y values
 )
+if err != nil {
+    log.Fatal(err)
+}
 
 // From Y values only (X auto-indexed 0, 1, 2, ...)
 s := series.XYFromYValues("Revenue",

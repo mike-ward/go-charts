@@ -54,8 +54,8 @@ func (a *Category) Transform(value float64, pixelMin, pixelMax float32) float32 
 	return max(pixelMin, min(pixelMax, pos))
 }
 
-// Inverse implements Axis.
-func (a *Category) Inverse(pixel, pixelMin, pixelMax float32) float64 {
+// Invert implements Axis.
+func (a *Category) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	n := len(a.categories)
 	if n == 0 {
 		return 0

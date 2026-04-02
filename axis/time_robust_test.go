@@ -50,22 +50,22 @@ func TestTimeWideRange(t *testing.T) {
 	}
 }
 
-func TestTimeInverseZeroPixelRange(t *testing.T) {
+func TestTimeInvertZeroPixelRange(t *testing.T) {
 	t1 := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	t2 := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	a := NewTime(TimeCfg{Min: t1, Max: t2})
 
-	got := a.Inverse(100, 100, 100)
+	got := a.Invert(100, 100, 100)
 	if math.IsNaN(got) || math.IsInf(got, 0) {
-		t.Errorf("Inverse zero pixel range = %v (non-finite)", got)
+		t.Errorf("Invert zero pixel range = %v (non-finite)", got)
 	}
 }
 
-func TestTimeInverseMinEqualsMax(t *testing.T) {
+func TestTimeInvertMinEqualsMax(t *testing.T) {
 	now := time.Now()
 	a := NewTime(TimeCfg{Min: now, Max: now})
-	got := a.Inverse(250, 0, 500)
+	got := a.Invert(250, 0, 500)
 	if math.IsNaN(got) || math.IsInf(got, 0) {
-		t.Errorf("Inverse min==max = %v (non-finite)", got)
+		t.Errorf("Invert min==max = %v (non-finite)", got)
 	}
 }

@@ -31,7 +31,10 @@ func TestXYEmpty(t *testing.T) {
 }
 
 func TestXYFromSlices(t *testing.T) {
-	s := XYFromSlices("test", []float64{1, 2, 3}, []float64{10, 20, 30})
+	s, err := XYFromSlices("test", []float64{1, 2, 3}, []float64{10, 20, 30})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if s.Name() != "test" {
 		t.Errorf("Name = %q, want %q", s.Name(), "test")
 	}
@@ -44,19 +47,20 @@ func TestXYFromSlices(t *testing.T) {
 }
 
 func TestXYFromSlicesEmpty(t *testing.T) {
-	s := XYFromSlices("empty", nil, nil)
+	s, err := XYFromSlices("empty", nil, nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if s.Len() != 0 {
 		t.Errorf("Len = %d, want 0", s.Len())
 	}
 }
 
-func TestXYFromSlicesPanic(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic on mismatched lengths")
-		}
-	}()
-	XYFromSlices("bad", []float64{1}, []float64{1, 2})
+func TestXYFromSlicesError(t *testing.T) {
+	_, err := XYFromSlices("bad", []float64{1}, []float64{1, 2})
+	if err == nil {
+		t.Error("expected error on mismatched lengths")
+	}
 }
 
 func TestXYFromYValues(t *testing.T) {

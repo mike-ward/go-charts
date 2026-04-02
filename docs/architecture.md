@@ -19,7 +19,7 @@ flowchart TD
     subgraph axes ["Axis & Scale Setup"]
         E1["<b>Compute Bounds</b> &mdash; series/xy.go<br/>series.XY.Bounds()<br/>scan all points &rarr; minX, maxX, minY, maxY"]:::pkg_series --> E2
         E2["<b>Set Domain</b> &mdash; axis/linear.go<br/>axis.Linear.SetRange()<br/>&rarr; scale.Linear.SetDomain(min, max)"]:::pkg_axis --> E3
-        E3["<b>Generate Ticks</b> &mdash; axis/tick.go<br/>GenerateNiceTicks() &rarr; 1/2/5 &times; 10&#8319;<br/>axis.Transform(value) &rarr; scale.Map() &rarr; pixel"]:::pkg_axis
+        E3["<b>Generate Ticks</b> &mdash; axis/tick.go<br/>GenerateNiceTicks() &rarr; 1/2/5 &times; 10&#8319;<br/>axis.Transform(value) &rarr; scale.Transform() &rarr; pixel"]:::pkg_axis
     end
 
     E3 --> H
@@ -41,7 +41,7 @@ flowchart TD
 
 ## Core Transformation
 
-The key operation is `scale.Linear.Map()` -- a linear interpolation
+The key operation is `scale.Linear.Transform()` -- a linear interpolation
 converting data values to pixel coordinates:
 
 ```

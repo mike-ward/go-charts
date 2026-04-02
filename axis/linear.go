@@ -76,10 +76,10 @@ func formatTickValue(v float64) string {
 
 // Transform implements Axis.
 func (a *Linear) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	return a.sc.Map(value, pixelMin, pixelMax)
+	return a.sc.Transform(value, pixelMin, pixelMax)
 }
 
-// Inverse implements Axis.
-func (a *Linear) Inverse(pixel, pixelMin, pixelMax float32) float64 {
+// Invert implements Axis.
+func (a *Linear) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	return a.sc.Invert(pixel, pixelMin, pixelMax)
 }

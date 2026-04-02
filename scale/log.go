@@ -31,9 +31,9 @@ func (s *Log) Domain() (float64, float64) {
 	return s.min, s.max
 }
 
-// Map implements Scale. Non-finite values and non-positive
+// Transform implements Scale. Non-finite values and non-positive
 // domain/value return pixelMin.
-func (s *Log) Map(value float64, pixelMin, pixelMax float32) float32 {
+func (s *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {
 	if value <= 0 || s.min <= 0 || s.max <= s.min ||
 		!finiteF64(value) {
 		if value <= 0 {
@@ -60,12 +60,18 @@ func (s *Log) Map(value float64, pixelMin, pixelMax float32) float32 {
 // Invert implements Scale.
 func (s *Log) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	if pixelMax == pixelMin || s.min <= 0 {
+		if s.min <= 0 {
+			slog.Debug("log scale: non-positive domain min in Invert",
+				"min", s.min)
+		}
 		return s.min
 	}
 	logBase := math.Log(s.base)
 	logMin := math.Log(s.min) / logBase
 	logMax := math.Log(s.max) / logBase
 	if logMax == logMin {
+		slog.Debug("log scale: degenerate domain in Invert",
+			"min", s.min, "max", s.max)
 		return s.min
 	}
 	t := float64(pixel-pixelMin) / float64(pixelMax-pixelMin)

@@ -39,10 +39,10 @@ func (a *Log) Ticks(pixelMin, pixelMax float32) []Tick {
 
 // Transform implements Axis.
 func (a *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	return a.sc.Map(value, pixelMin, pixelMax)
+	return a.sc.Transform(value, pixelMin, pixelMax)
 }
 
-// Inverse implements Axis.
-func (a *Log) Inverse(pixel, pixelMin, pixelMax float32) float64 {
+// Invert implements Axis.
+func (a *Log) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	return a.sc.Invert(pixel, pixelMin, pixelMax)
 }

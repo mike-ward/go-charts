@@ -37,6 +37,9 @@ type barView struct {
 // Bar creates a bar chart view.
 func Bar(cfg BarCfg) gui.View {
 	cfg.applyDefaults()
+	if cfg.BarGap == 0 {
+		cfg.BarGap = DefaultBarGap
+	}
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -180,9 +183,6 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	groupWidth := chartW / float32(nCategories)
 
 	barGap := cfg.BarGap
-	if barGap == 0 {
-		barGap = DefaultBarGap
-	}
 
 	barWidth := cfg.BarWidth
 	if barWidth == 0 {

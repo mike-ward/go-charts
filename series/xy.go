@@ -36,18 +36,18 @@ func NewXY(cfg XYCfg) XY {
 }
 
 // XYFromSlices creates an XY series from parallel X and Y slices.
-// Panics if len(xVals) != len(yVals).
-func XYFromSlices(name string, xVals, yVals []float64) XY {
+// Returns an error if len(xVals) != len(yVals).
+func XYFromSlices(name string, xVals, yVals []float64) (XY, error) {
 	if len(xVals) != len(yVals) {
-		panic(fmt.Sprintf(
+		return XY{}, fmt.Errorf(
 			"series.XYFromSlices: len(xVals)=%d != len(yVals)=%d",
-			len(xVals), len(yVals)))
+			len(xVals), len(yVals))
 	}
 	pts := make([]Point, len(xVals))
 	for i := range xVals {
 		pts[i] = Point{X: xVals[i], Y: yVals[i]}
 	}
-	return XY{name: name, Points: pts}
+	return XY{name: name, Points: pts}, nil
 }
 
 // XYFromYValues creates an XY series with auto-indexed X values
@@ -79,8 +79,8 @@ func (p Point) String() string {
 	return fmt.Sprintf("(%.4g, %.4g)", p.X, p.Y)
 }
 
-// finite reports whether v is neither NaN nor +/-Inf.
-func finite(v float64) bool {
+// finiteF64 reports whether v is neither NaN nor +/-Inf.
+func finiteF64(v float64) bool {
 	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
@@ -92,7 +92,7 @@ func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
 	i := 0
 	for i < len(s.Points) {
 		p := s.Points[i]
-		if finite(p.X) && finite(p.Y) {
+		if finiteF64(p.X) && finiteF64(p.Y) {
 			break
 		}
 		i++
@@ -103,7 +103,7 @@ func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
 	minX, maxX = s.Points[i].X, s.Points[i].X
 	minY, maxY = s.Points[i].Y, s.Points[i].Y
 	for _, p := range s.Points[i+1:] {
-		if !finite(p.X) || !finite(p.Y) {
+		if !finiteF64(p.X) || !finiteF64(p.Y) {
 			continue
 		}
 		if p.X < minX {

@@ -19,8 +19,8 @@ type Axis interface {
 	// Transform converts a data value to a pixel position.
 	Transform(value float64, pixelMin, pixelMax float32) float32
 
-	// Inverse converts a pixel position back to a data value.
-	Inverse(pixel, pixelMin, pixelMax float32) float64
+	// Invert converts a pixel position back to a data value.
+	Invert(pixel, pixelMin, pixelMax float32) float64
 }
 
 // Position indicates where an axis is drawn.

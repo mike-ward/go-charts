@@ -26,13 +26,13 @@ func FuzzCategoryTransform(f *testing.F) {
 				value, pMin, pMax)
 		}
 
-		inv := a.Inverse(got, pMin, pMax)
+		inv := a.Invert(got, pMin, pMax)
 		if math.IsNaN(inv) {
-			t.Errorf("Inverse NaN for pixel=%v pMin=%v pMax=%v",
+			t.Errorf("Invert NaN for pixel=%v pMin=%v pMax=%v",
 				got, pMin, pMax)
 		}
 		if math.IsInf(inv, 0) {
-			t.Errorf("Inverse Inf for pixel=%v pMin=%v pMax=%v",
+			t.Errorf("Invert Inf for pixel=%v pMin=%v pMax=%v",
 				got, pMin, pMax)
 		}
 	})

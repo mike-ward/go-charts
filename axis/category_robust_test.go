@@ -18,9 +18,9 @@ func TestCategoryEmpty(t *testing.T) {
 		t.Errorf("Transform on empty = %v, want 0", got)
 	}
 
-	inv := a.Inverse(250, 0, 500)
+	inv := a.Invert(250, 0, 500)
 	if inv != 0 {
-		t.Errorf("Inverse on empty = %v, want 0", inv)
+		t.Errorf("Invert on empty = %v, want 0", inv)
 	}
 }
 
@@ -45,9 +45,9 @@ func TestCategoryZeroPixelRange(t *testing.T) {
 		t.Errorf("Transform with zero pixel range = %v", got)
 	}
 
-	inv := a.Inverse(100, 100, 100)
+	inv := a.Invert(100, 100, 100)
 	if math.IsNaN(inv) || math.IsInf(inv, 0) {
-		t.Errorf("Inverse with zero pixel range = %v", inv)
+		t.Errorf("Invert with zero pixel range = %v", inv)
 	}
 }
 
