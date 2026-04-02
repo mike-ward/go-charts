@@ -86,6 +86,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"bar_single":       demoBarSingle,
 	"bar_wide":         demoBarWide,
 	"bar_rounded":      demoBarRounded,
+	"bar_horizontal":   demoBarHorizontal,
+	"bar_stacked":      demoBarStacked,
 	"pie_basic":        demoPie,
 	"pie_donut":        demoDonut,
 	"area_basic":       demoArea,

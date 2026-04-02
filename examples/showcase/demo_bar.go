@@ -146,6 +146,133 @@ func demoBarWide(w *gui.Window) gui.View {
 })`)
 }
 
+func demoBarHorizontal(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-horizontal", chart.Bar(chart.BarCfg{
+		BaseCfg: chart.BaseCfg{
+			ID:     "bar-horizontal",
+			Title:  "Survey Results",
+			Sizing: gui.FillFixed,
+			Height: 350,
+		},
+		Horizontal: true,
+		Series: []series.Category{
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Agree",
+				Color: gui.Hex(0x4E79A7),
+				Values: []series.CategoryValue{
+					{Label: "Q1", Value: 72},
+					{Label: "Q2", Value: 58},
+					{Label: "Q3", Value: 65},
+					{Label: "Q4", Value: 81},
+				},
+			}),
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Disagree",
+				Color: gui.Hex(0xE15759),
+				Values: []series.CategoryValue{
+					{Label: "Q1", Value: 28},
+					{Label: "Q2", Value: 42},
+					{Label: "Q3", Value: 35},
+					{Label: "Q4", Value: 19},
+				},
+			}),
+		},
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Survey Results",
+    },
+    Horizontal: true,
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Agree",
+            Color: gui.Hex(0x4E79A7),
+            Values: []series.CategoryValue{
+                {Label: "Q1", Value: 72},
+                {Label: "Q2", Value: 58},
+                {Label: "Q3", Value: 65},
+                {Label: "Q4", Value: 81},
+            },
+        }),
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Disagree",
+            Color: gui.Hex(0xE15759),
+            Values: []series.CategoryValue{ ... },
+        }),
+    },
+})`)
+}
+
+func demoBarStacked(w *gui.Window) gui.View {
+	return demoWithCode(w, "bar-stacked", chart.Bar(chart.BarCfg{
+		BaseCfg: chart.BaseCfg{
+			ID:     "bar-stacked",
+			Title:  "Traffic by Channel",
+			Sizing: gui.FillFixed,
+			Height: 350,
+		},
+		Stacked: true,
+		Series: []series.Category{
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Organic",
+				Color: gui.Hex(0x4E79A7),
+				Values: []series.CategoryValue{
+					{Label: "Jan", Value: 420},
+					{Label: "Feb", Value: 390},
+					{Label: "Mar", Value: 450},
+					{Label: "Apr", Value: 510},
+					{Label: "May", Value: 480},
+				},
+			}),
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Paid",
+				Color: gui.Hex(0xF28E2B),
+				Values: []series.CategoryValue{
+					{Label: "Jan", Value: 180},
+					{Label: "Feb", Value: 210},
+					{Label: "Mar", Value: 195},
+					{Label: "Apr", Value: 230},
+					{Label: "May", Value: 260},
+				},
+			}),
+			series.NewCategory(series.CategoryCfg{
+				Name:  "Referral",
+				Color: gui.Hex(0x59A14F),
+				Values: []series.CategoryValue{
+					{Label: "Jan", Value: 95},
+					{Label: "Feb", Value: 88},
+					{Label: "Mar", Value: 110},
+					{Label: "Apr", Value: 102},
+					{Label: "May", Value: 120},
+				},
+			}),
+		},
+	}), `chart.Bar(chart.BarCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Traffic by Channel",
+    },
+    Stacked: true,
+    Series: []series.Category{
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Organic",
+            Color: gui.Hex(0x4E79A7),
+            Values: []series.CategoryValue{
+                {Label: "Jan", Value: 420}, ...
+            },
+        }),
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Paid",
+            Color: gui.Hex(0xF28E2B),
+            Values: []series.CategoryValue{ ... },
+        }),
+        series.NewCategory(series.CategoryCfg{
+            Name:  "Referral",
+            Color: gui.Hex(0x59A14F),
+            Values: []series.CategoryValue{ ... },
+        }),
+    },
+})`)
+}
+
 func demoBarRounded(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-rounded", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{

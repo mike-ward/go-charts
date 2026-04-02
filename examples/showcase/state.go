@@ -78,6 +78,8 @@ var demoEntries = []DemoEntry{
 	{ID: "bar_single", Label: "Single Series Bar", Group: groupBar, Summary: "Monthly rainfall totals.", Tags: []string{"bar", "single", "rainfall"}},
 	{ID: "bar_wide", Label: "Fixed Width Bars", Group: groupBar, Summary: "Department headcount with fixed bar width.", Tags: []string{"bar", "fixed", "width", "headcount"}},
 	{ID: "bar_rounded", Label: "Rounded Bars", Group: groupBar, Summary: "Product category revenue with rounded corners.", Tags: []string{"bar", "rounded", "radius"}},
+	{ID: "bar_horizontal", Label: "Horizontal Bar", Group: groupBar, Summary: "Survey results with bars drawn left-to-right.", Tags: []string{"bar", "horizontal", "survey"}},
+	{ID: "bar_stacked", Label: "Stacked Bar", Group: groupBar, Summary: "Traffic by channel stacked per month.", Tags: []string{"bar", "stacked", "channel", "traffic"}},
 
 	// Pie
 	{ID: "pie_basic", Label: "Basic Pie", Group: groupPie, Summary: "Browser market share distribution.", Tags: []string{"pie", "share", "percent"}},
