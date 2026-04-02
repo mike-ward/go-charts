@@ -13,6 +13,7 @@ const (
 	groupPie     = "pie"
 	groupArea    = "area"
 	groupScatter = "scatter"
+	groupStyles  = "styles"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -55,6 +56,7 @@ var demoGroups = []DemoGroup{
 	{groupPie, "Pie"},
 	{groupArea, "Area"},
 	{groupScatter, "Scatter"},
+	{groupStyles, "Styles"},
 }
 
 var demoEntries = []DemoEntry{
@@ -88,6 +90,15 @@ var demoEntries = []DemoEntry{
 	// Scatter
 	{ID: "scatter_basic", Label: "Basic Scatter", Group: groupScatter, Summary: "Height versus weight correlation.", Tags: []string{"scatter", "correlation", "points"}},
 	{ID: "scatter_markers", Label: "Marker Shapes", Group: groupScatter, Summary: "Wind speed versus temperature with different marker shapes.", Tags: []string{"scatter", "markers", "shapes"}},
+
+	// Styles
+	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},
+	{ID: "style_tick_marks", Label: "Tick Marks", Group: groupStyles, Summary: "Custom tick mark length, color, and width.", Tags: []string{"style", "tick", "marks", "axis"}},
+	{ID: "style_legend_pos", Label: "Legend Positions", Group: groupStyles, Summary: "Legend placed in each of the four corners.", Tags: []string{"style", "legend", "position", "corner"}},
+	{ID: "style_legend_cfg", Label: "Legend Styling", Group: groupStyles, Summary: "Custom swatch size, padding, gaps, and background.", Tags: []string{"style", "legend", "swatch", "padding", "gap"}},
+	{ID: "style_rotation", Label: "Rotated Labels", Group: groupStyles, Summary: "X-axis tick labels rotated for long category names.", Tags: []string{"style", "rotation", "labels", "tick", "angle"}},
+	{ID: "style_padding", Label: "Custom Padding", Group: groupStyles, Summary: "Tight versus spacious chart padding.", Tags: []string{"style", "padding", "spacing", "inset"}},
+	{ID: "style_kitchen", Label: "Kitchen Sink", Group: groupStyles, Summary: "All style knobs combined on a single chart.", Tags: []string{"style", "combined", "kitchen", "sink", "all"}},
 }
 
 func init() {
