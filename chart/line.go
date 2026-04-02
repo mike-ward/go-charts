@@ -35,8 +35,7 @@ type lineView struct {
 	yAxis       *axis.Linear
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
-	ptsBuf      []float32
-	areaBuf     []float32
+	ptsBuf []float32
 }
 
 // Line creates a line chart view.
@@ -243,19 +242,24 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		}
 		lv.ptsBuf = pts
 
-		// Filled area under the line.
+		// Filled area under the line. Each consecutive point pair
+		// forms a trapezoid with the baseline — O(n), zero heap
+		// alloc, and the fill follows the same point order as the
+		// rendered polyline.
 		if cfg.ShowArea && len(pts) >= 4 {
-			needed := len(pts) + 4
-			if cap(lv.areaBuf) < needed {
-				lv.areaBuf = make([]float32, 0, needed)
-			}
-			area := lv.areaBuf[:len(pts)]
-			copy(area, pts)
-			area = append(area, pts[len(pts)-2], bottom)
-			area = append(area, pts[0], bottom)
-			lv.areaBuf = area
 			fill := gui.RGBA(color.R, color.G, color.B, 40)
-			ctx.FilledPolygon(area, fill)
+			var quad [8]float32
+			for k := 0; k < len(pts)-2; k += 2 {
+				quad[0] = pts[k]
+				quad[1] = pts[k+1]
+				quad[2] = pts[k+2]
+				quad[3] = pts[k+3]
+				quad[4] = pts[k+2]
+				quad[5] = bottom
+				quad[6] = pts[k]
+				quad[7] = bottom
+				ctx.FilledPolygon(quad[:], fill)
+			}
 		}
 
 		ctx.Polyline(pts, color, cfg.LineWidth)

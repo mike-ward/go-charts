@@ -96,6 +96,61 @@ func TestExportPNG_LineWithAxes(t *testing.T) {
 	assertValidPNG(t, path, 800, 600)
 }
 
+func TestExportPNG_LineAreaMonotonicX(t *testing.T) {
+	// Monotonic X — area fill should render correctly.
+	v := Line(LineCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-area-monotonic",
+			Width: 400, Height: 300,
+		},
+		ShowArea: true,
+		Series: []series.XY{
+			series.NewXY(series.XYCfg{
+				Name:  "s1",
+				Color: gui.Hex(0x59A14F),
+				Points: []series.Point{
+					{X: 1, Y: 10}, {X: 2, Y: 30}, {X: 3, Y: 20},
+					{X: 4, Y: 50}, {X: 5, Y: 40}, {X: 6, Y: 60},
+				},
+			}),
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "area_monotonic.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_LineAreaNonMonotonicX(t *testing.T) {
+	// Non-monotonic X — fill trapezoids follow source point order,
+	// same as the rendered polyline. Export must succeed.
+	v := Line(LineCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-area-nonmonotonic",
+			Width: 400, Height: 300,
+		},
+		ShowArea: true,
+		Series: []series.XY{
+			series.NewXY(series.XYCfg{
+				Name:  "s1",
+				Color: gui.Hex(0x59A14F),
+				Points: []series.Point{
+					{X: 0, Y: 0}, {X: 10, Y: 10},
+					{X: 5, Y: 5}, {X: 15, Y: 15},
+				},
+			}),
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "area_nonmonotonic.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
 func TestExportPNG_RejectsNonChartView(t *testing.T) {
 	v := nonChartView{}
 	err := ExportPNG(v, 100, 100, "/dev/null")
