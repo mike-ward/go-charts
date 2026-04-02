@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"log/slog"
+
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
@@ -37,6 +39,9 @@ func Area(cfg AreaCfg) gui.View {
 	}
 	if cfg.Opacity == 0 {
 		cfg.Opacity = DefaultAreaOpacity
+	}
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
 	}
 	return &areaView{cfg: cfg}
 }

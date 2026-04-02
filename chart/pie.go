@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"log/slog"
+
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -34,6 +36,9 @@ type pieView struct {
 // Pie creates a pie or donut chart view.
 func Pie(cfg PieCfg) gui.View {
 	cfg.applyDefaults()
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
+	}
 	return &pieView{cfg: cfg}
 }
 

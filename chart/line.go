@@ -36,6 +36,7 @@ type lineView struct {
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	ptsBuf      []float32
+	areaBuf     []float32
 }
 
 // Line creates a line chart view.
@@ -43,6 +44,9 @@ func Line(cfg LineCfg) gui.View {
 	cfg.applyDefaults()
 	if cfg.LineWidth == 0 {
 		cfg.LineWidth = DefaultLineWidth
+	}
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
 	}
 	return &lineView{cfg: cfg}
 }
@@ -241,10 +245,15 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 		// Filled area under the line.
 		if cfg.ShowArea && len(pts) >= 4 {
-			area := make([]float32, len(pts), len(pts)+4)
+			needed := len(pts) + 4
+			if cap(lv.areaBuf) < needed {
+				lv.areaBuf = make([]float32, 0, needed)
+			}
+			area := lv.areaBuf[:len(pts)]
 			copy(area, pts)
 			area = append(area, pts[len(pts)-2], bottom)
 			area = append(area, pts[0], bottom)
+			lv.areaBuf = area
 			fill := gui.RGBA(color.R, color.G, color.B, 40)
 			ctx.FilledPolygon(area, fill)
 		}

@@ -1,6 +1,8 @@
 package chart
 
 import (
+	"log/slog"
+
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
@@ -45,6 +47,9 @@ func Scatter(cfg ScatterCfg) gui.View {
 	cfg.applyDefaults()
 	if cfg.MarkerSize == 0 {
 		cfg.MarkerSize = DefaultMarkerSize
+	}
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
 	}
 	return &scatterView{cfg: cfg}
 }

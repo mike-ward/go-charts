@@ -37,6 +37,9 @@ type barView struct {
 // Bar creates a bar chart view.
 func Bar(cfg BarCfg) gui.View {
 	cfg.applyDefaults()
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
+	}
 	return &barView{cfg: cfg}
 }
 
