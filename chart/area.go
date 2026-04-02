@@ -110,10 +110,7 @@ func (av *areaView) updateAxes() bool {
 		if refLen > 0 {
 			sums := make([]float64, refLen)
 			for _, s := range cfg.Series {
-				n := s.Len()
-				if n > refLen {
-					n = refLen
-				}
+				n := min(s.Len(), refLen)
 				for j := 0; j < n; j++ {
 					sums[j] += s.Points[j].Y
 					maxY = max(maxY, sums[j])
@@ -337,10 +334,7 @@ func (av *areaView) drawStacked(
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)
 		fill := gui.RGBA(color.R, color.G, color.B, alpha)
 
-		n := s.Len()
-		if n > refLen {
-			n = refLen
-		}
+		n := min(s.Len(), refLen)
 		// cur is allocated per-series so prev can safely reference the
 		// previous iteration's slice.
 		cur := make([]float32, n*2)
