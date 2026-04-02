@@ -1,5 +1,7 @@
 package chart
 
+import "strconv"
+
 // Validate checks LineCfg for invalid or contradictory settings.
 // Returns nil when valid.
 func (c *LineCfg) Validate() error {
@@ -34,6 +36,19 @@ func (c *BarCfg) Validate() error {
 	}
 	if c.Radius < 0 {
 		errs = append(errs, "negative Radius")
+	}
+	if len(c.Series) > 1 {
+		n := len(c.Series[0].Values)
+		for i, s := range c.Series[1:] {
+			if len(s.Values) != n {
+				errs = append(errs,
+					"series length mismatch: series 0 has "+
+						strconv.Itoa(n)+" values, series "+
+						strconv.Itoa(i+1)+" has "+
+						strconv.Itoa(len(s.Values)))
+				break
+			}
+		}
 	}
 	return buildError("chart.Bar", errs)
 }
