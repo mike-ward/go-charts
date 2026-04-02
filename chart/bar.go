@@ -218,7 +218,11 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			barTop := min(by, baseline)
 			bh := float32(math.Abs(float64(by - baseline)))
 
-			ctx.FilledRect(bx, barTop, barWidth, bh, color)
+			if cfg.Radius > 0 {
+				ctx.FilledRoundedRect(bx, barTop, barWidth, bh, cfg.Radius, color)
+			} else {
+				ctx.FilledRect(bx, barTop, barWidth, bh, color)
+			}
 		}
 
 		// Tick mark and label at center of group on X axis.

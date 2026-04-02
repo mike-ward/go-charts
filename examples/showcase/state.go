@@ -76,7 +76,7 @@ var demoEntries = []DemoEntry{
 	// Bar
 	{ID: "bar_basic", Label: "Basic Bar", Group: groupBar, Summary: "Regional sales comparison across quarters.", Tags: []string{"bar", "grouped", "sales"}},
 	{ID: "bar_single", Label: "Single Series Bar", Group: groupBar, Summary: "Monthly rainfall totals.", Tags: []string{"bar", "single", "rainfall"}},
-	{ID: "bar_wide", Label: "Wide Bars", Group: groupBar, Summary: "Department headcount with custom bar width.", Tags: []string{"bar", "wide", "headcount"}},
+	{ID: "bar_wide", Label: "Fixed Width Bars", Group: groupBar, Summary: "Department headcount with fixed bar width.", Tags: []string{"bar", "fixed", "width", "headcount"}},
 	{ID: "bar_rounded", Label: "Rounded Bars", Group: groupBar, Summary: "Product category revenue with rounded corners.", Tags: []string{"bar", "rounded", "radius"}},
 
 	// Pie
