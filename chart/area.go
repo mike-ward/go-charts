@@ -111,7 +111,7 @@ func (av *areaView) updateAxes() bool {
 			sums := make([]float64, refLen)
 			for _, s := range cfg.Series {
 				n := min(s.Len(), refLen)
-				for j := 0; j < n; j++ {
+				for j := range n {
 					sums[j] += s.Points[j].Y
 					maxY = max(maxY, sums[j])
 				}
@@ -338,7 +338,7 @@ func (av *areaView) drawStacked(
 		// cur is allocated per-series so prev can safely reference the
 		// previous iteration's slice.
 		cur := make([]float32, n*2)
-		for j := 0; j < n; j++ {
+		for j := range n {
 			p := s.Points[j]
 			cumY[j] += p.Y
 			cur[j*2] = xAxis.Transform(p.X, left, right)
