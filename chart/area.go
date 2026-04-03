@@ -29,7 +29,7 @@ type AreaCfg struct {
 }
 
 type areaView struct {
-	cfg        AreaCfg
+	cfg         AreaCfg
 	lastVersion uint64
 	xAxis       *axis.Linear
 	yAxis       *axis.Linear

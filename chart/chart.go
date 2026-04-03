@@ -106,7 +106,7 @@ type hoverState struct {
 }
 
 const (
-	nsChartHover = "chart-hover"
+	nsChartHover  = "chart-hover"
 	capChartHover = 64
 )
 

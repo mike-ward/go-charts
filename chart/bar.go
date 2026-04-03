@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
