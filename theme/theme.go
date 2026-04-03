@@ -33,6 +33,15 @@ const (
 	LegendBottomLeft
 )
 
+// CrosshairStyle controls the hover crosshair appearance.
+// Zero values use defaults.
+type CrosshairStyle struct {
+	Color   gui.Color // zero → RGBA(128,128,128,160)
+	Width   float32   // 0 → 1
+	DashLen float32   // 0 → 6
+	GapLen  float32   // 0 → 4
+}
+
 // LegendStyle controls legend appearance. Zero values preserve
 // the original defaults.
 type LegendStyle struct {
@@ -66,6 +75,9 @@ type Theme struct {
 
 	// Legend
 	Legend LegendStyle
+
+	// Crosshair
+	Crosshair CrosshairStyle
 
 	// Series palette
 	Palette []gui.Color

@@ -242,3 +242,33 @@ func drawTooltip(
 		ctx.Text(lx, ly, ln, textStyle)
 	}
 }
+
+// drawCrosshair draws dashed vertical and horizontal tracking lines at
+// (mx, my). Does nothing when the cursor is outside the plot area.
+func drawCrosshair(
+	ctx *render.Context, th *theme.Theme,
+	mx, my, left, right, top, bottom float32,
+) {
+	if mx < left || mx > right || my < top || my > bottom {
+		return
+	}
+	cs := th.Crosshair
+	color := cs.Color
+	if !color.IsSet() {
+		color = gui.RGBA(128, 128, 128, 160)
+	}
+	width := cs.Width
+	if width == 0 {
+		width = 1
+	}
+	dashLen := cs.DashLen
+	if dashLen == 0 {
+		dashLen = 6
+	}
+	gapLen := cs.GapLen
+	if gapLen == 0 {
+		gapLen = 4
+	}
+	ctx.DashedLine(mx, top, mx, bottom, color, width, dashLen, gapLen)
+	ctx.DashedLine(left, my, right, my, color, width, dashLen, gapLen)
+}

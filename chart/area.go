@@ -272,8 +272,10 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
 
-	// Tooltip.
+	// Crosshair and tooltip.
 	if av.hovering && av.xAxis != nil {
+		drawCrosshair(ctx, th, av.hoverPx, av.hoverPy,
+			left, right, top, bottom)
 		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			av.hoverPx, av.hoverPy)

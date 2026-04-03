@@ -193,8 +193,10 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			left, right, top, bottom)
 	}
 
-	// Tooltip.
+	// Crosshair and tooltip.
 	if bv.hovering {
+		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy,
+			left, right, top, bottom)
 		bv.tooltipBar(ctx, left, right, top, bottom, th)
 	}
 }

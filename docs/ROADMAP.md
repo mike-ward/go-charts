@@ -44,7 +44,7 @@ First renderable chart types.
 ## Phase 4 — Interactivity
 
 - [x] Tooltip on hover (value display near cursor)
-- [ ] Crosshair lines (vertical/horizontal tracking)
+- [x] Crosshair lines (vertical/horizontal tracking)
 - [ ] Hover highlight (series/point emphasis)
 - [ ] Click selection (point, series, segment)
 - [ ] Legend toggle (show/hide series)

@@ -307,8 +307,10 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	drawLegend(ctx, entries, th, left, right, top, bottom,
 		cfg.LegendPosition)
 
-	// Tooltip.
+	// Crosshair and tooltip.
 	if lv.hovering && lv.xAxis != nil {
+		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy,
+			left, right, top, bottom)
 		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			lv.hoverPx, lv.hoverPy)

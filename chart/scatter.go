@@ -258,8 +258,10 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
 
-	// Tooltip.
+	// Crosshair and tooltip.
 	if sv.hovering && sv.xAxis != nil {
+		drawCrosshair(ctx, th, sv.hoverPx, sv.hoverPy,
+			left, right, top, bottom)
 		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			sv.hoverPx, sv.hoverPy)
