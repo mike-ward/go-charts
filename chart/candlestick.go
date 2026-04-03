@@ -181,6 +181,8 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 		cv.lastVersion = cfg.Version
 	}
 
+	left = resolveLeft(ctx, th, left, bottom, top, cv.yAxis)
+
 	cv.lastLeft = left
 	cv.lastRight = right
 	cv.lastTop = top

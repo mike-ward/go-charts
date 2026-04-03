@@ -238,6 +238,8 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	xAxis := sv.xAxis
 	yAxis := sv.yAxis
 
+	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
+
 	sv.yTicks = yAxis.Ticks(bottom, top)
 	sv.xTicks = xAxis.Ticks(left, right)
 

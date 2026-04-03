@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -81,6 +82,28 @@ func drawXAxisLabel(
 	x := (left + right - tw) / 2
 	y := bottom + 5 + tickFh + 6
 	ctx.Text(x, y, label, style)
+}
+
+// resolveLeft returns left expanded so that Y-axis tick labels and
+// the rotated Y-axis title don't overlap. Call after the Y axis
+// domain is set. Returns left unchanged when yAxis has no label.
+func resolveLeft(
+	ctx *render.Context, th *theme.Theme,
+	left, bottom, top float32,
+	yAxis *axis.Linear,
+) float32 {
+	if yAxis == nil || yAxis.Label() == "" {
+		return left
+	}
+	ticks := yAxis.Ticks(bottom, top)
+	maxTickW := float32(0)
+	for _, t := range ticks {
+		maxTickW = max(maxTickW, ctx.TextWidth(t.Label, th.TickStyle))
+	}
+	tickLen, _, _ := resolvedTickMark(th)
+	labelFH := ctx.FontHeight(th.LabelStyle)
+	needed := labelFH*2 + tickLen + maxTickW + 4
+	return max(left, needed)
 }
 
 // drawYAxisLabel renders the Y axis title rotated 90° CCW,

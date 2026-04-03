@@ -233,6 +233,8 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	xAxis := lv.xAxis
 	yAxis := lv.yAxis
 
+	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
+
 	// Generate ticks.
 	lv.yTicks = yAxis.Ticks(bottom, top)
 	lv.xTicks = xAxis.Ticks(left, right)

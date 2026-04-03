@@ -103,3 +103,22 @@ func (c *PieCfg) Validate() error {
 	}
 	return buildError("chart.Pie", errs)
 }
+
+// Validate checks HistogramCfg for invalid settings.
+// Returns nil when valid.
+func (c *HistogramCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if c.Bins < 0 {
+		errs = append(errs, "negative Bins")
+	}
+	if c.Radius < 0 {
+		errs = append(errs, "negative Radius")
+	}
+	if len(c.BinEdges) == 1 {
+		errs = append(errs, "BinEdges must have 0 or 2+ entries")
+	}
+	return buildError("chart.Histogram", errs)
+}

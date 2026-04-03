@@ -16,6 +16,7 @@ const (
 	groupScatter     = "scatter"
 	groupCandlestick = "candlestick"
 	groupStyles      = "styles"
+	groupHistogram   = "histogram"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -60,6 +61,7 @@ var demoGroups = []DemoGroup{
 	{groupArea, "Area"},
 	{groupScatter, "Scatter"},
 	{groupCandlestick, "Candlestick"},
+	{groupHistogram, "Histogram"},
 	{groupStyles, "Styles"},
 }
 
@@ -103,6 +105,10 @@ var demoEntries = []DemoEntry{
 
 	// Candlestick
 	{ID: "candlestick_basic", Label: "Basic Candlestick", Group: groupCandlestick, Summary: "AAPL price action with up/down candle colors.", Tags: []string{"candlestick", "ohlc", "price", "stock", "finance"}},
+
+	// Histogram
+	{ID: "histogram_basic", Label: "Basic Histogram", Group: groupHistogram, Summary: "Score distribution with auto bin count.", Tags: []string{"histogram", "bin", "frequency", "distribution", "count"}},
+	{ID: "histogram_density", Label: "Density Histogram", Group: groupHistogram, Summary: "Normalized frequency density with 20 bins.", Tags: []string{"histogram", "density", "normalized", "bins"}},
 
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},

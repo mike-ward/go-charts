@@ -228,6 +228,10 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		bv.lastVersion = cfg.Version
 	}
 
+	if !cfg.Horizontal {
+		left = resolveLeft(ctx, th, left, bottom, top, bv.yAxis)
+	}
+
 	// Cache plot bounds for cursor hit-testing in hover callback.
 	bv.lastLeft = left
 	bv.lastRight = right

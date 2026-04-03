@@ -54,7 +54,7 @@ First renderable chart types.
 ## Phase 5 — Advanced Charts
 
 - [x] Candlestick chart (OHLC data, up/down colors)
-- [ ] Histogram (bin calculation, frequency distribution)
+- [x] Histogram (bin calculation, frequency distribution)
 - [ ] Box plot (quartiles, whiskers, outliers)
 - [ ] Waterfall chart (running total, positive/negative)
 - [ ] Combo chart (mixed line + bar on shared axes)

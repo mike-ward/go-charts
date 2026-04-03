@@ -264,6 +264,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	xAxis := av.xAxis
 	yAxis := av.yAxis
 
+	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
+
 	av.yTicks = yAxis.Ticks(bottom, top)
 	av.xTicks = xAxis.Ticks(left, right)
 
