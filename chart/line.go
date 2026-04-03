@@ -309,8 +309,8 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	// Tooltip.
 	if lv.hovering && lv.xAxis != nil {
-		drawXYTooltip(ctx, th, cfg.Series, xAxis, yAxis,
-			left, right, top, bottom,
+		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		drawXYTooltip(ctx, th, cfg.Series, pa,
 			lv.hoverPx, lv.hoverPy)
 	}
 }

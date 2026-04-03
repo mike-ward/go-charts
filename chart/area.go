@@ -274,8 +274,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 
 	// Tooltip.
 	if av.hovering && av.xAxis != nil {
-		drawXYTooltip(ctx, th, cfg.Series, xAxis, yAxis,
-			left, right, top, bottom,
+		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		drawXYTooltip(ctx, th, cfg.Series, pa,
 			av.hoverPx, av.hoverPy)
 	}
 }

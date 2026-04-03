@@ -9,21 +9,25 @@ import (
 	"github.com/mike-ward/go-charts/theme"
 )
 
-// nearestXYPoint finds the series/point index and pixel position of
-// the data point closest to (mx, my) within snapPx pixels. Returns
-// ok=false when no point is within the threshold.
+// plotArea describes the pixel bounds and axes of the chart's data
+// region. Passed to tooltip helpers to avoid long parameter lists.
+type plotArea struct {
+	Left, Right, Top, Bottom float32
+	XAxis, YAxis             *axis.Linear
+}
+
+// nearestXYPoint finds the series/point index and pixel position
+// of the data point closest to (mx, my) within snapPx pixels.
+// Returns ok=false when no point is within the threshold.
 func nearestXYPoint(
-	serieses []series.XY,
-	xAxis, yAxis *axis.Linear,
-	left, right, top, bottom float32,
-	mx, my float32,
-	snapPx float32,
+	serieses []series.XY, pa plotArea,
+	mx, my, snapPx float32,
 ) (si, pi int, px, py float32, ok bool) {
 	best := snapPx * snapPx
 	for i, s := range serieses {
 		for j, p := range s.Points {
-			ppx := xAxis.Transform(p.X, left, right)
-			ppy := yAxis.Transform(p.Y, bottom, top)
+			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
+			ppy := pa.YAxis.Transform(p.Y, pa.Bottom, pa.Top)
 			dx := ppx - mx
 			dy := ppy - my
 			d2 := dx*dx + dy*dy
@@ -41,15 +45,11 @@ func nearestXYPoint(
 // Shared by line, scatter, and area charts.
 func drawXYTooltip(
 	ctx *render.Context, th *theme.Theme,
-	serieses []series.XY,
-	xAxis, yAxis *axis.Linear,
-	left, right, top, bottom float32,
+	serieses []series.XY, pa plotArea,
 	mx, my float32,
 ) {
 	si, pi, px, py, ok := nearestXYPoint(
-		serieses, xAxis, yAxis,
-		left, right, top, bottom,
-		mx, my, 20)
+		serieses, pa, mx, my, 20)
 	if !ok {
 		return
 	}
