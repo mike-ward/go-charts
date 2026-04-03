@@ -38,7 +38,7 @@ First renderable chart types.
 - [x] Pie chart with label placement
 - [x] Donut chart (InnerRadius > 0)
 - [x] Gauge chart (arc-based, value indicator)
-- [ ] Segment hover highlight
+- [x] Segment hover highlight
 - [x] Percentage labels
 
 ## Phase 4 — Interactivity
@@ -100,7 +100,7 @@ First renderable chart types.
 ## Phase 10 — Export & Accessibility
 
 - [ ] SVG export (static chart to SVG string)
-- [ ] PNG export (rasterize via backend)
+- [x] PNG export (rasterize via backend)
 - [ ] PDF export (via go-pdf/fpdf)
 - [ ] Keyboard navigation (tab between points, series)
 - [ ] Screen reader labels (ARIA-style metadata)
