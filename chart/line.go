@@ -352,6 +352,9 @@ func (lv *lineView) drawSeries(
 		}
 		pts := lv.ptsBuf[:0]
 		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
 			pts = append(pts, px, py)

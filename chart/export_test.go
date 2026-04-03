@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/series"
@@ -145,6 +146,44 @@ func TestExportPNG_LineAreaNonMonotonicX(t *testing.T) {
 	})
 
 	path := filepath.Join(t.TempDir(), "area_nonmonotonic.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_Candlestick(t *testing.T) {
+	base := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
+	pts := make([]series.OHLC, 5)
+	opens := []float64{100, 105, 103, 108, 106}
+	highs := []float64{110, 115, 112, 118, 114}
+	lows := []float64{98, 102, 100, 105, 103}
+	closes := []float64{106, 103, 109, 107, 111}
+	for i := range pts {
+		pts[i] = series.OHLC{
+			Time:  base.AddDate(0, 0, i),
+			Open:  opens[i],
+			High:  highs[i],
+			Low:   lows[i],
+			Close: closes[i],
+		}
+	}
+	v := Candlestick(CandlestickCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-candlestick",
+			Width: 400, Height: 300,
+		},
+		Series: []series.OHLCSeries{
+			series.NewOHLC(series.OHLCCfg{
+				Name:      "AAPL",
+				ColorUp:   gui.Hex(0x26a69a),
+				ColorDown: gui.Hex(0xef5350),
+				Points:    pts,
+			}),
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "candlestick.png")
 	if err := ExportPNG(v, 400, 300, path); err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,435 @@
+package chart
+
+import (
+	"fmt"
+	"log/slog"
+	"math"
+
+	"github.com/mike-ward/go-charts/axis"
+	"github.com/mike-ward/go-charts/render"
+	"github.com/mike-ward/go-charts/series"
+	"github.com/mike-ward/go-charts/theme"
+	"github.com/mike-ward/go-gui/gui"
+)
+
+// defaultCandleUp is the fallback color for up (bullish) candles.
+var defaultCandleUp = gui.Hex(0x26a69a)
+
+// defaultCandleDown is the fallback color for down (bearish) candles.
+var defaultCandleDown = gui.Hex(0xef5350)
+
+// CandlestickCfg configures a candlestick chart.
+type CandlestickCfg struct {
+	BaseCfg
+
+	// Data
+	Series []series.OHLCSeries
+
+	// Axes (optional; Y auto-created from High/Low bounds when nil)
+	YAxis *axis.Linear
+
+	// CandleWidth is the body width in pixels. 0 = auto (slot width
+	// multiplied by DefaultCandleWidthRatio).
+	CandleWidth float32
+
+	// XTimeFormat is the Go time layout used for X-axis tick labels.
+	// Defaults to "01/02".
+	XTimeFormat string
+}
+
+// Validate checks CandlestickCfg for invalid settings.
+func (c *CandlestickCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.CandleWidth < 0 {
+		errs = append(errs, "negative CandleWidth")
+	}
+	return buildError("chart.Candlestick", errs)
+}
+
+type candlestickView struct {
+	cfg         CandlestickCfg
+	lastVersion uint64
+	yAxis       *axis.Linear
+	yTicks      []axis.Tick
+	xAxis       *axis.Category
+	hoverPx     float32
+	hoverPy     float32
+	hovering    bool
+	hidden      map[int]bool
+	lastLeft    float32
+	lastRight   float32
+	lastTop     float32
+	lastBottom  float32
+	lastLB      legendBounds
+	win         *gui.Window
+}
+
+// Candlestick creates a candlestick chart view.
+func Candlestick(cfg CandlestickCfg) gui.View {
+	cfg.applyDefaults()
+	if cfg.XTimeFormat == "" {
+		cfg.XTimeFormat = "01/02"
+	}
+	if err := cfg.Validate(); err != nil {
+		slog.Warn("invalid config", "error", err)
+	}
+	return &candlestickView{cfg: cfg}
+}
+
+// Draw renders the chart onto dc for headless export.
+func (cv *candlestickView) Draw(dc *gui.DrawContext) { cv.draw(dc) }
+
+func (cv *candlestickView) chartTheme() *theme.Theme { return cv.cfg.Theme }
+
+func (cv *candlestickView) Content() []gui.View { return nil }
+
+func (cv *candlestickView) GenerateLayout(w *gui.Window) gui.Layout {
+	c := &cv.cfg
+	hv := loadHover(w, c.ID, &cv.hovering, &cv.hoverPx, &cv.hoverPy)
+	var hidV uint64
+	cv.hidden, hidV = loadHiddenState(w, c.ID)
+	cv.lastLB = loadLegendBounds(w, c.ID)
+	cv.win = w
+	width, height := resolveSize(c.Width, c.Height, w)
+	return gui.DrawCanvas(gui.DrawCanvasCfg{
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv + hidV,
+		Clip:         true,
+		OnDraw:       cv.draw,
+		OnClick:      cv.internalClick,
+		OnHover:      cv.internalHover,
+		OnMouseLeave: cv.internalMouseLeave,
+	}).GenerateLayout(w)
+}
+
+func (cv *candlestickView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(cv.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, cv.cfg.ID, idx)
+		return
+	}
+	if cv.cfg.OnClick != nil {
+		cv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (cv *candlestickView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
+	cv.hoverPx = e.MouseX - l.Shape.X
+	cv.hoverPy = e.MouseY - l.Shape.Y
+	cv.hovering = true
+	saveHover(w, l, cv.cfg.ID, true, cv.hoverPx, cv.hoverPy)
+	if legendHitTest(cv.lastLB, cv.hoverPx, cv.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if cv.hoverPx >= cv.lastLeft && cv.hoverPx <= cv.lastRight &&
+		cv.hoverPy >= cv.lastTop && cv.hoverPy <= cv.lastBottom {
+		w.SetMouseCursorPointingHand()
+	} else {
+		w.SetMouseCursorArrow()
+	}
+	if cv.cfg.OnHover != nil {
+		cv.cfg.OnHover(l, e, w)
+	}
+}
+
+func (cv *candlestickView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
+	cv.hovering = false
+	saveHover(w, l, cv.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
+	if cv.cfg.OnMouseLeave != nil {
+		cv.cfg.OnMouseLeave(l, e, w)
+	}
+}
+
+func (cv *candlestickView) draw(dc *gui.DrawContext) {
+	ctx := render.NewContext(dc)
+	cfg := &cv.cfg
+	th := cfg.Theme
+
+	if len(cfg.Series) == 0 {
+		slog.Warn("no series data", "chart", cfg.ID)
+		return
+	}
+
+	left := th.PaddingLeft
+	right := ctx.Width() - th.PaddingRight
+	top := th.PaddingTop
+	bottom := ctx.Height() - th.PaddingBottom
+
+	if right <= left || bottom <= top {
+		slog.Warn("plot area too small", "chart", cfg.ID)
+		return
+	}
+
+	drawTitle(ctx, cfg.Title, th)
+
+	// Rebuild axes when data version changes.
+	if cv.yAxis == nil || cfg.Version != cv.lastVersion {
+		cv.buildAxes(cfg, th)
+		cv.lastVersion = cfg.Version
+	}
+
+	cv.lastLeft = left
+	cv.lastRight = right
+	cv.lastTop = top
+	cv.lastBottom = bottom
+
+	cv.yTicks = cv.yAxis.Ticks(bottom, top)
+
+	// Grid lines.
+	for _, t := range cv.yTicks {
+		ctx.Line(left, t.Position, right, t.Position,
+			th.GridColor, th.GridWidth)
+	}
+
+	// Axis lines.
+	ctx.Line(left, bottom, right, bottom, th.AxisColor, th.AxisWidth)
+	ctx.Line(left, top, left, bottom, th.AxisColor, th.AxisWidth)
+
+	// Y tick marks and labels.
+	tickLen, tickWidth, tickColor := resolvedTickMark(th)
+	tickStyle := th.TickStyle
+	fh := ctx.FontHeight(tickStyle)
+	for _, t := range cv.yTicks {
+		ctx.Line(left-tickLen, t.Position, left, t.Position, tickColor, tickWidth)
+		tw := ctx.TextWidth(t.Label, tickStyle)
+		ctx.Text(left-tickLen-tw-2, t.Position-fh/2, t.Label, tickStyle)
+	}
+
+	drawYAxisLabel(ctx, cv.yAxis.Label(), th, top, bottom)
+
+	// X ticks and candles — only when at least one series is visible.
+	firstSI := cv.firstVisibleSeries()
+	if firstSI >= 0 {
+		nPoints := len(cfg.Series[firstSI].Points)
+		if nPoints > 0 {
+			// X tick marks and labels.
+			xts := tickStyle
+			if cfg.XTickRotation != 0 {
+				xts.RotationRadians = cfg.XTickRotation
+			}
+			xTicks := cv.xAxis.Ticks(left, right)
+			for _, t := range xTicks {
+				ctx.Line(t.Position, bottom, t.Position, bottom+tickLen, tickColor, tickWidth)
+				if cfg.XTickRotation != 0 {
+					ctx.Text(t.Position, bottom+tickLen+2, t.Label, xts)
+				} else {
+					lw := ctx.TextWidth(t.Label, xts)
+					ctx.Text(t.Position-lw/2, bottom+tickLen+2, t.Label, xts)
+				}
+			}
+
+			slotW := (right - left) / float32(nPoints)
+			candleW := cfg.CandleWidth
+			if candleW <= 0 {
+				candleW = slotW * DefaultCandleWidthRatio
+			}
+			candleW = max(candleW, 1)
+
+			for si, s := range cfg.Series {
+				upHidden := cv.hidden[2*si]
+				downHidden := cv.hidden[2*si+1]
+				if upHidden && downHidden {
+					continue
+				}
+				for i, p := range s.Points {
+					if !finite(p.High) || !finite(p.Low) || !finite(p.Open) || !finite(p.Close) {
+						continue
+					}
+					isUp := p.Close >= p.Open
+					if isUp && upHidden {
+						continue
+					}
+					if !isUp && downHidden {
+						continue
+					}
+					cx := cv.xAxis.Transform(float64(i), left, right)
+					highPx := cv.yAxis.Transform(p.High, bottom, top)
+					lowPx := cv.yAxis.Transform(p.Low, bottom, top)
+					openPx := cv.yAxis.Transform(p.Open, bottom, top)
+					closePx := cv.yAxis.Transform(p.Close, bottom, top)
+
+					color := candleColor(s, isUp)
+
+					// Wick: high to low.
+					ctx.Line(cx, highPx, cx, lowPx, color, 1.5)
+
+					// Body.
+					bodyTop := min(openPx, closePx)
+					bodyH := float32(math.Abs(float64(closePx - openPx)))
+					bodyH = max(bodyH, 1)
+					ctx.FilledRect(cx-candleW/2, bodyTop, candleW, bodyH, color)
+				}
+			}
+		}
+	}
+
+	// Legend: two entries per series — up (index 2*i) and down (index 2*i+1).
+	// Independent indices allow toggling up/down candles separately.
+	entries := make([]legendEntry, 0, len(cfg.Series)*2)
+	for i, s := range cfg.Series {
+		name := s.Name()
+		upLabel, downLabel := name+" ↑", name+" ↓"
+		if name == "" {
+			upLabel, downLabel = "↑", "↓"
+		}
+		entries = append(entries,
+			legendEntry{Name: upLabel, Color: candleColor(s, true), Index: 2 * i},
+			legendEntry{Name: downLabel, Color: candleColor(s, false), Index: 2*i + 1},
+		)
+	}
+	cv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, cv.hidden)
+	saveLegendBounds(cv.win, cfg.ID, cv.lastLB)
+
+	if cv.hovering {
+		drawCrosshair(ctx, th, cv.hoverPx, cv.hoverPy, left, right, top, bottom)
+		cv.tooltipCandlestick(ctx, left, right, top, bottom, th)
+	}
+}
+
+// buildAxes rebuilds yAxis and xAxis from current series data.
+func (cv *candlestickView) buildAxes(cfg *CandlestickCfg, _ *theme.Theme) {
+	// Y axis.
+	if cfg.YAxis != nil {
+		cv.yAxis = cfg.YAxis
+	} else {
+		minLow := math.MaxFloat64
+		maxHigh := -math.MaxFloat64
+		for si, s := range cfg.Series {
+			if cv.hidden[2*si] && cv.hidden[2*si+1] {
+				continue
+			}
+			for _, p := range s.Points {
+				if !finite(p.Low) || !finite(p.High) {
+					continue
+				}
+				minLow = min(minLow, p.Low)
+				maxHigh = max(maxHigh, p.High)
+			}
+		}
+		if minLow == math.MaxFloat64 {
+			minLow = 0
+			maxHigh = 1
+		}
+		if minLow == maxHigh {
+			maxHigh = minLow + 1
+		}
+		span := maxHigh - minLow
+		pad := span * 0.05
+		cv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
+		cv.yAxis.SetRange(minLow-pad, maxHigh+pad)
+	}
+
+	// X axis: labels from first visible series times.
+	firstSI := cv.firstVisibleSeries()
+	if firstSI < 0 {
+		cv.xAxis = axis.NewCategory(axis.CategoryCfg{})
+		return
+	}
+	pts := cfg.Series[firstSI].Points
+	labels := make([]string, len(pts))
+	for i, p := range pts {
+		labels[i] = p.Time.Format(cfg.XTimeFormat)
+	}
+	cv.xAxis = axis.NewCategory(axis.CategoryCfg{Categories: labels})
+}
+
+// firstVisibleSeries returns the index of the first series that is not
+// fully hidden (i.e. at least one of its up/down entries is visible),
+// or -1 if all series are fully hidden.
+func (cv *candlestickView) firstVisibleSeries() int {
+	for i := range cv.cfg.Series {
+		if !cv.hidden[2*i] || !cv.hidden[2*i+1] {
+			return i
+		}
+	}
+	return -1
+}
+
+// tooltipCandlestick draws an OHLC tooltip for the candle nearest the cursor.
+func (cv *candlestickView) tooltipCandlestick(
+	ctx *render.Context,
+	left, right, top, bottom float32,
+	th *theme.Theme,
+) {
+	cfg := &cv.cfg
+	mx := cv.hoverPx
+	my := cv.hoverPy
+	if mx < left || mx > right || my < top || my > bottom {
+		return
+	}
+
+	firstSI := cv.firstVisibleSeries()
+	if firstSI < 0 {
+		return
+	}
+	nCat := len(cfg.Series[firstSI].Points)
+	if nCat == 0 {
+		return
+	}
+
+	slotW := (right - left) / float32(nCat)
+	slot := max(0, min(int((mx-left)/slotW), nCat-1))
+
+	candleW := cfg.CandleWidth
+	if candleW <= 0 {
+		candleW = slotW * DefaultCandleWidthRatio
+	}
+	candleW = max(candleW, 1)
+
+	// Find first visible series with this slot and hit-test against the candle.
+	for si, s := range cfg.Series {
+		if (cv.hidden[2*si] && cv.hidden[2*si+1]) || slot >= len(s.Points) {
+			continue
+		}
+		p := s.Points[slot]
+		if !finite(p.High) || !finite(p.Low) || !finite(p.Open) || !finite(p.Close) {
+			continue
+		}
+		cx := cv.xAxis.Transform(float64(slot), left, right)
+
+		// Horizontal hit: within the candle body width.
+		if mx < cx-candleW/2 || mx > cx+candleW/2 {
+			continue
+		}
+		// Vertical hit: within the full wick range (high to low).
+		highPx := cv.yAxis.Transform(p.High, bottom, top)
+		lowPx := cv.yAxis.Transform(p.Low, bottom, top)
+		if my < highPx || my > lowPx {
+			continue
+		}
+		label := fmt.Sprintf("%s\nO: %g\nH: %g\nL: %g\nC: %g",
+			p.Time.Format(cfg.XTimeFormat),
+			p.Open, p.High, p.Low, p.Close)
+		drawTooltip(ctx, cx, highPx, label, th)
+		return
+	}
+}
+
+// candleColor returns the up or down color for a candle, falling back to
+// package defaults when the series color is unset.
+func candleColor(s series.OHLCSeries, isUp bool) gui.Color {
+	if isUp {
+		if c := s.ColorUp(); c != (gui.Color{}) {
+			return c
+		}
+		return defaultCandleUp
+	}
+	if c := s.ColorDown(); c != (gui.Color{}) {
+		return c
+	}
+	return defaultCandleDown
+}

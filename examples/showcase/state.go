@@ -6,15 +6,16 @@ import (
 )
 
 const (
-	groupAll     = "all"
-	groupTypes   = "types"
-	groupLine    = "line"
-	groupBar     = "bar"
-	groupPie     = "pie"
-	groupGauge   = "gauge"
-	groupArea    = "area"
-	groupScatter = "scatter"
-	groupStyles  = "styles"
+	groupAll         = "all"
+	groupTypes       = "types"
+	groupLine        = "line"
+	groupBar         = "bar"
+	groupPie         = "pie"
+	groupGauge       = "gauge"
+	groupArea        = "area"
+	groupScatter     = "scatter"
+	groupCandlestick = "candlestick"
+	groupStyles      = "styles"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -58,6 +59,7 @@ var demoGroups = []DemoGroup{
 	{groupGauge, "Gauge"},
 	{groupArea, "Area"},
 	{groupScatter, "Scatter"},
+	{groupCandlestick, "Candlestick"},
 	{groupStyles, "Styles"},
 }
 
@@ -98,6 +100,9 @@ var demoEntries = []DemoEntry{
 	// Scatter
 	{ID: "scatter_basic", Label: "Basic Scatter", Group: groupScatter, Summary: "Height versus weight correlation.", Tags: []string{"scatter", "correlation", "points"}},
 	{ID: "scatter_markers", Label: "Marker Shapes", Group: groupScatter, Summary: "Wind speed versus temperature with different marker shapes.", Tags: []string{"scatter", "markers", "shapes"}},
+
+	// Candlestick
+	{ID: "candlestick_basic", Label: "Basic Candlestick", Group: groupCandlestick, Summary: "AAPL price action with up/down candle colors.", Tags: []string{"candlestick", "ohlc", "price", "stock", "finance"}},
 
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},

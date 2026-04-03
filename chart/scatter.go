@@ -296,6 +296,9 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 			color = dimColor(color, HoverDimAlpha)
 		}
 		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
 			drawMarker(ctx, px, py, cfg.MarkerSize, cfg.Marker, color)

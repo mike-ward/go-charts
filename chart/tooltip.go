@@ -26,6 +26,9 @@ func nearestXYPoint(
 	best := snapPx * snapPx
 	for i, s := range serieses {
 		for j, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
 			ppy := pa.YAxis.Transform(p.Y, pa.Bottom, pa.Top)
 			dx := ppx - mx
@@ -72,6 +75,9 @@ func nearestStackedPoint(
 		n := min(s.Len(), refLen)
 		for j := range n {
 			p := s.Points[j]
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			cumY[j] += p.Y
 			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
 			ppy := pa.YAxis.Transform(cumY[j], pa.Bottom, pa.Top)

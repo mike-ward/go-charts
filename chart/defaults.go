@@ -14,4 +14,8 @@ const (
 
 	DefaultGaugeArcAngle   float32 = 3 * 3.14159265 / 2 // 270°
 	DefaultGaugeInnerRatio float32 = 0.7
+
+	// DefaultCandleWidthRatio is the fraction of the slot width used
+	// for the candle body when CandleWidth is 0.
+	DefaultCandleWidthRatio float32 = 0.6
 )

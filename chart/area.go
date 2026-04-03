@@ -387,6 +387,9 @@ func (av *areaView) drawOverlapping(
 		}
 		pts := av.ptsBuf[:0]
 		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
 			pts = append(pts, px, py)
@@ -475,6 +478,9 @@ func (av *areaView) drawStacked(
 		cur := av.curPtsBuf[:n*2]
 		for j := range n {
 			p := s.Points[j]
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
 			cumY[j] += p.Y
 			cur[j*2] = xAxis.Transform(p.X, left, right)
 			cur[j*2+1] = yAxis.Transform(cumY[j], bottom, top)
