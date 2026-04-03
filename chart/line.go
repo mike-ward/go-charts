@@ -80,6 +80,7 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	lv.hoverPx = e.MouseX - l.Shape.X
 	lv.hoverPy = e.MouseY - l.Shape.Y
 	lv.hovering = true
@@ -90,6 +91,7 @@ func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 }
 
 func (lv *lineView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	lv.hovering = false
 	saveHover(w, l, lv.cfg.ID, false, 0, 0)
 	if lv.cfg.OnMouseLeave != nil {

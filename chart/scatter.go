@@ -90,6 +90,7 @@ func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	sv.hoverPx = e.MouseX - l.Shape.X
 	sv.hoverPy = e.MouseY - l.Shape.Y
 	sv.hovering = true
@@ -100,6 +101,7 @@ func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window)
 }
 
 func (sv *scatterView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	sv.hovering = false
 	saveHover(w, l, sv.cfg.ID, false, 0, 0)
 	if sv.cfg.OnMouseLeave != nil {

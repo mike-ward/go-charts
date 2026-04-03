@@ -2,8 +2,8 @@ package series
 
 import (
 	"fmt"
-	"math"
 
+	"github.com/mike-ward/go-charts/internal/fmath"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -79,11 +79,6 @@ func (p Point) String() string {
 	return fmt.Sprintf("(%.4g, %.4g)", p.X, p.Y)
 }
 
-// finiteF64 reports whether v is neither NaN nor +/-Inf.
-func finiteF64(v float64) bool {
-	return !math.IsNaN(v) && !math.IsInf(v, 0)
-}
-
 // Bounds returns the min/max X and Y values. Non-finite points
 // (NaN, +/-Inf) are skipped. If no finite points exist, all
 // returned values are zero.
@@ -92,7 +87,7 @@ func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
 	i := 0
 	for i < len(s.Points) {
 		p := s.Points[i]
-		if finiteF64(p.X) && finiteF64(p.Y) {
+		if fmath.Finite(p.X) && fmath.Finite(p.Y) {
 			break
 		}
 		i++
@@ -103,7 +98,7 @@ func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
 	minX, maxX = s.Points[i].X, s.Points[i].X
 	minY, maxY = s.Points[i].Y, s.Points[i].Y
 	for _, p := range s.Points[i+1:] {
-		if !finiteF64(p.X) || !finiteF64(p.Y) {
+		if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
 			continue
 		}
 		if p.X < minX {

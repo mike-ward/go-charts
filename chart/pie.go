@@ -74,6 +74,7 @@ func (pv *pieView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (pv *pieView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	pv.hoverPx = e.MouseX - l.Shape.X
 	pv.hoverPy = e.MouseY - l.Shape.Y
 	pv.hovering = true
@@ -84,6 +85,7 @@ func (pv *pieView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 }
 
 func (pv *pieView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	pv.hovering = false
 	saveHover(w, l, pv.cfg.ID, false, 0, 0)
 	if pv.cfg.OnMouseLeave != nil {
@@ -264,6 +266,24 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 	// Note: this only looks correct over a solid background.
 	if cfg.InnerRadius > 0 {
 		ctx.FilledCircle(cx, cy, cfg.InnerRadius, th.Background)
+		// Draw a second hole at the exploded slice center so
+		// the shifted geometry is also hollowed out.
+		if hovIdx >= 0 {
+			s := cfg.Slices[hovIdx]
+			if s.Value > 0 {
+				cumA := cfg.StartAngle
+				for _, sl := range cfg.Slices[:hovIdx] {
+					if sl.Value > 0 {
+						cumA += float32(sl.Value/total) * (2 * math.Pi)
+					}
+				}
+				sweep := float32(s.Value/total) * (2 * math.Pi)
+				mid := cumA + sweep/2
+				ecx := cx + HoverExplodeDist*float32(math.Cos(float64(mid)))
+				ecy := cy + HoverExplodeDist*float32(math.Sin(float64(mid)))
+				ctx.FilledCircle(ecx, ecy, cfg.InnerRadius, th.Background)
+			}
+		}
 	}
 
 	// Labels at midpoint of each slice arc.

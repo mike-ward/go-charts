@@ -1,6 +1,10 @@
 package axis
 
-import "math"
+import (
+	"math"
+
+	"github.com/mike-ward/go-charts/internal/fmath"
+)
 
 // NiceNumber computes a "nice" number approximately equal to the
 // given value. If round is true, it rounds; otherwise it takes
@@ -53,29 +57,29 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 	}
 
 	// Guard: non-finite inputs.
-	if !finiteF64(dataMin) || !finiteF64(dataMax) {
-		if finiteF64(dataMin) {
+	if !fmath.Finite(dataMin) || !fmath.Finite(dataMax) {
+		if fmath.Finite(dataMin) {
 			return []float64{dataMin}
 		}
-		if finiteF64(dataMax) {
+		if fmath.Finite(dataMax) {
 			return []float64{dataMax}
 		}
 		return nil
 	}
 
 	rangeVal := NiceNumber(dataMax-dataMin, false)
-	if !finiteF64(rangeVal) {
+	if !fmath.Finite(rangeVal) {
 		return []float64{dataMin}
 	}
 
 	spacing := NiceNumber(rangeVal/float64(maxTicks-1), true)
-	if spacing <= 0 || !finiteF64(spacing) {
+	if spacing <= 0 || !fmath.Finite(spacing) {
 		return []float64{dataMin}
 	}
 
 	niceMin := math.Floor(dataMin/spacing) * spacing
 	niceMax := math.Ceil(dataMax/spacing) * spacing
-	if !finiteF64(niceMin) || !finiteF64(niceMax) {
+	if !fmath.Finite(niceMin) || !fmath.Finite(niceMax) {
 		return []float64{dataMin}
 	}
 
@@ -97,9 +101,4 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 		}
 	}
 	return ticks
-}
-
-// finiteF64 reports whether v is neither NaN nor +/-Inf.
-func finiteF64(v float64) bool {
-	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }

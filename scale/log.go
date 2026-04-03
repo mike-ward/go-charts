@@ -3,6 +3,8 @@ package scale
 import (
 	"log/slog"
 	"math"
+
+	"github.com/mike-ward/go-charts/internal/fmath"
 )
 
 // Log is a logarithmic data-to-pixel scale.
@@ -35,7 +37,7 @@ func (s *Log) Domain() (float64, float64) {
 // domain/value return pixelMin.
 func (s *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {
 	if value <= 0 || s.min <= 0 || s.max <= s.min ||
-		!finiteF64(value) {
+		!fmath.Finite(value) {
 		if value <= 0 {
 			slog.Debug("log scale: non-positive value",
 				"value", value)

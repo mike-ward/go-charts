@@ -37,6 +37,7 @@ type areaView struct {
 	yTicks      []axis.Tick
 	ptsBuf      []float32
 	prevPtsBuf  []float32
+	curPtsBuf   []float32
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
@@ -84,6 +85,7 @@ func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	av.hoverPx = e.MouseX - l.Shape.X
 	av.hoverPy = e.MouseY - l.Shape.Y
 	av.hovering = true
@@ -94,6 +96,7 @@ func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 }
 
 func (av *areaView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	av.hovering = false
 	saveHover(w, l, av.cfg.ID, false, 0, 0)
 	if av.cfg.OnMouseLeave != nil {
@@ -122,7 +125,7 @@ func (av *areaView) updateAxes() bool {
 		}
 	}
 
-	// For stacked mode, Y max is the maximum cumulative sum per index.
+	// For stacked mode, Y range is the cumulative sum envelope.
 	if cfg.Stacked {
 		refLen := 0
 		for _, s := range cfg.Series {
@@ -138,9 +141,10 @@ func (av *areaView) updateAxes() bool {
 				for j := range n {
 					sums[j] += s.Points[j].Y
 					maxY = max(maxY, sums[j])
+					minY = min(minY, sums[j])
 				}
 			}
-			minY = 0
+			minY = min(minY, 0)
 		}
 	}
 
@@ -406,6 +410,10 @@ func (av *areaView) drawStacked(
 		break
 	}
 
+	if cap(av.curPtsBuf) < needed {
+		av.curPtsBuf = make([]float32, needed)
+	}
+
 	for i, s := range cfg.Series {
 		if s.Len() == 0 {
 			continue
@@ -419,9 +427,7 @@ func (av *areaView) drawStacked(
 		fill := gui.RGBA(color.R, color.G, color.B, fillAlpha)
 
 		n := min(s.Len(), refLen)
-		// cur is allocated per-series so prev can safely reference the
-		// previous iteration's slice.
-		cur := make([]float32, n*2)
+		cur := av.curPtsBuf[:n*2]
 		for j := range n {
 			p := s.Points[j]
 			cumY[j] += p.Y
@@ -445,6 +451,6 @@ func (av *areaView) drawStacked(
 			}
 		}
 		ctx.Polyline(cur, color, cfg.LineWidth)
-		copy(prev, cur)
+		copy(prev[:n*2], cur)
 	}
 }

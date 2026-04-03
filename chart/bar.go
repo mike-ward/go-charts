@@ -79,6 +79,7 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 }
 
 func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	bv.hoverPx = e.MouseX - l.Shape.X
 	bv.hoverPy = e.MouseY - l.Shape.Y
 	bv.hovering = true
@@ -89,6 +90,7 @@ func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 }
 
 func (bv *barView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	e.IsHandled = true
 	bv.hovering = false
 	saveHover(w, l, bv.cfg.ID, false, 0, 0)
 	if bv.cfg.OnMouseLeave != nil {
@@ -287,8 +289,14 @@ func (bv *barView) drawVertical(
 
 			cx := groupX + groupWidth/2
 			ctx.Line(cx, bottom, cx, bottom+tickLen, tickColor, tickWidth)
-			lw := ctx.TextWidth(labels[ci].Label, tickStyle)
-			ctx.Text(cx-lw/2, bottom+tickLen+2, labels[ci].Label, tickStyle)
+			xts := tickStyle
+			if cfg.XTickRotation != 0 {
+				xts.RotationRadians = cfg.XTickRotation
+				ctx.Text(cx, bottom+tickLen+2, labels[ci].Label, xts)
+			} else {
+				lw := ctx.TextWidth(labels[ci].Label, xts)
+				ctx.Text(cx-lw/2, bottom+tickLen+2, labels[ci].Label, xts)
+			}
 		}
 	} else {
 		barWidth := cfg.BarWidth

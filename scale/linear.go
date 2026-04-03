@@ -1,6 +1,6 @@
 package scale
 
-import "math"
+import "github.com/mike-ward/go-charts/internal/fmath"
 
 // Linear is a linear data-to-pixel scale.
 type Linear struct {
@@ -26,21 +26,16 @@ func (s *Linear) Domain() (float64, float64) {
 // Transform implements Scale. Non-finite values or domains return
 // pixelMin.
 func (s *Linear) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	if s.max == s.min || !finiteF64(value) ||
-		!finiteF64(s.min) || !finiteF64(s.max) {
+	if s.max == s.min || !fmath.Finite(value) ||
+		!fmath.Finite(s.min) || !fmath.Finite(s.max) {
 		return pixelMin
 	}
 	denom := s.max - s.min
-	if !finiteF64(denom) {
+	if !fmath.Finite(denom) {
 		return pixelMin
 	}
 	t := (value - s.min) / denom
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
-}
-
-// finiteF64 reports whether v is neither NaN nor +/-Inf.
-func finiteF64(v float64) bool {
-	return !math.IsNaN(v) && !math.IsInf(v, 0)
 }
 
 // Invert implements Scale.

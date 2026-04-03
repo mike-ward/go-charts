@@ -155,7 +155,7 @@ func rasterizeTriBatches(img *image.RGBA, batches []gui.DrawCanvasTriBatch) {
 				rowOff := py*stride + mnX*4
 				for px := mnX; px <= mxX; px++ {
 					// Count sub-pixel samples inside the
-					// triangle (4x MSAA).
+					// triangle (16x MSAA).
 					hits := uint32(0)
 					for _, off := range msaaOffsets {
 						sx := float32(px) + off[0]
