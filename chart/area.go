@@ -29,7 +29,7 @@ type AreaCfg struct {
 }
 
 type areaView struct {
-	cfg         AreaCfg
+	cfg        AreaCfg
 	lastVersion uint64
 	xAxis       *axis.Linear
 	yAxis       *axis.Linear
@@ -37,6 +37,9 @@ type areaView struct {
 	yTicks      []axis.Tick
 	ptsBuf      []float32
 	prevPtsBuf  []float32
+	hoverPx     float32
+	hoverPy     float32
+	hovering    bool
 }
 
 // Area creates an area chart view.
@@ -63,18 +66,39 @@ func (av *areaView) Content() []gui.View { return nil }
 
 func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &av.cfg
+	hv := loadHover(w, c.ID,
+		&av.hovering, &av.hoverPx, &av.hoverPy)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      c.ID,
-		Sizing:  c.Sizing,
-		Width:   width,
-		Height:  height,
-		Version: c.Version,
-		Clip:    true,
-		OnDraw:  av.draw,
-		OnClick: c.OnClick,
-		OnHover: c.OnHover,
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv,
+		Clip:         true,
+		OnDraw:       av.draw,
+		OnClick:      c.OnClick,
+		OnHover:      av.internalHover,
+		OnMouseLeave: av.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	av.hoverPx = e.MouseX - l.Shape.X
+	av.hoverPy = e.MouseY - l.Shape.Y
+	av.hovering = true
+	saveHover(w, l, av.cfg.ID, true, av.hoverPx, av.hoverPy)
+	if av.cfg.OnHover != nil {
+		av.cfg.OnHover(l, e, w)
+	}
+}
+
+func (av *areaView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	av.hovering = false
+	saveHover(w, l, av.cfg.ID, false, 0, 0)
+	if av.cfg.OnMouseLeave != nil {
+		av.cfg.OnMouseLeave(l, e, w)
+	}
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -247,6 +271,13 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 		}
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+
+	// Tooltip.
+	if av.hovering && av.xAxis != nil {
+		drawXYTooltip(ctx, th, cfg.Series, xAxis, yAxis,
+			left, right, top, bottom,
+			av.hoverPx, av.hoverPy)
+	}
 }
 
 func (av *areaView) drawOverlapping(

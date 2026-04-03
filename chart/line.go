@@ -36,6 +36,9 @@ type lineView struct {
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	ptsBuf      []float32
+	hoverPx     float32
+	hoverPy     float32
+	hovering    bool
 }
 
 // Line creates a line chart view.
@@ -59,18 +62,39 @@ func (lv *lineView) Content() []gui.View { return nil }
 
 func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &lv.cfg
+	hv := loadHover(w, c.ID,
+		&lv.hovering, &lv.hoverPx, &lv.hoverPy)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      c.ID,
-		Sizing:  c.Sizing,
-		Width:   width,
-		Height:  height,
-		Version: c.Version,
-		Clip:    true,
-		OnDraw:  lv.draw,
-		OnClick: c.OnClick,
-		OnHover: c.OnHover,
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv,
+		Clip:         true,
+		OnDraw:       lv.draw,
+		OnClick:      c.OnClick,
+		OnHover:      lv.internalHover,
+		OnMouseLeave: lv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	lv.hoverPx = e.MouseX - l.Shape.X
+	lv.hoverPy = e.MouseY - l.Shape.Y
+	lv.hovering = true
+	saveHover(w, l, lv.cfg.ID, true, lv.hoverPx, lv.hoverPy)
+	if lv.cfg.OnHover != nil {
+		lv.cfg.OnHover(l, e, w)
+	}
+}
+
+func (lv *lineView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	lv.hovering = false
+	saveHover(w, l, lv.cfg.ID, false, 0, 0)
+	if lv.cfg.OnMouseLeave != nil {
+		lv.cfg.OnMouseLeave(l, e, w)
+	}
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -282,4 +306,11 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom,
 		cfg.LegendPosition)
+
+	// Tooltip.
+	if lv.hovering && lv.xAxis != nil {
+		drawXYTooltip(ctx, th, cfg.Series, xAxis, yAxis,
+			left, right, top, bottom,
+			lv.hoverPx, lv.hoverPy)
+	}
 }

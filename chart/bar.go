@@ -1,9 +1,9 @@
 package chart
 
 import (
+	"fmt"
 	"log/slog"
 	"math"
-
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
@@ -34,6 +34,9 @@ type barView struct {
 	lastVersion uint64
 	yAxis       *axis.Linear
 	yTicks      []axis.Tick
+	hoverPx     float32
+	hoverPy     float32
+	hovering    bool
 }
 
 // Bar creates a bar chart view.
@@ -57,18 +60,39 @@ func (bv *barView) Content() []gui.View { return nil }
 
 func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &bv.cfg
+	hv := loadHover(w, c.ID,
+		&bv.hovering, &bv.hoverPx, &bv.hoverPy)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      c.ID,
-		Sizing:  c.Sizing,
-		Width:   width,
-		Height:  height,
-		Version: c.Version,
-		Clip:    true,
-		OnDraw:  bv.draw,
-		OnClick: c.OnClick,
-		OnHover: c.OnHover,
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv,
+		Clip:         true,
+		OnDraw:       bv.draw,
+		OnClick:      c.OnClick,
+		OnHover:      bv.internalHover,
+		OnMouseLeave: bv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	bv.hoverPx = e.MouseX - l.Shape.X
+	bv.hoverPy = e.MouseY - l.Shape.Y
+	bv.hovering = true
+	saveHover(w, l, bv.cfg.ID, true, bv.hoverPx, bv.hoverPy)
+	if bv.cfg.OnHover != nil {
+		bv.cfg.OnHover(l, e, w)
+	}
+}
+
+func (bv *barView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	bv.hovering = false
+	saveHover(w, l, bv.cfg.ID, false, 0, 0)
+	if bv.cfg.OnMouseLeave != nil {
+		bv.cfg.OnMouseLeave(l, e, w)
+	}
 }
 
 func (bv *barView) draw(dc *gui.DrawContext) {
@@ -167,6 +191,11 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	} else {
 		bv.drawVertical(ctx, cfg, th, nCategories, nSeries, labels,
 			left, right, top, bottom)
+	}
+
+	// Tooltip.
+	if bv.hovering {
+		bv.tooltipBar(ctx, left, right, top, bottom, th)
 	}
 }
 
@@ -311,6 +340,230 @@ func (bv *barView) drawVertical(
 		}
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+}
+
+// tooltipBar hit-tests the cursor against actual bar rectangles
+// and draws a tooltip only when the cursor is over a bar.
+func (bv *barView) tooltipBar(
+	ctx *render.Context,
+	left, right, top, bottom float32,
+	th *theme.Theme,
+) {
+	cfg := &bv.cfg
+	if len(cfg.Series) == 0 || bv.yAxis == nil {
+		return
+	}
+	mx := bv.hoverPx
+	my := bv.hoverPy
+
+	labels := cfg.Series[0].Values
+	nCat := len(labels)
+	if nCat == 0 {
+		return
+	}
+	nSer := len(cfg.Series)
+	barGap := cfg.BarGap
+
+	if cfg.Horizontal {
+		bv.tooltipHorizontal(ctx, mx, my,
+			left, right, top, bottom, th,
+			labels, nCat, nSer, barGap)
+	} else {
+		bv.tooltipVertical(ctx, mx, my,
+			left, right, top, bottom, th,
+			labels, nCat, nSer, barGap)
+	}
+}
+
+func (bv *barView) tooltipVertical(
+	ctx *render.Context, mx, my,
+	left, right, top, bottom float32,
+	th *theme.Theme,
+	labels []series.CategoryValue,
+	nCat, nSer int, barGap float32,
+) {
+	cfg := &bv.cfg
+	yAxis := bv.yAxis
+	baseline := yAxis.Transform(0, bottom, top)
+	chartW := right - left
+	groupW := chartW / float32(nCat)
+
+	if cfg.Stacked {
+		barW := max(groupW-barGap*2, 2)
+		for ci := range nCat {
+			bx := left + float32(ci)*groupW + barGap
+			if mx < bx || mx > bx+barW {
+				continue
+			}
+			posOff, negOff := 0.0, 0.0
+			for _, s := range cfg.Series {
+				if ci >= len(s.Values) {
+					continue
+				}
+				v := s.Values[ci].Value
+				if !finite(v) {
+					continue
+				}
+				var segTop, segBot float32
+				if v >= 0 {
+					segBot = yAxis.Transform(posOff, bottom, top)
+					segTop = yAxis.Transform(posOff+v, bottom, top)
+					posOff += v
+				} else {
+					segTop = yAxis.Transform(negOff, bottom, top)
+					segBot = yAxis.Transform(negOff+v, bottom, top)
+					negOff += v
+				}
+				by := min(segTop, segBot)
+				bh := float32(math.Abs(float64(segBot - segTop)))
+				if my >= by && my <= by+bh {
+					emitBarTooltip(ctx, mx, my, th,
+						s.Name(), labels[ci].Label, v)
+					return
+				}
+			}
+		}
+	} else {
+		barW := cfg.BarWidth
+		if barW == 0 {
+			usable := groupW - barGap*2
+			if nSer > 0 {
+				barW = (usable - barGap*float32(nSer-1)) /
+					float32(nSer)
+			}
+			barW = max(barW, 2)
+		}
+		for ci := range nCat {
+			groupX := left + float32(ci)*groupW
+			barStart := groupX + (groupW-
+				float32(nSer)*barW-
+				float32(nSer-1)*barGap)/2
+			for si, s := range cfg.Series {
+				if ci >= len(s.Values) {
+					continue
+				}
+				v := s.Values[ci].Value
+				if !finite(v) {
+					continue
+				}
+				bx := barStart + float32(si)*(barW+barGap)
+				if mx < bx || mx > bx+barW {
+					continue
+				}
+				by := yAxis.Transform(v, bottom, top)
+				barTop := min(by, baseline)
+				bh := float32(math.Abs(float64(by - baseline)))
+				if my >= barTop && my <= barTop+bh {
+					emitBarTooltip(ctx, mx, my, th,
+						s.Name(), labels[ci].Label, v)
+					return
+				}
+			}
+		}
+	}
+}
+
+func (bv *barView) tooltipHorizontal(
+	ctx *render.Context, mx, my,
+	left, right, top, bottom float32,
+	th *theme.Theme,
+	labels []series.CategoryValue,
+	nCat, nSer int, barGap float32,
+) {
+	cfg := &bv.cfg
+	xAxis := bv.yAxis
+	baseline := xAxis.Transform(0, left, right)
+	chartH := bottom - top
+	groupH := chartH / float32(nCat)
+
+	if cfg.Stacked {
+		barH := max(groupH-barGap*2, 2)
+		for ci := range nCat {
+			by := top + float32(ci)*groupH + barGap
+			if my < by || my > by+barH {
+				continue
+			}
+			posOff, negOff := 0.0, 0.0
+			for _, s := range cfg.Series {
+				if ci >= len(s.Values) {
+					continue
+				}
+				v := s.Values[ci].Value
+				if !finite(v) {
+					continue
+				}
+				var segL, segR float32
+				if v >= 0 {
+					segL = xAxis.Transform(posOff, left, right)
+					segR = xAxis.Transform(posOff+v, left, right)
+					posOff += v
+				} else {
+					segR = xAxis.Transform(negOff, left, right)
+					segL = xAxis.Transform(negOff+v, left, right)
+					negOff += v
+				}
+				bx := min(segL, segR)
+				bw := float32(math.Abs(float64(segR - segL)))
+				if mx >= bx && mx <= bx+bw {
+					emitBarTooltip(ctx, mx, my, th,
+						s.Name(), labels[ci].Label, v)
+					return
+				}
+			}
+		}
+	} else {
+		barH := cfg.BarWidth
+		if barH == 0 {
+			usable := groupH - barGap*2
+			if nSer > 0 {
+				barH = (usable - barGap*float32(nSer-1)) /
+					float32(nSer)
+			}
+			barH = max(barH, 2)
+		}
+		for ci := range nCat {
+			groupY := top + float32(ci)*groupH
+			barStart := groupY + (groupH-
+				float32(nSer)*barH-
+				float32(nSer-1)*barGap)/2
+			for si, s := range cfg.Series {
+				if ci >= len(s.Values) {
+					continue
+				}
+				v := s.Values[ci].Value
+				if !finite(v) {
+					continue
+				}
+				by := barStart + float32(si)*(barH+barGap)
+				if my < by || my > by+barH {
+					continue
+				}
+				bx := xAxis.Transform(v, left, right)
+				barLeft := min(bx, baseline)
+				bw := float32(math.Abs(float64(bx - baseline)))
+				if mx >= barLeft && mx <= barLeft+bw {
+					emitBarTooltip(ctx, mx, my, th,
+						s.Name(), labels[ci].Label, v)
+					return
+				}
+			}
+		}
+	}
+}
+
+// emitBarTooltip formats and draws a single bar's tooltip.
+func emitBarTooltip(
+	ctx *render.Context, mx, my float32,
+	th *theme.Theme,
+	serName, catLabel string, v float64,
+) {
+	var label string
+	if serName != "" {
+		label = fmt.Sprintf("%s / %s: %g", serName, catLabel, v)
+	} else {
+		label = fmt.Sprintf("%s: %g", catLabel, v)
+	}
+	drawTooltip(ctx, mx, my, label, th)
 }
 
 func (bv *barView) drawHorizontal(

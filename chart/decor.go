@@ -2,6 +2,7 @@ package chart
 
 import (
 	"math"
+	"strings"
 
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
@@ -190,5 +191,54 @@ func drawLegend(
 		tx := sx + swatchSize + itemGap
 		ty := ey + (rowH-fh)/2
 		ctx.Text(tx, ty, e.Name, style)
+	}
+}
+
+// drawTooltip draws a tooltip directly on the canvas near (tx, ty).
+// label may contain '\n'-separated lines.
+func drawTooltip(
+	ctx *render.Context, tx, ty float32, label string, th *theme.Theme,
+) {
+	lines := strings.Split(label, "\n")
+	textStyle := th.TickStyle
+	textStyle.Color = gui.Hex(0xEEEEEE)
+
+	fh := ctx.FontHeight(textStyle)
+	const padding = float32(6)
+	const lineGap = float32(2)
+
+	// Measure box dimensions.
+	maxW := float32(0)
+	for _, ln := range lines {
+		w := ctx.TextWidth(ln, textStyle)
+		maxW = max(maxW, w)
+	}
+	boxW := maxW + padding*2
+	boxH := float32(len(lines))*fh +
+		float32(len(lines)-1)*lineGap + padding*2
+
+	// Position above-right of (tx, ty), clamped to canvas.
+	bx := tx + 8
+	by := ty - 8 - boxH
+	if bx+boxW > ctx.Width() {
+		bx = ctx.Width() - boxW
+	}
+	if bx < 0 {
+		bx = 0
+	}
+	if by < 0 {
+		by = 0
+	}
+	if by+boxH > ctx.Height() {
+		by = ctx.Height() - boxH
+	}
+
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4,
+		gui.RGBA(20, 20, 20, 220))
+
+	for i, ln := range lines {
+		lx := bx + padding
+		ly := by + padding + float32(i)*(fh+lineGap)
+		ctx.Text(lx, ly, ln, textStyle)
 	}
 }

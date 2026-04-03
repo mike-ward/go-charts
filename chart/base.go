@@ -18,9 +18,10 @@ type BaseCfg struct {
 	Width  float32
 	Height float32
 
-	Theme   *theme.Theme
-	OnClick func(*gui.Layout, *gui.Event, *gui.Window)
-	OnHover func(*gui.Layout, *gui.Event, *gui.Window)
+	Theme        *theme.Theme
+	OnClick      func(*gui.Layout, *gui.Event, *gui.Window)
+	OnHover      func(*gui.Layout, *gui.Event, *gui.Window)
+	OnMouseLeave func(*gui.Layout, *gui.Event, *gui.Window)
 
 	// XTickRotation rotates X-axis tick labels (radians).
 	// 0 = horizontal.

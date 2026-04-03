@@ -46,6 +46,9 @@ type scatterView struct {
 	yAxis       *axis.Linear
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
+	hoverPx     float32
+	hoverPy     float32
+	hovering    bool
 }
 
 // Scatter creates a scatter plot view.
@@ -69,18 +72,39 @@ func (sv *scatterView) Content() []gui.View { return nil }
 
 func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &sv.cfg
+	hv := loadHover(w, c.ID,
+		&sv.hovering, &sv.hoverPx, &sv.hoverPy)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      c.ID,
-		Sizing:  c.Sizing,
-		Width:   width,
-		Height:  height,
-		Version: c.Version,
-		Clip:    true,
-		OnDraw:  sv.draw,
-		OnClick: c.OnClick,
-		OnHover: c.OnHover,
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv,
+		Clip:         true,
+		OnDraw:       sv.draw,
+		OnClick:      c.OnClick,
+		OnHover:      sv.internalHover,
+		OnMouseLeave: sv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	sv.hoverPx = e.MouseX - l.Shape.X
+	sv.hoverPy = e.MouseY - l.Shape.Y
+	sv.hovering = true
+	saveHover(w, l, sv.cfg.ID, true, sv.hoverPx, sv.hoverPy)
+	if sv.cfg.OnHover != nil {
+		sv.cfg.OnHover(l, e, w)
+	}
+}
+
+func (sv *scatterView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	sv.hovering = false
+	saveHover(w, l, sv.cfg.ID, false, 0, 0)
+	if sv.cfg.OnMouseLeave != nil {
+		sv.cfg.OnMouseLeave(l, e, w)
+	}
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -233,6 +257,13 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		}
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+
+	// Tooltip.
+	if sv.hovering && sv.xAxis != nil {
+		drawXYTooltip(ctx, th, cfg.Series, xAxis, yAxis,
+			left, right, top, bottom,
+			sv.hoverPx, sv.hoverPy)
+	}
 }
 
 // drawMarker renders a single marker at (cx, cy) with the given size and shape.

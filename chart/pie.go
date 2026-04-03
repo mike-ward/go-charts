@@ -32,7 +32,10 @@ type PieCfg struct {
 }
 
 type pieView struct {
-	cfg PieCfg
+	cfg      PieCfg
+	hoverPx  float32
+	hoverPy  float32
+	hovering bool
 }
 
 // Pie creates a pie or donut chart view.
@@ -53,18 +56,106 @@ func (pv *pieView) Content() []gui.View { return nil }
 
 func (pv *pieView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &pv.cfg
+	hv := loadHover(w, c.ID,
+		&pv.hovering, &pv.hoverPx, &pv.hoverPy)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:      c.ID,
-		Sizing:  c.Sizing,
-		Width:   width,
-		Height:  height,
-		Version: c.Version,
-		Clip:    true,
-		OnDraw:  pv.draw,
-		OnClick: c.OnClick,
-		OnHover: c.OnHover,
+		ID:           c.ID,
+		Sizing:       c.Sizing,
+		Width:        width,
+		Height:       height,
+		Version:      c.Version + hv,
+		Clip:         true,
+		OnDraw:       pv.draw,
+		OnClick:      c.OnClick,
+		OnHover:      pv.internalHover,
+		OnMouseLeave: pv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (pv *pieView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	pv.hoverPx = e.MouseX - l.Shape.X
+	pv.hoverPy = e.MouseY - l.Shape.Y
+	pv.hovering = true
+	saveHover(w, l, pv.cfg.ID, true, pv.hoverPx, pv.hoverPy)
+	if pv.cfg.OnHover != nil {
+		pv.cfg.OnHover(l, e, w)
+	}
+}
+
+func (pv *pieView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	pv.hovering = false
+	saveHover(w, l, pv.cfg.ID, false, 0, 0)
+	if pv.cfg.OnMouseLeave != nil {
+		pv.cfg.OnMouseLeave(l, e, w)
+	}
+}
+
+// tooltipPie detects which slice the cursor is in and draws a
+// tooltip at the cursor position.
+func (pv *pieView) tooltipPie(
+	ctx *render.Context,
+	left, right, top, bottom float32,
+	th *theme.Theme,
+) {
+	cfg := &pv.cfg
+	if len(cfg.Slices) == 0 {
+		return
+	}
+
+	plotW := right - left
+	plotH := bottom - top
+	outerR := min(plotW, plotH) / 2 * 0.85
+	cx := (left + right) / 2
+	cy := (top + bottom) / 2
+
+	mx := pv.hoverPx
+	my := pv.hoverPy
+	dx := mx - cx
+	dy := my - cy
+	r2 := dx*dx + dy*dy
+	if r2 > outerR*outerR {
+		return
+	}
+	if cfg.InnerRadius > 0 && r2 < cfg.InnerRadius*cfg.InnerRadius {
+		return
+	}
+
+	total := 0.0
+	for _, s := range cfg.Slices {
+		if s.Value > 0 {
+			total += s.Value
+		}
+	}
+	if total == 0 {
+		return
+	}
+
+	a := float32(math.Atan2(float64(dy), float64(dx)))
+	for a < cfg.StartAngle {
+		a += 2 * math.Pi
+	}
+	cumAngle := cfg.StartAngle
+	for _, s := range cfg.Slices {
+		if s.Value <= 0 {
+			continue
+		}
+		sweep := float32(s.Value/total) * (2 * math.Pi)
+		if a < cumAngle+sweep {
+			pct := s.Value / total * 100
+			var label string
+			if s.Label != "" {
+				label = fmt.Sprintf(
+					"%s: %g (%.1f%%)", s.Label, s.Value, pct)
+			} else {
+				label = fmt.Sprintf(
+					"%g (%.1f%%)", s.Value, pct)
+			}
+			drawTooltip(ctx, mx, my, label, th)
+			return
+		}
+		cumAngle += sweep
+	}
 }
 
 func (pv *pieView) draw(dc *gui.DrawContext) {
@@ -182,4 +273,9 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		entries[i] = legendEntry{Name: s.Label, Color: color}
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+
+	// Tooltip.
+	if pv.hovering {
+		pv.tooltipPie(ctx, left, right, top, bottom, th)
+	}
 }
