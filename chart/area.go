@@ -257,10 +257,32 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 
 	alpha := uint8(cfg.Opacity * 255)
 
+	// Hover highlight: find nearest series/point.
+	// Stacked mode uses cumulative Y values so the hit-test matches the
+	// drawn geometry; overlapping mode uses raw Y values.
+	hovSI := -1
+	var hovPx, hovPy float32
+	if av.hovering && xAxis != nil {
+		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		if cfg.Stacked {
+			si, _, px, py, snapOK := nearestStackedPoint(
+				cfg.Series, pa, av.hoverPx, av.hoverPy, 20)
+			if snapOK {
+				hovSI, hovPx, hovPy = si, px, py
+			}
+		} else {
+			si, _, px, py, snapOK := nearestXYPoint(
+				cfg.Series, pa, av.hoverPx, av.hoverPy, 20)
+			if snapOK {
+				hovSI, hovPx, hovPy = si, px, py
+			}
+		}
+	}
+
 	if cfg.Stacked {
-		av.drawStacked(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha)
+		av.drawStacked(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI)
 	} else {
-		av.drawOverlapping(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha)
+		av.drawOverlapping(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI)
 	}
 
 	entries := make([]legendEntry, len(cfg.Series))
@@ -272,13 +294,24 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
 
+	// Enlarged point marker on hovered series.
+	if hovSI >= 0 {
+		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
+	}
+
 	// Crosshair and tooltip.
 	if av.hovering && av.xAxis != nil {
 		drawCrosshair(ctx, th, av.hoverPx, av.hoverPy,
 			left, right, top, bottom)
 		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
-		drawXYTooltip(ctx, th, cfg.Series, pa,
-			av.hoverPx, av.hoverPy)
+		if cfg.Stacked {
+			drawStackedXYTooltip(ctx, th, cfg.Series, pa,
+				av.hoverPx, av.hoverPy)
+		} else {
+			drawXYTooltip(ctx, th, cfg.Series, pa,
+				av.hoverPx, av.hoverPy)
+		}
 	}
 }
 
@@ -286,13 +319,18 @@ func (av *areaView) drawOverlapping(
 	ctx *render.Context, cfg *AreaCfg,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	alpha uint8,
+	alpha uint8, hovSI int,
 ) {
 	for i, s := range cfg.Series {
 		if s.Len() == 0 {
 			continue
 		}
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)
+		fillAlpha := alpha
+		if hovSI >= 0 && i != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+			fillAlpha = HoverDimAlpha / 4
+		}
 
 		needed := s.Len() * 2
 		if cap(av.ptsBuf) < needed {
@@ -307,7 +345,7 @@ func (av *areaView) drawOverlapping(
 		av.ptsBuf = pts
 
 		if len(pts) >= 4 {
-			fill := gui.RGBA(color.R, color.G, color.B, alpha)
+			fill := gui.RGBA(color.R, color.G, color.B, fillAlpha)
 			var quad [8]float32
 			for k := 0; k < len(pts)-2; k += 2 {
 				quad[0] = pts[k]
@@ -329,7 +367,7 @@ func (av *areaView) drawStacked(
 	ctx *render.Context, cfg *AreaCfg,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	alpha uint8,
+	alpha uint8, hovSI int,
 ) {
 	// Find reference point count from first non-empty series.
 	refLen := 0
@@ -346,18 +384,26 @@ func (av *areaView) drawStacked(
 	cumY := make([]float64, refLen)
 
 	// prevPts holds the pixel coords of the previous series' top edge.
-	// Initialize to baseline Y using first series' X positions.
+	// Initialize to baseline Y using the first non-empty series' X positions.
+	// cfg.Series[0] may be empty; using it directly would leave prev
+	// zero-initialized (y=0 instead of y=bottom), corrupting the first fill.
 	needed := refLen * 2
 	if cap(av.prevPtsBuf) < needed {
 		av.prevPtsBuf = make([]float32, needed)
 	}
 	prev := av.prevPtsBuf[:needed]
-	for j, p := range cfg.Series[0].Points {
-		if j >= refLen {
-			break
+	for _, s := range cfg.Series {
+		if s.Len() == 0 {
+			continue
 		}
-		prev[j*2] = xAxis.Transform(p.X, left, right)
-		prev[j*2+1] = bottom
+		for j, p := range s.Points {
+			if j >= refLen {
+				break
+			}
+			prev[j*2] = xAxis.Transform(p.X, left, right)
+			prev[j*2+1] = bottom
+		}
+		break
 	}
 
 	for i, s := range cfg.Series {
@@ -365,7 +411,12 @@ func (av *areaView) drawStacked(
 			continue
 		}
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)
-		fill := gui.RGBA(color.R, color.G, color.B, alpha)
+		fillAlpha := alpha
+		if hovSI >= 0 && i != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+			fillAlpha = HoverDimAlpha / 4
+		}
+		fill := gui.RGBA(color.R, color.G, color.B, fillAlpha)
 
 		n := min(s.Len(), refLen)
 		// cur is allocated per-series so prev can safely reference the

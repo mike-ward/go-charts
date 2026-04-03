@@ -246,12 +246,27 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Hover highlight: find nearest series/point.
+	hovSI := -1
+	var hovPx, hovPy float32
+	if lv.hovering && xAxis != nil {
+		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		si, _, px, py, snapOK := nearestXYPoint(
+			cfg.Series, pa, lv.hoverPx, lv.hoverPy, 20)
+		if snapOK {
+			hovSI, hovPx, hovPy = si, px, py
+		}
+	}
+
 	// Draw each series.
 	for i, s := range cfg.Series {
 		if s.Len() == 0 {
 			continue
 		}
 		color := seriesColor(s.Color(), i, th.Palette)
+		if hovSI >= 0 && i != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+		}
 
 		// Build polyline points (flat x,y pairs), reusing buffer.
 		needed := s.Len() * 2
@@ -294,6 +309,12 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 				ctx.FilledCircle(pts[j], pts[j+1], cfg.LineWidth*2, color)
 			}
 		}
+	}
+
+	// Enlarged point marker on hovered series.
+	if hovSI >= 0 {
+		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
 
 	// Legend.

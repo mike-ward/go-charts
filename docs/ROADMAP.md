@@ -16,8 +16,8 @@ Scaffold and core infrastructure.
 - [x] Nice-number tick generation algorithm
 - [x] Plot area calculation (padding, axis label space)
 - [x] Axis rendering (tick marks, labels, grid lines)
-- [ ] Axis label text rendering (requires gui.TextMeasurer)
-- [ ] Legend rendering
+- [x] Axis label text rendering
+- [x] Legend rendering
 
 ## Phase 2 — Core Charts
 
@@ -26,27 +26,28 @@ First renderable chart types.
 - [x] Line chart with polyline rendering
 - [x] Line chart markers and filled area under line
 - [x] Bar chart (vertical, grouped)
-- [ ] Bar chart horizontal orientation
-- [ ] Bar chart stacked mode
-- [ ] Area chart (filled, stacked)
-- [ ] Scatter plot with marker shapes (circle, square, triangle, diamond, cross)
+- [x] Bar chart horizontal orientation
+- [x] Bar chart stacked mode
+- [x] Area chart (filled, stacked)
+- [x] Scatter plot with marker shapes (circle, square, triangle, diamond, cross)
 - [x] Auto-scaling axes from series data bounds
 - [x] Multi-series support with palette cycling
 
 ## Phase 3 — Circular Charts
 
-- [ ] Pie chart with label placement
-- [ ] Donut chart (InnerRadius > 0)
+- [x] Pie chart with label placement
+- [x] Donut chart (InnerRadius > 0)
 - [ ] Gauge chart (arc-based, value indicator)
 - [ ] Segment hover highlight
-- [ ] Percentage labels
+- [x] Percentage labels
 
 ## Phase 4 — Interactivity
 
 - [x] Tooltip on hover (value display near cursor)
 - [x] Crosshair lines (vertical/horizontal tracking)
-- [ ] Hover highlight (series/point emphasis)
-- [ ] Click selection (point, series, segment)
+- [x] Hover highlight (series/point emphasis)
+- [x] Segment hover highlight (pie/donut explode)
+- [x] Click selection (OnClick callback wired on all chart types)
 - [ ] Legend toggle (show/hide series)
 - [ ] Cursor style changes on interactive elements
 

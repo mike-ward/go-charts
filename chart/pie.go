@@ -91,8 +91,65 @@ func (pv *pieView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window
 	}
 }
 
-// tooltipPie detects which slice the cursor is in and draws a
-// tooltip at the cursor position.
+// normAngle returns a such that a >= ref, by adding whole multiples of 2π.
+// Uses a single ceil call instead of a loop to avoid O(n) spinning on large
+// StartAngle values.
+func normAngle(a, ref float32) float32 {
+	if diff := ref - a; diff > 0 {
+		a += float32(math.Ceil(float64(diff/(2*math.Pi)))) * (2 * math.Pi)
+	}
+	return a
+}
+
+// hoveredSliceIndex returns the index of the slice under (mx, my),
+// or -1 if none. Each slice is tested against its exploded center so
+// that hit-testing matches the drawn geometry exactly.
+func (pv *pieView) hoveredSliceIndex(mx, my, cx, cy, outerR float32) int {
+	cfg := &pv.cfg
+	if len(cfg.Slices) == 0 {
+		return -1
+	}
+
+	total := 0.0
+	for _, s := range cfg.Slices {
+		if s.Value > 0 {
+			total += s.Value
+		}
+	}
+	if total == 0 {
+		return -1
+	}
+
+	cumAngle := cfg.StartAngle
+	for i, s := range cfg.Slices {
+		if s.Value <= 0 {
+			continue
+		}
+		sweep := float32(s.Value/total) * (2 * math.Pi)
+		mid := cumAngle + sweep/2
+
+		// Test against the exploded center so the hit region matches the
+		// drawn slice position (explode offset applied in draw()).
+		ocx := cx + HoverExplodeDist*float32(math.Cos(float64(mid)))
+		ocy := cy + HoverExplodeDist*float32(math.Sin(float64(mid)))
+		dx := mx - ocx
+		dy := my - ocy
+		r2 := dx*dx + dy*dy
+
+		if r2 <= outerR*outerR &&
+			(cfg.InnerRadius <= 0 || r2 >= cfg.InnerRadius*cfg.InnerRadius) {
+			a := normAngle(float32(math.Atan2(float64(dy), float64(dx))), cumAngle)
+			if a < cumAngle+sweep {
+				return i
+			}
+		}
+		cumAngle += sweep
+	}
+	return -1
+}
+
+// tooltipPie draws a tooltip for the slice under the cursor.
+// Delegates hit-testing to hoveredSliceIndex so both use the same geometry.
 func (pv *pieView) tooltipPie(
 	ctx *render.Context,
 	left, right, top, bottom float32,
@@ -109,53 +166,29 @@ func (pv *pieView) tooltipPie(
 	cx := (left + right) / 2
 	cy := (top + bottom) / 2
 
-	mx := pv.hoverPx
-	my := pv.hoverPy
-	dx := mx - cx
-	dy := my - cy
-	r2 := dx*dx + dy*dy
-	if r2 > outerR*outerR {
-		return
-	}
-	if cfg.InnerRadius > 0 && r2 < cfg.InnerRadius*cfg.InnerRadius {
+	idx := pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, cx, cy, outerR)
+	if idx < 0 {
 		return
 	}
 
+	s := cfg.Slices[idx]
 	total := 0.0
-	for _, s := range cfg.Slices {
-		if s.Value > 0 {
-			total += s.Value
+	for _, sl := range cfg.Slices {
+		if sl.Value > 0 {
+			total += sl.Value
 		}
 	}
 	if total == 0 {
 		return
 	}
-
-	a := float32(math.Atan2(float64(dy), float64(dx)))
-	for a < cfg.StartAngle {
-		a += 2 * math.Pi
+	pct := s.Value / total * 100
+	var label string
+	if s.Label != "" {
+		label = fmt.Sprintf("%s: %g (%.1f%%)", s.Label, s.Value, pct)
+	} else {
+		label = fmt.Sprintf("%g (%.1f%%)", s.Value, pct)
 	}
-	cumAngle := cfg.StartAngle
-	for _, s := range cfg.Slices {
-		if s.Value <= 0 {
-			continue
-		}
-		sweep := float32(s.Value/total) * (2 * math.Pi)
-		if a < cumAngle+sweep {
-			pct := s.Value / total * 100
-			var label string
-			if s.Label != "" {
-				label = fmt.Sprintf(
-					"%s: %g (%.1f%%)", s.Label, s.Value, pct)
-			} else {
-				label = fmt.Sprintf(
-					"%g (%.1f%%)", s.Value, pct)
-			}
-			drawTooltip(ctx, mx, my, label, th)
-			return
-		}
-		cumAngle += sweep
-	}
+	drawTooltip(ctx, pv.hoverPx, pv.hoverPy, label, th)
 }
 
 func (pv *pieView) draw(dc *gui.DrawContext) {
@@ -199,6 +232,12 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 	cx := (left + right) / 2
 	cy := (top + bottom) / 2
 
+	// Hover highlight: find the slice under the cursor.
+	hovIdx := -1
+	if pv.hovering {
+		hovIdx = pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, cx, cy, outerR)
+	}
+
 	// Draw slices.
 	angle := cfg.StartAngle
 	for i, s := range cfg.Slices {
@@ -210,7 +249,14 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		if !color.IsSet() {
 			color = seriesColor(gui.Color{}, i, th.Palette)
 		}
-		ctx.FilledArc(cx, cy, outerR, outerR, angle, sweep, color)
+		// Explode the hovered slice outward.
+		ocx, ocy := cx, cy
+		if hovIdx >= 0 && i == hovIdx {
+			mid := angle + sweep/2
+			ocx += HoverExplodeDist * float32(math.Cos(float64(mid)))
+			ocy += HoverExplodeDist * float32(math.Sin(float64(mid)))
+		}
+		ctx.FilledArc(ocx, ocy, outerR, outerR, angle, sweep, color)
 		angle += sweep
 	}
 

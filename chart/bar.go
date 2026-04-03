@@ -207,6 +207,12 @@ func (bv *barView) drawVertical(
 	nCategories, nSeries int, labels []series.CategoryValue,
 	left, right, top, bottom float32,
 ) {
+	hovCI, hovSI, hovOK := -1, -1, false
+	if bv.hovering {
+		hovCI, hovSI, hovOK = bv.hoveredBarVertical(
+			bv.hoverPx, bv.hoverPy, left, right, top, bottom)
+	}
+
 	yAxis := bv.yAxis
 	bv.yTicks = yAxis.Ticks(bottom, top)
 
@@ -256,6 +262,9 @@ func (bv *barView) drawVertical(
 					continue
 				}
 				color := seriesColor(s.Color(), si, th.Palette)
+				if hovOK && (ci != hovCI || si != hovSI) {
+					color = dimColor(color, HoverDimAlpha)
+				}
 
 				var segTop, segBot float32
 				if v >= 0 {
@@ -309,6 +318,9 @@ func (bv *barView) drawVertical(
 					continue
 				}
 				color := seriesColor(s.Color(), si, th.Palette)
+				if hovOK && (ci != hovCI || si != hovSI) {
+					color = dimColor(color, HoverDimAlpha)
+				}
 
 				bx := barStart + float32(si)*(barWidth+barGap)
 				by := yAxis.Transform(v, bottom, top)
@@ -343,6 +355,190 @@ func (bv *barView) drawVertical(
 		}
 	}
 	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+}
+
+// hoveredBarVertical returns the (catIdx, seriesIdx) of the bar under
+// (mx, my) for vertical bar charts, or ok=false when none.
+func (bv *barView) hoveredBarVertical(
+	mx, my, left, right, top, bottom float32,
+) (ci, si int, ok bool) {
+	cfg := &bv.cfg
+	if len(cfg.Series) == 0 || bv.yAxis == nil {
+		return
+	}
+	yAxis := bv.yAxis
+	labels := cfg.Series[0].Values
+	nCat := len(labels)
+	if nCat == 0 {
+		return
+	}
+	nSer := len(cfg.Series)
+	barGap := cfg.BarGap
+	chartW := right - left
+	groupW := chartW / float32(nCat)
+	baseline := yAxis.Transform(0, bottom, top)
+
+	if cfg.Stacked {
+		barW := max(groupW-barGap*2, 2)
+		for c := range nCat {
+			bx := left + float32(c)*groupW + barGap
+			if mx < bx || mx > bx+barW {
+				continue
+			}
+			posOff, negOff := 0.0, 0.0
+			for s, ser := range cfg.Series {
+				if c >= len(ser.Values) {
+					continue
+				}
+				v := ser.Values[c].Value
+				if !finite(v) {
+					continue
+				}
+				var segTop, segBot float32
+				if v >= 0 {
+					segBot = yAxis.Transform(posOff, bottom, top)
+					segTop = yAxis.Transform(posOff+v, bottom, top)
+					posOff += v
+				} else {
+					segTop = yAxis.Transform(negOff, bottom, top)
+					segBot = yAxis.Transform(negOff+v, bottom, top)
+					negOff += v
+				}
+				by := min(segTop, segBot)
+				bh := float32(math.Abs(float64(segBot - segTop)))
+				if my >= by && my <= by+bh {
+					return c, s, true
+				}
+			}
+		}
+	} else {
+		barW := cfg.BarWidth
+		if barW == 0 {
+			usable := groupW - barGap*2
+			if nSer > 0 {
+				barW = (usable - barGap*float32(nSer-1)) / float32(nSer)
+			}
+			barW = max(barW, 2)
+		}
+		for c := range nCat {
+			groupX := left + float32(c)*groupW
+			barStart := groupX + (groupW-
+				float32(nSer)*barW-
+				float32(nSer-1)*barGap)/2
+			for s, ser := range cfg.Series {
+				if c >= len(ser.Values) {
+					continue
+				}
+				v := ser.Values[c].Value
+				if !finite(v) {
+					continue
+				}
+				bx := barStart + float32(s)*(barW+barGap)
+				if mx < bx || mx > bx+barW {
+					continue
+				}
+				by := yAxis.Transform(v, bottom, top)
+				barTop := min(by, baseline)
+				bh := float32(math.Abs(float64(by - baseline)))
+				if my >= barTop && my <= barTop+bh {
+					return c, s, true
+				}
+			}
+		}
+	}
+	return
+}
+
+// hoveredBarHorizontal returns the (catIdx, seriesIdx) of the bar under
+// (mx, my) for horizontal bar charts, or ok=false when none.
+func (bv *barView) hoveredBarHorizontal(
+	mx, my, left, right, top, bottom float32,
+) (ci, si int, ok bool) {
+	cfg := &bv.cfg
+	if len(cfg.Series) == 0 || bv.yAxis == nil {
+		return
+	}
+	xAxis := bv.yAxis // horizontal mode reuses yAxis for the value axis
+	labels := cfg.Series[0].Values
+	nCat := len(labels)
+	if nCat == 0 {
+		return
+	}
+	nSer := len(cfg.Series)
+	barGap := cfg.BarGap
+	chartH := bottom - top
+	groupH := chartH / float32(nCat)
+	baseline := xAxis.Transform(0, left, right)
+
+	if cfg.Stacked {
+		barH := max(groupH-barGap*2, 2)
+		for c := range nCat {
+			by := top + float32(c)*groupH + barGap
+			if my < by || my > by+barH {
+				continue
+			}
+			posOff, negOff := 0.0, 0.0
+			for s, ser := range cfg.Series {
+				if c >= len(ser.Values) {
+					continue
+				}
+				v := ser.Values[c].Value
+				if !finite(v) {
+					continue
+				}
+				var segL, segR float32
+				if v >= 0 {
+					segL = xAxis.Transform(posOff, left, right)
+					segR = xAxis.Transform(posOff+v, left, right)
+					posOff += v
+				} else {
+					segR = xAxis.Transform(negOff, left, right)
+					segL = xAxis.Transform(negOff+v, left, right)
+					negOff += v
+				}
+				bx := min(segL, segR)
+				bw := float32(math.Abs(float64(segR - segL)))
+				if mx >= bx && mx <= bx+bw {
+					return c, s, true
+				}
+			}
+		}
+	} else {
+		barH := cfg.BarWidth
+		if barH == 0 {
+			usable := groupH - barGap*2
+			if nSer > 0 {
+				barH = (usable - barGap*float32(nSer-1)) / float32(nSer)
+			}
+			barH = max(barH, 2)
+		}
+		for c := range nCat {
+			groupY := top + float32(c)*groupH
+			barStart := groupY + (groupH-
+				float32(nSer)*barH-
+				float32(nSer-1)*barGap)/2
+			for s, ser := range cfg.Series {
+				if c >= len(ser.Values) {
+					continue
+				}
+				v := ser.Values[c].Value
+				if !finite(v) {
+					continue
+				}
+				by := barStart + float32(s)*(barH+barGap)
+				if my < by || my > by+barH {
+					continue
+				}
+				bx := xAxis.Transform(v, left, right)
+				barLeft := min(bx, baseline)
+				bw := float32(math.Abs(float64(bx - baseline)))
+				if mx >= barLeft && mx <= barLeft+bw {
+					return c, s, true
+				}
+			}
+		}
+	}
+	return
 }
 
 // tooltipBar hit-tests the cursor against actual bar rectangles
@@ -574,6 +770,12 @@ func (bv *barView) drawHorizontal(
 	nCategories, nSeries int, labels []series.CategoryValue,
 	left, right, top, bottom float32,
 ) {
+	hovCI, hovSI, hovOK := -1, -1, false
+	if bv.hovering {
+		hovCI, hovSI, hovOK = bv.hoveredBarHorizontal(
+			bv.hoverPx, bv.hoverPy, left, right, top, bottom)
+	}
+
 	// In horizontal mode bv.yAxis is the value axis mapped to the X
 	// direction: Transform(v, left, right) → X pixel.
 	xAxis := bv.yAxis
@@ -628,6 +830,9 @@ func (bv *barView) drawHorizontal(
 					continue
 				}
 				color := seriesColor(s.Color(), si, th.Palette)
+				if hovOK && (ci != hovCI || si != hovSI) {
+					color = dimColor(color, HoverDimAlpha)
+				}
 
 				var segLeft, segRight float32
 				if v >= 0 {
@@ -681,6 +886,9 @@ func (bv *barView) drawHorizontal(
 					continue
 				}
 				color := seriesColor(s.Color(), si, th.Palette)
+				if hovOK && (ci != hovCI || si != hovSI) {
+					color = dimColor(color, HoverDimAlpha)
+				}
 
 				bx := xAxis.Transform(v, left, right)
 				barLeft := min(bx, baseline)

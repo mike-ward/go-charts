@@ -237,16 +237,37 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Hover highlight: find nearest series/point.
+	hovSI := -1
+	var hovPx, hovPy float32
+	if sv.hovering && xAxis != nil {
+		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		si, _, px, py, snapOK := nearestXYPoint(
+			cfg.Series, pa, sv.hoverPx, sv.hoverPy, 20)
+		if snapOK {
+			hovSI, hovPx, hovPy = si, px, py
+		}
+	}
+
 	for i, s := range cfg.Series {
 		if s.Len() == 0 {
 			continue
 		}
 		color := seriesColor(s.Color(), i, th.Palette)
+		if hovSI >= 0 && i != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+		}
 		for _, p := range s.Points {
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
 			drawMarker(ctx, px, py, cfg.MarkerSize, cfg.Marker, color)
 		}
+	}
+
+	// Enlarged marker on hovered series/point.
+	if hovSI >= 0 {
+		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		drawMarker(ctx, hovPx, hovPy, cfg.MarkerSize*2, cfg.Marker, hc)
 	}
 
 	entries := make([]legendEntry, len(cfg.Series))

@@ -75,6 +75,12 @@ func seriesColor(
 	return palette[index%len(palette)]
 }
 
+// dimColor returns c with its alpha channel set to alpha,
+// for de-emphasizing non-hovered elements.
+func dimColor(c gui.Color, alpha uint8) gui.Color {
+	return gui.RGBA(c.R, c.G, c.B, alpha)
+}
+
 // finite reports whether v is neither NaN nor +/-Inf.
 func finite(v float64) bool {
 	return !math.IsNaN(v) && !math.IsInf(v, 0)

@@ -41,6 +41,77 @@ func nearestXYPoint(
 	return
 }
 
+// nearestStackedPoint finds the series/point index and stacked pixel position
+// of the data point closest to (mx, my) in a stacked area chart.
+// Cumulative Y values are used so the comparison matches the drawn geometry.
+func nearestStackedPoint(
+	serieses []series.XY, pa plotArea,
+	mx, my, snapPx float32,
+) (si, pi int, px, py float32, ok bool) {
+	if len(serieses) == 0 {
+		return
+	}
+	refLen := 0
+	for _, s := range serieses {
+		if s.Len() > 0 {
+			refLen = s.Len()
+			break
+		}
+	}
+	if refLen == 0 {
+		return
+	}
+
+	cumY := make([]float64, refLen)
+	best := snapPx * snapPx
+
+	for i, s := range serieses {
+		if s.Len() == 0 {
+			continue
+		}
+		n := min(s.Len(), refLen)
+		for j := range n {
+			p := s.Points[j]
+			cumY[j] += p.Y
+			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
+			ppy := pa.YAxis.Transform(cumY[j], pa.Bottom, pa.Top)
+			dx := ppx - mx
+			dy := ppy - my
+			d2 := dx*dx + dy*dy
+			if d2 < best {
+				best = d2
+				si, pi, px, py = i, j, ppx, ppy
+				ok = true
+			}
+		}
+	}
+	return
+}
+
+// drawStackedXYTooltip draws a tooltip for the nearest point in a stacked
+// area chart. Uses cumulative Y positions for hit-testing so the result
+// matches the drawn geometry.
+func drawStackedXYTooltip(
+	ctx *render.Context, th *theme.Theme,
+	serieses []series.XY, pa plotArea,
+	mx, my float32,
+) {
+	si, pi, px, py, ok := nearestStackedPoint(serieses, pa, mx, my, 20)
+	if !ok {
+		return
+	}
+	s := serieses[si]
+	p := s.Points[pi]
+	var label string
+	if s.Name() != "" {
+		label = fmt.Sprintf(
+			"%s\nX: %g\nY: %g", s.Name(), p.X, p.Y)
+	} else {
+		label = fmt.Sprintf("X: %g\nY: %g", p.X, p.Y)
+	}
+	drawTooltip(ctx, px, py, label, th)
+}
+
 // drawXYTooltip draws a tooltip for the nearest XY data point.
 // Shared by line, scatter, and area charts.
 func drawXYTooltip(
