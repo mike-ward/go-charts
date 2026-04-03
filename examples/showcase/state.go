@@ -11,6 +11,7 @@ const (
 	groupLine    = "line"
 	groupBar     = "bar"
 	groupPie     = "pie"
+	groupGauge   = "gauge"
 	groupArea    = "area"
 	groupScatter = "scatter"
 	groupStyles  = "styles"
@@ -54,6 +55,7 @@ var demoGroups = []DemoGroup{
 	{groupLine, "Line"},
 	{groupBar, "Bar"},
 	{groupPie, "Pie"},
+	{groupGauge, "Gauge"},
 	{groupArea, "Area"},
 	{groupScatter, "Scatter"},
 	{groupStyles, "Styles"},
@@ -84,6 +86,10 @@ var demoEntries = []DemoEntry{
 	// Pie
 	{ID: "pie_basic", Label: "Basic Pie", Group: groupPie, Summary: "Browser market share distribution.", Tags: []string{"pie", "share", "percent"}},
 	{ID: "pie_donut", Label: "Donut Chart", Group: groupPie, Summary: "Budget allocation with inner radius.", Tags: []string{"pie", "donut", "budget"}},
+
+	// Gauge
+	{ID: "gauge_basic", Label: "Gauge with Zones", Group: groupGauge, Summary: "CPU usage gauge with colored warning zones.", Tags: []string{"gauge", "arc", "zone", "value"}},
+	{ID: "gauge_simple", Label: "Simple Gauge", Group: groupGauge, Summary: "Completion percentage with no zones.", Tags: []string{"gauge", "simple", "percent"}},
 
 	// Area
 	{ID: "area_basic", Label: "Basic Area", Group: groupArea, Summary: "User signups over time.", Tags: []string{"area", "signups", "time"}},

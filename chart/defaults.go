@@ -11,4 +11,7 @@ const (
 
 	HoverDimAlpha    uint8   = 60 // alpha for non-hovered elements (~24%)
 	HoverExplodeDist float32 = 8  // px offset for exploded pie segment
+
+	DefaultGaugeArcAngle   float32 = 3 * 3.14159265 / 2 // 270°
+	DefaultGaugeInnerRatio float32 = 0.7
 )

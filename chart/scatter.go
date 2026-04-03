@@ -49,6 +49,10 @@ type scatterView struct {
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
+	hidden      map[int]bool // legend toggle state
+	lastPA      plotArea     // cached for cursor hit-testing
+	lastLB      legendBounds // cached for legend click
+	win         *gui.Window
 }
 
 // Scatter creates a scatter plot view.
@@ -74,19 +78,36 @@ func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &sv.cfg
 	hv := loadHover(w, c.ID,
 		&sv.hovering, &sv.hoverPx, &sv.hoverPy)
+	var hidV uint64
+	sv.hidden, hidV = loadHiddenState(w, c.ID)
+	sv.lastLB = loadLegendBounds(w, c.ID)
+	sv.win = w
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + hidV,
 		Clip:         true,
 		OnDraw:       sv.draw,
-		OnClick:      c.OnClick,
+		OnClick:      sv.internalClick,
 		OnHover:      sv.internalHover,
 		OnMouseLeave: sv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (sv *scatterView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(sv.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, sv.cfg.ID, idx)
+		return
+	}
+	if sv.cfg.OnClick != nil {
+		sv.cfg.OnClick(l, e, w)
+	}
 }
 
 func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -95,6 +116,17 @@ func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window)
 	sv.hoverPy = e.MouseY - l.Shape.Y
 	sv.hovering = true
 	saveHover(w, l, sv.cfg.ID, true, sv.hoverPx, sv.hoverPy)
+	if legendHitTest(sv.lastLB, sv.hoverPx, sv.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if sv.lastPA.XAxis != nil {
+		_, _, _, _, ok := nearestXYPoint(
+			sv.cfg.Series, sv.lastPA, sv.hoverPx, sv.hoverPy, 20)
+		if ok {
+			w.SetMouseCursorPointingHand()
+		} else {
+			w.SetMouseCursorArrow()
+		}
+	}
 	if sv.cfg.OnHover != nil {
 		sv.cfg.OnHover(l, e, w)
 	}
@@ -104,6 +136,7 @@ func (sv *scatterView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Wi
 	e.IsHandled = true
 	sv.hovering = false
 	saveHover(w, l, sv.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
 	if sv.cfg.OnMouseLeave != nil {
 		sv.cfg.OnMouseLeave(l, e, w)
 	}
@@ -239,11 +272,14 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Cache plot area for cursor hit-testing in hover callback.
+	sv.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+
 	// Hover highlight: find nearest series/point.
 	hovSI := -1
 	var hovPx, hovPy float32
 	if sv.hovering && xAxis != nil {
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		pa := sv.lastPA
 		si, _, px, py, snapOK := nearestXYPoint(
 			cfg.Series, pa, sv.hoverPx, sv.hoverPy, 20)
 		if snapOK {
@@ -252,7 +288,7 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	}
 
 	for i, s := range cfg.Series {
-		if s.Len() == 0 {
+		if s.Len() == 0 || sv.hidden[i] {
 			continue
 		}
 		color := seriesColor(s.Color(), i, th.Palette)
@@ -267,7 +303,7 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	}
 
 	// Enlarged marker on hovered series/point.
-	if hovSI >= 0 {
+	if hovSI >= 0 && !sv.hidden[hovSI] {
 		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
 		drawMarker(ctx, hovPx, hovPy, cfg.MarkerSize*2, cfg.Marker, hc)
 	}
@@ -277,9 +313,12 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
+			Index: i,
 		}
 	}
-	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+	sv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, sv.hidden)
+	saveLegendBounds(sv.win, cfg.ID, sv.lastLB)
 
 	// Crosshair and tooltip.
 	if sv.hovering && sv.xAxis != nil {

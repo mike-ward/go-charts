@@ -65,7 +65,7 @@ func TestDrawLegendRendersEntries(t *testing.T) {
 		{Name: "Series A", Color: gui.Hex(0xFF0000)},
 		{Name: "Series B", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	// Background rect + 2 swatches = 3 rounded rects → batches.
 	if len(dc.Batches()) == 0 {
 		t.Error("expected batches for legend background/swatches")
@@ -83,7 +83,7 @@ func TestDrawLegendSkipsUnnamedEntries(t *testing.T) {
 		{Name: "", Color: gui.Hex(0xFF0000)},
 		{Name: "Visible", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	// Only 1 named entry → 1 text label.
 	if len(dc.Texts()) != 1 {
 		t.Errorf("texts = %d, want 1", len(dc.Texts()))
@@ -97,7 +97,7 @@ func TestDrawLegendAllUnnamedSkipped(t *testing.T) {
 		{Name: "", Color: gui.Hex(0xFF0000)},
 		{Name: "", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	if len(dc.Texts()) != 0 {
 		t.Errorf("all-unnamed should produce no text, got %d",
 			len(dc.Texts()))
@@ -111,7 +111,7 @@ func TestDrawLegendAllUnnamedSkipped(t *testing.T) {
 func TestDrawLegendEmptyEntries(t *testing.T) {
 	ctx, dc := testCtx(400, 300)
 	th := testTheme()
-	drawLegend(ctx, nil, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, nil, th, 60, 380, 40, 260, nil, nil)
 	if len(dc.Texts()) != 0 || len(dc.Batches()) != 0 {
 		t.Error("nil entries should produce no output")
 	}
@@ -253,7 +253,7 @@ func TestDrawLegendTopLeft(t *testing.T) {
 	entries := []legendEntry{
 		{Name: "A", Color: gui.Hex(0xFF0000)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	if len(dc.Texts()) != 1 {
 		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
 	}
@@ -267,7 +267,7 @@ func TestDrawLegendPerChartOverride(t *testing.T) {
 	entries := []legendEntry{
 		{Name: "A", Color: gui.Hex(0xFF0000)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
 	if len(dc.Texts()) != 1 {
 		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
 	}
@@ -280,7 +280,7 @@ func TestDrawLegendCustomBackground(t *testing.T) {
 	entries := []legendEntry{
 		{Name: "A", Color: gui.Hex(0x00FF00)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	if len(dc.Batches()) == 0 {
 		t.Error("expected batches for legend background")
 	}
@@ -295,7 +295,7 @@ func TestDrawLegendCustomTextStyle(t *testing.T) {
 	entries := []legendEntry{
 		{Name: "Big", Color: gui.Hex(0x0000FF)},
 	}
-	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil)
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
 	if len(dc.Texts()) != 1 {
 		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
 	}

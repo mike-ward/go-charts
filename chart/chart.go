@@ -101,6 +101,90 @@ func resolveSize(width, height float32, w *gui.Window) (float32, float32) {
 	return width, height
 }
 
+// hiddenState persists legend toggle (hidden series) across
+// frames via gui.StateMap. Keyed by chart ID.
+type hiddenState struct {
+	Hidden  map[int]bool
+	Version uint64
+}
+
+const (
+	nsChartHidden  = "chart-hidden"
+	capChartHidden = 64
+)
+
+// chartHiddenMap returns the persistent hidden-series state map.
+func chartHiddenMap(w *gui.Window) *gui.BoundedMap[string, hiddenState] {
+	return gui.StateMap[string, hiddenState](w, nsChartHidden, capChartHidden)
+}
+
+// loadHiddenState reads hidden series set and version for a chart.
+func loadHiddenState(w *gui.Window, id string) (map[int]bool, uint64) {
+	if id == "" {
+		return nil, 0
+	}
+	sm := chartHiddenMap(w)
+	hs, ok := sm.Get(id)
+	if !ok {
+		return nil, 0
+	}
+	return hs.Hidden, hs.Version
+}
+
+// toggleHidden flips the hidden state of series index idx for
+// the given chart and returns the new version.
+func toggleHidden(w *gui.Window, id string, idx int) uint64 {
+	sm := chartHiddenMap(w)
+	hs, _ := sm.Get(id)
+	if hs.Hidden == nil {
+		hs.Hidden = make(map[int]bool)
+	}
+	if hs.Hidden[idx] {
+		delete(hs.Hidden, idx)
+	} else {
+		hs.Hidden[idx] = true
+	}
+	hs.Version++
+	sm.Set(id, hs)
+	return hs.Version
+}
+
+// legendBoundsState persists legend bounds across frames so
+// hover callbacks (which fire before draw) can hit-test.
+type legendBoundsState struct {
+	Bounds legendBounds
+}
+
+const (
+	nsChartLegend  = "chart-legend"
+	capChartLegend = 64
+)
+
+// saveLegendBounds stores legend bounds for hit-testing.
+func saveLegendBounds(w *gui.Window, id string, lb legendBounds) {
+	if w == nil || id == "" {
+		return
+	}
+	sm := gui.StateMap[string, legendBoundsState](w, nsChartLegend, capChartLegend)
+	sm.Set(id, legendBoundsState{Bounds: lb})
+}
+
+// loadLegendBounds reads persisted legend bounds.
+func loadLegendBounds(w *gui.Window, id string) legendBounds {
+	if id == "" {
+		return legendBounds{}
+	}
+	sm := gui.StateMapRead[string, legendBoundsState](w, nsChartLegend)
+	if sm == nil {
+		return legendBounds{}
+	}
+	lbs, ok := sm.Get(id)
+	if !ok {
+		return legendBounds{}
+	}
+	return lbs.Bounds
+}
+
 // hoverState persists hover information across frames via
 // gui.StateMap. Chart views are typically recreated each frame
 // by the view generator, so transient struct fields are lost.

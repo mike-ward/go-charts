@@ -13,6 +13,20 @@ import (
 type legendEntry struct {
 	Name  string
 	Color gui.Color
+	Index int // original series index (for toggle mapping)
+}
+
+// legendBounds holds the pixel bounds of legend entries for
+// click hit-testing.
+type legendBounds struct {
+	// EntryRects maps original series index to the entry's pixel
+	// rect within the canvas.
+	EntryRects []legendEntryRect
+}
+
+type legendEntryRect struct {
+	Index               int // original series index
+	X, Y, Width, Height float32
 }
 
 // resolvedTickMark returns the tick mark visual properties,
@@ -92,14 +106,16 @@ func drawYAxisLabel(
 
 // drawLegend renders the legend in the plot area. Position is
 // determined by the theme LegendStyle with an optional per-chart
-// override. Skipped when no entries have names.
+// override. Hidden entries are drawn dimmed with a strikethrough.
+// Returns bounds for click hit-testing.
 func drawLegend(
 	ctx *render.Context,
 	entries []legendEntry,
 	th *theme.Theme,
 	left, right, top, bottom float32,
 	posOverride *theme.LegendPosition,
-) {
+	hidden map[int]bool,
+) legendBounds {
 	// Filter to entries with names.
 	named := make([]legendEntry, 0, len(entries))
 	for _, e := range entries {
@@ -108,7 +124,7 @@ func drawLegend(
 		}
 	}
 	if len(named) == 0 {
-		return
+		return legendBounds{}
 	}
 
 	ls := th.Legend
@@ -179,19 +195,63 @@ func drawLegend(
 	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
 
 	// Entries.
+	lb := legendBounds{
+		EntryRects: make([]legendEntryRect, len(named)),
+	}
 	for i, e := range named {
 		ey := by + padding +
 			float32(i)*(rowH+rowGap)
+
+		lb.EntryRects[i] = legendEntryRect{
+			Index:  e.Index,
+			X:      bx,
+			Y:      ey,
+			Width:  boxW,
+			Height: rowH,
+		}
+
+		isHidden := hidden[e.Index]
+		color := e.Color
+		textStyle := style
+		if isHidden {
+			color = dimColor(color, HoverDimAlpha)
+			textStyle.Color = gui.RGBA(
+				style.Color.R, style.Color.G,
+				style.Color.B, HoverDimAlpha)
+		}
+
 		// Color swatch.
 		sx := bx + padding
 		sy := ey + (rowH-swatchSize)/2
 		ctx.FilledRoundedRect(sx, sy,
-			swatchSize, swatchSize, 2, e.Color)
+			swatchSize, swatchSize, 2, color)
+
+		// Strikethrough for hidden entries.
+		if isHidden {
+			mid := sy + swatchSize/2
+			ctx.Line(sx-1, mid, sx+swatchSize+1, mid,
+				gui.RGBA(200, 200, 200, 180), 1.5)
+		}
+
 		// Label.
 		tx := sx + swatchSize + itemGap
 		ty := ey + (rowH-fh)/2
-		ctx.Text(tx, ty, e.Name, style)
+		ctx.Text(tx, ty, e.Name, textStyle)
 	}
+
+	return lb
+}
+
+// legendHitTest returns the original series index of the legend
+// entry under (mx, my), or -1 if none.
+func legendHitTest(lb legendBounds, mx, my float32) int {
+	for _, r := range lb.EntryRects {
+		if mx >= r.X && mx <= r.X+r.Width &&
+			my >= r.Y && my <= r.Y+r.Height {
+			return r.Index
+		}
+	}
+	return -1
 }
 
 // drawTooltip draws a tooltip directly on the canvas near (tx, ty).

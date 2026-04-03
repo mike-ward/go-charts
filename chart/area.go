@@ -41,6 +41,10 @@ type areaView struct {
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
+	hidden      map[int]bool // legend toggle state
+	lastPA      plotArea     // cached for cursor hit-testing
+	lastLB      legendBounds // cached for legend click
+	win         *gui.Window
 }
 
 // Area creates an area chart view.
@@ -69,19 +73,36 @@ func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &av.cfg
 	hv := loadHover(w, c.ID,
 		&av.hovering, &av.hoverPx, &av.hoverPy)
+	var hidV uint64
+	av.hidden, hidV = loadHiddenState(w, c.ID)
+	av.lastLB = loadLegendBounds(w, c.ID)
+	av.win = w
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + hidV,
 		Clip:         true,
 		OnDraw:       av.draw,
-		OnClick:      c.OnClick,
+		OnClick:      av.internalClick,
 		OnHover:      av.internalHover,
 		OnMouseLeave: av.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (av *areaView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(av.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, av.cfg.ID, idx)
+		return
+	}
+	if av.cfg.OnClick != nil {
+		av.cfg.OnClick(l, e, w)
+	}
 }
 
 func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -90,6 +111,23 @@ func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	av.hoverPy = e.MouseY - l.Shape.Y
 	av.hovering = true
 	saveHover(w, l, av.cfg.ID, true, av.hoverPx, av.hoverPy)
+	if legendHitTest(av.lastLB, av.hoverPx, av.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if av.lastPA.XAxis != nil {
+		var ok bool
+		if av.cfg.Stacked {
+			_, _, _, _, ok = nearestStackedPoint(
+				av.cfg.Series, av.lastPA, av.hoverPx, av.hoverPy, 20)
+		} else {
+			_, _, _, _, ok = nearestXYPoint(
+				av.cfg.Series, av.lastPA, av.hoverPx, av.hoverPy, 20)
+		}
+		if ok {
+			w.SetMouseCursorPointingHand()
+		} else {
+			w.SetMouseCursorArrow()
+		}
+	}
 	if av.cfg.OnHover != nil {
 		av.cfg.OnHover(l, e, w)
 	}
@@ -99,6 +137,7 @@ func (av *areaView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Windo
 	e.IsHandled = true
 	av.hovering = false
 	saveHover(w, l, av.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
 	if av.cfg.OnMouseLeave != nil {
 		av.cfg.OnMouseLeave(l, e, w)
 	}
@@ -261,13 +300,16 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 
 	alpha := uint8(cfg.Opacity * 255)
 
+	// Cache plot area for cursor hit-testing in hover callback.
+	av.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+
 	// Hover highlight: find nearest series/point.
 	// Stacked mode uses cumulative Y values so the hit-test matches the
 	// drawn geometry; overlapping mode uses raw Y values.
 	hovSI := -1
 	var hovPx, hovPy float32
 	if av.hovering && xAxis != nil {
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		pa := av.lastPA
 		if cfg.Stacked {
 			si, _, px, py, snapOK := nearestStackedPoint(
 				cfg.Series, pa, av.hoverPx, av.hoverPy, 20)
@@ -294,12 +336,15 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
+			Index: i,
 		}
 	}
-	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+	av.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, av.hidden)
+	saveLegendBounds(av.win, cfg.ID, av.lastLB)
 
 	// Enlarged point marker on hovered series.
-	if hovSI >= 0 {
+	if hovSI >= 0 && !av.hidden[hovSI] {
 		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
 		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
@@ -326,7 +371,7 @@ func (av *areaView) drawOverlapping(
 	alpha uint8, hovSI int,
 ) {
 	for i, s := range cfg.Series {
-		if s.Len() == 0 {
+		if s.Len() == 0 || av.hidden[i] {
 			continue
 		}
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)
@@ -415,7 +460,7 @@ func (av *areaView) drawStacked(
 	}
 
 	for i, s := range cfg.Series {
-		if s.Len() == 0 {
+		if s.Len() == 0 || av.hidden[i] {
 			continue
 		}
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)

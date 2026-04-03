@@ -37,7 +37,7 @@ First renderable chart types.
 
 - [x] Pie chart with label placement
 - [x] Donut chart (InnerRadius > 0)
-- [ ] Gauge chart (arc-based, value indicator)
+- [x] Gauge chart (arc-based, value indicator)
 - [ ] Segment hover highlight
 - [x] Percentage labels
 
@@ -48,8 +48,8 @@ First renderable chart types.
 - [x] Hover highlight (series/point emphasis)
 - [x] Segment hover highlight (pie/donut explode)
 - [x] Click selection (OnClick callback wired on all chart types)
-- [ ] Legend toggle (show/hide series)
-- [ ] Cursor style changes on interactive elements
+- [x] Legend toggle (show/hide series)
+- [x] Cursor style changes on interactive elements
 
 ## Phase 5 — Advanced Charts
 

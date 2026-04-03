@@ -38,6 +38,11 @@ type barView struct {
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
+	hidden      map[int]bool // legend toggle state
+	// Cached plot bounds for cursor hit-testing.
+	lastLeft, lastRight, lastTop, lastBottom float32
+	lastLB                                   legendBounds
+	win                                      *gui.Window
 }
 
 // Bar creates a bar chart view.
@@ -63,19 +68,36 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &bv.cfg
 	hv := loadHover(w, c.ID,
 		&bv.hovering, &bv.hoverPx, &bv.hoverPy)
+	var hidV uint64
+	bv.hidden, hidV = loadHiddenState(w, c.ID)
+	bv.lastLB = loadLegendBounds(w, c.ID)
+	bv.win = w
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + hidV,
 		Clip:         true,
 		OnDraw:       bv.draw,
-		OnClick:      c.OnClick,
+		OnClick:      bv.internalClick,
 		OnHover:      bv.internalHover,
 		OnMouseLeave: bv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (bv *barView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(bv.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, bv.cfg.ID, idx)
+		return
+	}
+	if bv.cfg.OnClick != nil {
+		bv.cfg.OnClick(l, e, w)
+	}
 }
 
 func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -84,6 +106,23 @@ func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	bv.hoverPy = e.MouseY - l.Shape.Y
 	bv.hovering = true
 	saveHover(w, l, bv.cfg.ID, true, bv.hoverPx, bv.hoverPy)
+	if legendHitTest(bv.lastLB, bv.hoverPx, bv.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if bv.yAxis != nil {
+		var ok bool
+		if bv.cfg.Horizontal {
+			_, _, ok = bv.hoveredBarHorizontal(bv.hoverPx, bv.hoverPy,
+				bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom)
+		} else {
+			_, _, ok = bv.hoveredBarVertical(bv.hoverPx, bv.hoverPy,
+				bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom)
+		}
+		if ok {
+			w.SetMouseCursorPointingHand()
+		} else {
+			w.SetMouseCursorArrow()
+		}
+	}
 	if bv.cfg.OnHover != nil {
 		bv.cfg.OnHover(l, e, w)
 	}
@@ -93,6 +132,7 @@ func (bv *barView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window
 	e.IsHandled = true
 	bv.hovering = false
 	saveHover(w, l, bv.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
 	if bv.cfg.OnMouseLeave != nil {
 		bv.cfg.OnMouseLeave(l, e, w)
 	}
@@ -188,6 +228,12 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		bv.lastVersion = cfg.Version
 	}
 
+	// Cache plot bounds for cursor hit-testing in hover callback.
+	bv.lastLeft = left
+	bv.lastRight = right
+	bv.lastTop = top
+	bv.lastBottom = bottom
+
 	if cfg.Horizontal {
 		bv.drawHorizontal(ctx, cfg, th, nCategories, nSeries, labels,
 			left, right, top, bottom)
@@ -254,6 +300,9 @@ func (bv *barView) drawVertical(
 			posOff := 0.0
 			negOff := 0.0
 			for si, s := range cfg.Series {
+				if bv.hidden[si] {
+					continue
+				}
 				if ci >= len(s.Values) {
 					slog.Warn("series length mismatch",
 						"chart", cfg.ID, "series", si)
@@ -316,6 +365,9 @@ func (bv *barView) drawVertical(
 				float32(nSeries-1)*barGap)/2
 
 			for si, s := range cfg.Series {
+				if bv.hidden[si] {
+					continue
+				}
 				if ci >= len(s.Values) {
 					slog.Warn("series length mismatch",
 						"chart", cfg.ID, "series", si)
@@ -360,9 +412,12 @@ func (bv *barView) drawVertical(
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
+			Index: i,
 		}
 	}
-	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+	bv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, bv.hidden)
+	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 }
 
 // hoveredBarVertical returns the (catIdx, seriesIdx) of the bar under
@@ -828,6 +883,9 @@ func (bv *barView) drawHorizontal(
 			posOff := 0.0
 			negOff := 0.0
 			for si, s := range cfg.Series {
+				if bv.hidden[si] {
+					continue
+				}
 				if ci >= len(s.Values) {
 					slog.Warn("series length mismatch",
 						"chart", cfg.ID, "series", si)
@@ -884,6 +942,9 @@ func (bv *barView) drawHorizontal(
 				float32(nSeries-1)*barGap)/2
 
 			for si, s := range cfg.Series {
+				if bv.hidden[si] {
+					continue
+				}
 				if ci >= len(s.Values) {
 					slog.Warn("series length mismatch",
 						"chart", cfg.ID, "series", si)
@@ -923,7 +984,10 @@ func (bv *barView) drawHorizontal(
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
+			Index: i,
 		}
 	}
-	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+	bv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, bv.hidden)
+	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 }

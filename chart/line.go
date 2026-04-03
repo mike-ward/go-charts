@@ -39,6 +39,10 @@ type lineView struct {
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
+	hidden      map[int]bool // legend toggle state
+	lastPA      plotArea     // cached for cursor hit-testing
+	lastLB      legendBounds // cached for legend click
+	win         *gui.Window  // set in GenerateLayout for StateMap access
 }
 
 // Line creates a line chart view.
@@ -64,19 +68,36 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &lv.cfg
 	hv := loadHover(w, c.ID,
 		&lv.hovering, &lv.hoverPx, &lv.hoverPy)
+	var hidV uint64
+	lv.hidden, hidV = loadHiddenState(w, c.ID)
+	lv.lastLB = loadLegendBounds(w, c.ID)
+	lv.win = w
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + hidV,
 		Clip:         true,
 		OnDraw:       lv.draw,
-		OnClick:      c.OnClick,
+		OnClick:      lv.internalClick,
 		OnHover:      lv.internalHover,
 		OnMouseLeave: lv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (lv *lineView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(lv.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, lv.cfg.ID, idx)
+		return
+	}
+	if lv.cfg.OnClick != nil {
+		lv.cfg.OnClick(l, e, w)
+	}
 }
 
 func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -85,6 +106,17 @@ func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	lv.hoverPy = e.MouseY - l.Shape.Y
 	lv.hovering = true
 	saveHover(w, l, lv.cfg.ID, true, lv.hoverPx, lv.hoverPy)
+	if legendHitTest(lv.lastLB, lv.hoverPx, lv.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if lv.lastPA.XAxis != nil {
+		_, _, _, _, ok := nearestXYPoint(
+			lv.cfg.Series, lv.lastPA, lv.hoverPx, lv.hoverPy, 20)
+		if ok {
+			w.SetMouseCursorPointingHand()
+		} else {
+			w.SetMouseCursorArrow()
+		}
+	}
 	if lv.cfg.OnHover != nil {
 		lv.cfg.OnHover(l, e, w)
 	}
@@ -94,6 +126,7 @@ func (lv *lineView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Windo
 	e.IsHandled = true
 	lv.hovering = false
 	saveHover(w, l, lv.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
 	if lv.cfg.OnMouseLeave != nil {
 		lv.cfg.OnMouseLeave(l, e, w)
 	}
@@ -248,11 +281,14 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Cache plot area for cursor hit-testing in hover callback.
+	lv.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+
 	// Hover highlight: find nearest series/point.
 	hovSI := -1
 	var hovPx, hovPy float32
 	if lv.hovering && xAxis != nil {
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		pa := lv.lastPA
 		si, _, px, py, snapOK := nearestXYPoint(
 			cfg.Series, pa, lv.hoverPx, lv.hoverPy, 20)
 		if snapOK {
@@ -260,9 +296,48 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		}
 	}
 
-	// Draw each series.
+	lv.drawSeries(ctx, cfg, th, xAxis, yAxis,
+		left, right, top, bottom, hovSI)
+
+	// Enlarged point marker on hovered series.
+	if hovSI >= 0 && !lv.hidden[hovSI] {
+		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
+	}
+
+	// Legend.
+	entries := make([]legendEntry, len(cfg.Series))
 	for i, s := range cfg.Series {
-		if s.Len() == 0 {
+		entries[i] = legendEntry{
+			Name:  s.Name(),
+			Color: seriesColor(s.Color(), i, th.Palette),
+			Index: i,
+		}
+	}
+	lv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, lv.hidden)
+	saveLegendBounds(lv.win, cfg.ID, lv.lastLB)
+
+	// Crosshair and tooltip.
+	if lv.hovering && lv.xAxis != nil {
+		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy,
+			left, right, top, bottom)
+		pa := lv.lastPA
+		drawXYTooltip(ctx, th, cfg.Series, pa,
+			lv.hoverPx, lv.hoverPy)
+	}
+}
+
+// drawSeries renders each visible series as polylines with
+// optional area fill and markers.
+func (lv *lineView) drawSeries(
+	ctx *render.Context, cfg *LineCfg, th *theme.Theme,
+	xAxis, yAxis *axis.Linear,
+	left, right, top, bottom float32,
+	hovSI int,
+) {
+	for i, s := range cfg.Series {
+		if s.Len() == 0 || lv.hidden[i] {
 			continue
 		}
 		color := seriesColor(s.Color(), i, th.Palette)
@@ -283,10 +358,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		}
 		lv.ptsBuf = pts
 
-		// Filled area under the line. Each consecutive point pair
-		// forms a trapezoid with the baseline — O(n), zero heap
-		// alloc, and the fill follows the same point order as the
-		// rendered polyline.
+		// Filled area under the line.
 		if cfg.ShowArea && len(pts) >= 4 {
 			fill := gui.RGBA(color.R, color.G, color.B, 40)
 			var quad [8]float32
@@ -311,31 +383,5 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 				ctx.FilledCircle(pts[j], pts[j+1], cfg.LineWidth*2, color)
 			}
 		}
-	}
-
-	// Enlarged point marker on hovered series.
-	if hovSI >= 0 {
-		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
-		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
-	}
-
-	// Legend.
-	entries := make([]legendEntry, len(cfg.Series))
-	for i, s := range cfg.Series {
-		entries[i] = legendEntry{
-			Name:  s.Name(),
-			Color: seriesColor(s.Color(), i, th.Palette),
-		}
-	}
-	drawLegend(ctx, entries, th, left, right, top, bottom,
-		cfg.LegendPosition)
-
-	// Crosshair and tooltip.
-	if lv.hovering && lv.xAxis != nil {
-		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy,
-			left, right, top, bottom)
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
-		drawXYTooltip(ctx, th, cfg.Series, pa,
-			lv.hoverPx, lv.hoverPy)
 	}
 }

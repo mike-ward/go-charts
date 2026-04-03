@@ -36,6 +36,11 @@ type pieView struct {
 	hoverPx  float32
 	hoverPy  float32
 	hovering bool
+	hidden   map[int]bool // legend toggle state
+	// Cached geometry for cursor hit-testing.
+	cx, cy, outerR float32
+	lastLB         legendBounds
+	win            *gui.Window
 }
 
 // Pie creates a pie or donut chart view.
@@ -58,19 +63,36 @@ func (pv *pieView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &pv.cfg
 	hv := loadHover(w, c.ID,
 		&pv.hovering, &pv.hoverPx, &pv.hoverPy)
+	var hidV uint64
+	pv.hidden, hidV = loadHiddenState(w, c.ID)
+	pv.lastLB = loadLegendBounds(w, c.ID)
+	pv.win = w
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + hidV,
 		Clip:         true,
 		OnDraw:       pv.draw,
-		OnClick:      c.OnClick,
+		OnClick:      pv.internalClick,
 		OnHover:      pv.internalHover,
 		OnMouseLeave: pv.internalMouseLeave,
 	}).GenerateLayout(w)
+}
+
+func (pv *pieView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	mx := e.MouseX
+	my := e.MouseY
+	if idx := legendHitTest(pv.lastLB, mx, my); idx >= 0 {
+		e.IsHandled = true
+		l.Shape.Version = toggleHidden(w, pv.cfg.ID, idx)
+		return
+	}
+	if pv.cfg.OnClick != nil {
+		pv.cfg.OnClick(l, e, w)
+	}
 }
 
 func (pv *pieView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -79,6 +101,14 @@ func (pv *pieView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	pv.hoverPy = e.MouseY - l.Shape.Y
 	pv.hovering = true
 	saveHover(w, l, pv.cfg.ID, true, pv.hoverPx, pv.hoverPy)
+	if legendHitTest(pv.lastLB, pv.hoverPx, pv.hoverPy) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else if pv.outerR > 0 &&
+		pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, pv.cx, pv.cy, pv.outerR) >= 0 {
+		w.SetMouseCursorPointingHand()
+	} else {
+		w.SetMouseCursorArrow()
+	}
 	if pv.cfg.OnHover != nil {
 		pv.cfg.OnHover(l, e, w)
 	}
@@ -88,6 +118,7 @@ func (pv *pieView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window
 	e.IsHandled = true
 	pv.hovering = false
 	saveHover(w, l, pv.cfg.ID, false, 0, 0)
+	w.SetMouseCursorArrow()
 	if pv.cfg.OnMouseLeave != nil {
 		pv.cfg.OnMouseLeave(l, e, w)
 	}
@@ -105,7 +136,8 @@ func normAngle(a, ref float32) float32 {
 
 // hoveredSliceIndex returns the index of the slice under (mx, my),
 // or -1 if none. Each slice is tested against its exploded center so
-// that hit-testing matches the drawn geometry exactly.
+// that hit-testing matches the drawn geometry exactly. Hidden slices
+// are excluded so angles match the rendered layout.
 func (pv *pieView) hoveredSliceIndex(mx, my, cx, cy, outerR float32) int {
 	cfg := &pv.cfg
 	if len(cfg.Slices) == 0 {
@@ -113,8 +145,8 @@ func (pv *pieView) hoveredSliceIndex(mx, my, cx, cy, outerR float32) int {
 	}
 
 	total := 0.0
-	for _, s := range cfg.Slices {
-		if s.Value > 0 {
+	for i, s := range cfg.Slices {
+		if s.Value > 0 && !pv.hidden[i] {
 			total += s.Value
 		}
 	}
@@ -124,7 +156,7 @@ func (pv *pieView) hoveredSliceIndex(mx, my, cx, cy, outerR float32) int {
 
 	cumAngle := cfg.StartAngle
 	for i, s := range cfg.Slices {
-		if s.Value <= 0 {
+		if s.Value <= 0 || pv.hidden[i] {
 			continue
 		}
 		sweep := float32(s.Value/total) * (2 * math.Pi)
@@ -175,8 +207,8 @@ func (pv *pieView) tooltipPie(
 
 	s := cfg.Slices[idx]
 	total := 0.0
-	for _, sl := range cfg.Slices {
-		if sl.Value > 0 {
+	for i, sl := range cfg.Slices {
+		if sl.Value > 0 && !pv.hidden[i] {
 			total += sl.Value
 		}
 	}
@@ -215,10 +247,10 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 
 	drawTitle(ctx, cfg.Title, th)
 
-	// Sum all positive slice values.
+	// Sum visible positive slice values.
 	total := 0.0
-	for _, s := range cfg.Slices {
-		if s.Value > 0 {
+	for i, s := range cfg.Slices {
+		if s.Value > 0 && !pv.hidden[i] {
 			total += s.Value
 		}
 	}
@@ -234,16 +266,21 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 	cx := (left + right) / 2
 	cy := (top + bottom) / 2
 
+	// Cache geometry for cursor hit-testing in hover callback.
+	pv.cx = cx
+	pv.cy = cy
+	pv.outerR = outerR
+
 	// Hover highlight: find the slice under the cursor.
 	hovIdx := -1
 	if pv.hovering {
 		hovIdx = pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, cx, cy, outerR)
 	}
 
-	// Draw slices.
+	// Draw slices (skip hidden).
 	angle := cfg.StartAngle
 	for i, s := range cfg.Slices {
-		if s.Value <= 0 {
+		if s.Value <= 0 || pv.hidden[i] {
 			continue
 		}
 		sweep := float32(s.Value/total) * (2 * math.Pi)
@@ -272,8 +309,8 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 			s := cfg.Slices[hovIdx]
 			if s.Value > 0 {
 				cumA := cfg.StartAngle
-				for _, sl := range cfg.Slices[:hovIdx] {
-					if sl.Value > 0 {
+				for j, sl := range cfg.Slices[:hovIdx] {
+					if sl.Value > 0 && !pv.hidden[j] {
 						cumA += float32(sl.Value/total) * (2 * math.Pi)
 					}
 				}
@@ -286,48 +323,7 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		}
 	}
 
-	// Labels at midpoint of each slice arc.
-	if cfg.ShowLabels || cfg.ShowPercent {
-		style := th.TickStyle
-		fh := ctx.FontHeight(style)
-		labelR := outerR * 0.7
-		if cfg.InnerRadius > 0 {
-			// Place labels between inner radius and outer radius.
-			labelR = (cfg.InnerRadius + outerR) / 2
-		}
-
-		angle = cfg.StartAngle
-		for _, s := range cfg.Slices {
-			if s.Value <= 0 {
-				continue
-			}
-			sweep := float32(s.Value/total) * (2 * math.Pi)
-			mid := angle + sweep/2
-			lx := cx + labelR*float32(math.Cos(float64(mid)))
-			ly := cy + labelR*float32(math.Sin(float64(mid)))
-
-			text := ""
-			if cfg.ShowLabels {
-				text = s.Label
-			}
-			if cfg.ShowPercent {
-				pct := fmt.Sprintf("%.1f%%", s.Value/total*100)
-				if text != "" {
-					text = text + " " + pct
-				} else {
-					text = pct
-				}
-			}
-			if text == "" {
-				angle += sweep
-				continue
-			}
-
-			tw := ctx.TextWidth(text, style)
-			ctx.Text(lx-tw/2, ly-fh/2, text, style)
-			angle += sweep
-		}
-	}
+	pv.drawLabels(ctx, cfg, th, cx, cy, outerR, total)
 
 	// Legend.
 	entries := make([]legendEntry, len(cfg.Slices))
@@ -336,12 +332,63 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		if !color.IsSet() {
 			color = seriesColor(gui.Color{}, i, th.Palette)
 		}
-		entries[i] = legendEntry{Name: s.Label, Color: color}
+		entries[i] = legendEntry{Name: s.Label, Color: color, Index: i}
 	}
-	drawLegend(ctx, entries, th, left, right, top, bottom, cfg.LegendPosition)
+	pv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+		cfg.LegendPosition, pv.hidden)
+	saveLegendBounds(pv.win, cfg.ID, pv.lastLB)
 
 	// Tooltip.
 	if pv.hovering {
 		pv.tooltipPie(ctx, left, right, top, bottom, th)
+	}
+}
+
+// drawLabels renders percentage and name labels at each visible
+// slice midpoint.
+func (pv *pieView) drawLabels(
+	ctx *render.Context, cfg *PieCfg, th *theme.Theme,
+	cx, cy, outerR float32, total float64,
+) {
+	if !cfg.ShowLabels && !cfg.ShowPercent {
+		return
+	}
+	style := th.TickStyle
+	fh := ctx.FontHeight(style)
+	labelR := outerR * 0.7
+	if cfg.InnerRadius > 0 {
+		labelR = (cfg.InnerRadius + outerR) / 2
+	}
+
+	angle := cfg.StartAngle
+	for i, s := range cfg.Slices {
+		if s.Value <= 0 || pv.hidden[i] {
+			continue
+		}
+		sweep := float32(s.Value/total) * (2 * math.Pi)
+		mid := angle + sweep/2
+		lx := cx + labelR*float32(math.Cos(float64(mid)))
+		ly := cy + labelR*float32(math.Sin(float64(mid)))
+
+		text := ""
+		if cfg.ShowLabels {
+			text = s.Label
+		}
+		if cfg.ShowPercent {
+			pct := fmt.Sprintf("%.1f%%", s.Value/total*100)
+			if text != "" {
+				text = text + " " + pct
+			} else {
+				text = pct
+			}
+		}
+		if text == "" {
+			angle += sweep
+			continue
+		}
+
+		tw := ctx.TextWidth(text, style)
+		ctx.Text(lx-tw/2, ly-fh/2, text, style)
+		angle += sweep
 	}
 }
