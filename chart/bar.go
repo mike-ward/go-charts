@@ -73,22 +73,52 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 	bv.hidden, hidV = loadHiddenState(w, c.ID)
 	bv.lastLB = loadLegendBounds(w, c.ID)
 	bv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       bv.draw,
-		OnClick:      bv.internalClick,
-		OnHover:      bv.internalHover,
-		OnMouseLeave: bv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        bv.draw,
+		OnClick:       bv.internalClick,
+		OnHover:       bv.internalHover,
+		OnMouseMove:   bv.internalMouseMove,
+		OnMouseLeave:  bv.internalMouseLeave,
+		OnMouseScroll: bv.internalScroll,
+		OnGesture:     bv.internalGesture,
 	}).GenerateLayout(w)
 }
 
+// yZoomPA builds a plotArea with nil XAxis for Y-only zoom.
+func (bv *barView) yZoomPA() plotArea {
+	return plotArea{
+		plotRect{bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom},
+		nil, bv.yAxis,
+	}
+}
+
+func (bv *barView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !bv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
+}
+
+func (bv *barView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !bv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
+}
+
 func (bv *barView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if bv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, bv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(bv.lastLB, mx, my); idx >= 0 {
@@ -98,6 +128,14 @@ func (bv *barView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	}
 	if bv.cfg.OnClick != nil {
 		bv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (bv *barView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if (bv.cfg.EnablePan || bv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, bv.cfg.ID, bv.yZoomPA(),
+			bv.cfg.EnablePan, bv.cfg.EnableRangeSelect, false, true) {
+		return
 	}
 }
 
@@ -253,6 +291,8 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		bv.lastVersion = cfg.Version
 	}
 
+	zs := loadAndApplyZoom(bv.win, bv.cfg.ID, nil, bv.yAxis, false, true)
+
 	if !cfg.Horizontal {
 		left = resolveLeft(ctx, th, left, bottom, top, bv.yAxis)
 	}
@@ -275,9 +315,12 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			left, right, top, bottom)
 	}
 
+	pr := plotRect{left, right, top, bottom}
+
+	drawSelectionRectIf(ctx, zs, pr)
+
 	// Crosshair and tooltip.
 	if bv.hovering {
-		pr := plotRect{left, right, top, bottom}
 		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy, pr)
 		bv.tooltipBar(ctx, pr, th)
 	}

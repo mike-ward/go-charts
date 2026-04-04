@@ -38,4 +38,20 @@ const (
 	// DefaultAnnotationLineWidth is the line width for
 	// annotation reference lines when Width is 0.
 	DefaultAnnotationLineWidth float32 = 1.5
+
+	// DefaultZoomFactor is the scale factor per scroll tick.
+	// >1 zooms in; 1/factor zooms out.
+	DefaultZoomFactor float64 = 1.15
+
+	// DefaultMinDragPx is the minimum pixel distance to
+	// distinguish a drag from a click.
+	DefaultMinDragPx float32 = 4
+
+	// DefaultMinZoomRange is the smallest allowed domain span
+	// to prevent degenerate transforms.
+	DefaultMinZoomRange float64 = 1e-12
+
+	// zoomDoubleClickFrames is the frame-count threshold for
+	// detecting a mouse double-click (~400ms at 60fps).
+	zoomDoubleClickFrames uint64 = 24
 )

@@ -77,22 +77,44 @@ func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 	av.hidden, hidV = loadHiddenState(w, c.ID)
 	av.lastLB = loadLegendBounds(w, c.ID)
 	av.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       av.draw,
-		OnClick:      av.internalClick,
-		OnHover:      av.internalHover,
-		OnMouseLeave: av.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        av.draw,
+		OnClick:       av.internalClick,
+		OnHover:       av.internalHover,
+		OnMouseMove:   av.internalMouseMove,
+		OnMouseLeave:  av.internalMouseLeave,
+		OnMouseScroll: av.internalScroll,
+		OnGesture:     av.internalGesture,
 	}).GenerateLayout(w)
 }
 
+func (av *areaView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !av.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, av.cfg.ID, av.lastPA, true, true)
+}
+
+func (av *areaView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !av.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, av.cfg.ID, av.lastPA, true, true)
+}
+
 func (av *areaView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if av.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, av.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(av.lastLB, mx, my); idx >= 0 {
@@ -102,6 +124,14 @@ func (av *areaView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	}
 	if av.cfg.OnClick != nil {
 		av.cfg.OnClick(l, e, w)
+	}
+}
+
+func (av *areaView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if (av.cfg.EnablePan || av.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, av.cfg.ID, av.lastPA,
+			av.cfg.EnablePan, av.cfg.EnableRangeSelect, true, true) {
+		return
 	}
 }
 
@@ -271,6 +301,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	xAxis := av.xAxis
 	yAxis := av.yAxis
 
+	zs := loadAndApplyZoom(av.win, av.cfg.ID, xAxis, yAxis, true, true)
+
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
 
 	bottom = ctx.Height() - resolveBottom(ctx, th,
@@ -368,6 +400,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
 
+	drawSelectionRectIf(ctx, zs, pr)
+
 	// Crosshair and tooltip.
 	if av.hovering && av.xAxis != nil {
 		drawCrosshair(ctx, th, av.hoverPx, av.hoverPy, pr)
@@ -414,22 +448,23 @@ func (av *areaView) drawOverlapping(
 		}
 		av.ptsBuf = pts
 
-		if len(pts) >= 4 {
+		clipped := clipPolylineToRect(pts, left, right, top, bottom)
+		if len(clipped) >= 4 {
 			fill := gui.RGBA(color.R, color.G, color.B, fillAlpha)
 			var quad [8]float32
-			for k := 0; k < len(pts)-2; k += 2 {
-				quad[0] = pts[k]
-				quad[1] = pts[k+1]
-				quad[2] = pts[k+2]
-				quad[3] = pts[k+3]
-				quad[4] = pts[k+2]
+			for k := 0; k < len(clipped)-2; k += 2 {
+				quad[0] = clipped[k]
+				quad[1] = clipped[k+1]
+				quad[2] = clipped[k+2]
+				quad[3] = clipped[k+3]
+				quad[4] = clipped[k+2]
 				quad[5] = bottom
-				quad[6] = pts[k]
+				quad[6] = clipped[k]
 				quad[7] = bottom
 				ctx.FilledPolygon(quad[:], fill)
 			}
 		}
-		ctx.Polyline(pts, color, cfg.LineWidth)
+		ctx.Polyline(clipped, color, cfg.LineWidth)
 	}
 }
 

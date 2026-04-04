@@ -106,24 +106,53 @@ func (cv *comboView) GenerateLayout(w *gui.Window) gui.Layout {
 	cv.hidden, hidV = loadHiddenState(w, c.ID)
 	cv.lastLB = loadLegendBounds(w, c.ID)
 	cv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       cv.draw,
-		OnClick:      cv.internalClick,
-		OnHover:      cv.internalHover,
-		OnMouseLeave: cv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        cv.draw,
+		OnClick:       cv.internalClick,
+		OnHover:       cv.internalHover,
+		OnMouseMove:   cv.internalMouseMove,
+		OnMouseLeave:  cv.internalMouseLeave,
+		OnMouseScroll: cv.internalScroll,
+		OnGesture:     cv.internalGesture,
 	}).GenerateLayout(w)
+}
+
+func (cv *comboView) yZoomPA() plotArea {
+	return plotArea{
+		plotRect{cv.lastLeft, cv.lastRight, cv.lastTop, cv.lastBottom},
+		nil, cv.yAxis,
+	}
+}
+
+func (cv *comboView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !cv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
+}
+
+func (cv *comboView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !cv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
 }
 
 func (cv *comboView) internalClick(
 	l *gui.Layout, e *gui.Event, w *gui.Window,
 ) {
+	if cv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, cv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(cv.lastLB, mx, my); idx >= 0 {
@@ -133,6 +162,16 @@ func (cv *comboView) internalClick(
 	}
 	if cv.cfg.OnClick != nil {
 		cv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (cv *comboView) internalMouseMove(
+	l *gui.Layout, e *gui.Event, w *gui.Window,
+) {
+	if (cv.cfg.EnablePan || cv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, cv.cfg.ID, cv.yZoomPA(),
+			cv.cfg.EnablePan, cv.cfg.EnableRangeSelect, false, true) {
+		return
 	}
 }
 
@@ -226,6 +265,8 @@ func (cv *comboView) draw(dc *gui.DrawContext) {
 		cv.lastVersion = cfg.Version
 	}
 
+	zs := loadAndApplyZoom(cv.win, cv.cfg.ID, nil, cv.yAxis, false, true)
+
 	left = resolveLeft(ctx, th, left, bottom, top, cv.yAxis)
 
 	cv.lastLeft = left
@@ -314,6 +355,8 @@ func (cv *comboView) draw(dc *gui.DrawContext) {
 	cv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, cv.hidden)
 	saveLegendBounds(cv.win, cfg.ID, cv.lastLB)
+
+	drawSelectionRectIf(ctx, zs, pr)
 
 	// --- Crosshair and tooltip ---
 	if cv.hovering {

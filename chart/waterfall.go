@@ -121,24 +121,53 @@ func (wv *waterfallView) GenerateLayout(w *gui.Window) gui.Layout {
 	wv.hidden, hidV = loadHiddenState(w, c.ID)
 	wv.lastLB = loadLegendBounds(w, c.ID)
 	wv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       wv.draw,
-		OnClick:      wv.internalClick,
-		OnHover:      wv.internalHover,
-		OnMouseLeave: wv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        wv.draw,
+		OnClick:       wv.internalClick,
+		OnHover:       wv.internalHover,
+		OnMouseMove:   wv.internalMouseMove,
+		OnMouseLeave:  wv.internalMouseLeave,
+		OnMouseScroll: wv.internalScroll,
+		OnGesture:     wv.internalGesture,
 	}).GenerateLayout(w)
+}
+
+func (wv *waterfallView) yZoomPA() plotArea {
+	return plotArea{
+		plotRect{wv.lastLeft, wv.lastRight, wv.lastTop, wv.lastBottom},
+		nil, wv.yAxis,
+	}
+}
+
+func (wv *waterfallView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !wv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
+}
+
+func (wv *waterfallView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !wv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
 }
 
 func (wv *waterfallView) internalClick(
 	l *gui.Layout, e *gui.Event, w *gui.Window,
 ) {
+	if wv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, wv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(wv.lastLB, mx, my); idx >= 0 {
@@ -148,6 +177,16 @@ func (wv *waterfallView) internalClick(
 	}
 	if wv.cfg.OnClick != nil {
 		wv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (wv *waterfallView) internalMouseMove(
+	l *gui.Layout, e *gui.Event, w *gui.Window,
+) {
+	if (wv.cfg.EnablePan || wv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, wv.cfg.ID, wv.yZoomPA(),
+			wv.cfg.EnablePan, wv.cfg.EnableRangeSelect, false, true) {
+		return
 	}
 }
 
@@ -217,6 +256,8 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 		wv.buildBars(cfg)
 		wv.lastVersion = cfg.Version
 	}
+
+	zs := loadAndApplyZoom(wv.win, wv.cfg.ID, nil, wv.yAxis, false, true)
 
 	left = resolveLeft(ctx, th, left, bottom, top, wv.yAxis)
 
@@ -356,6 +397,8 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 	wv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, wv.hidden)
 	saveLegendBounds(wv.win, cfg.ID, wv.lastLB)
+
+	drawSelectionRectIf(ctx, zs, pr)
 
 	if wv.hovering {
 		drawCrosshair(ctx, th, wv.hoverPx, wv.hoverPy, pr)

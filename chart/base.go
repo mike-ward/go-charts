@@ -35,6 +35,13 @@ type BaseCfg struct {
 	// regions to the chart. Ignored by pie and gauge charts.
 	Annotations Annotations
 
+	// EnableZoom enables scroll-wheel zoom on the chart axes.
+	EnableZoom bool
+	// EnablePan enables LMB-drag panning of the chart axes.
+	EnablePan bool
+	// EnableRangeSelect enables shift+LMB brush-to-zoom.
+	EnableRangeSelect bool
+
 	Version uint64
 }
 

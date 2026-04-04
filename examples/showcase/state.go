@@ -137,6 +137,7 @@ var demoEntries = []DemoEntry{
 	{ID: "style_rotation", Label: "Rotated Labels", Group: groupStyles, Summary: "X-axis tick labels rotated for long category names.", Tags: []string{"style", "rotation", "labels", "tick", "angle"}},
 	{ID: "style_padding", Label: "Custom Padding", Group: groupStyles, Summary: "Tight versus spacious chart padding.", Tags: []string{"style", "padding", "spacing", "inset"}},
 	{ID: "style_kitchen", Label: "Kitchen Sink", Group: groupStyles, Summary: "All style knobs combined on a single chart.", Tags: []string{"style", "combined", "kitchen", "sink", "all"}},
+	{ID: "style_zoom", Label: "Zoom & Pan", Group: groupStyles, Summary: "Scroll-wheel zoom, drag pan, double-click reset, and brush-to-zoom selection.", Tags: []string{"style", "zoom", "pan", "scroll", "drag", "select", "brush"}},
 }
 
 func init() {

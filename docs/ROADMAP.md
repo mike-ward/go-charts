@@ -61,10 +61,10 @@ First renderable chart types.
 
 ## Phase 6 — Zoom, Pan, Annotations
 
-- [ ] Scroll wheel zoom (X-axis, Y-axis, or both)
-- [ ] Drag pan
-- [ ] Zoom reset (double-click or button)
-- [ ] Range selection (brush/drag to select region)
+- [x] Scroll wheel zoom (X-axis, Y-axis, or both)
+- [x] Drag pan
+- [x] Zoom reset (double-click or button)
+- [x] Range selection (brush/drag to select region)
 - [x] Text annotations (positioned labels)
 - [x] Line annotations (horizontal/vertical reference lines)
 - [x] Region annotations (shaded areas)

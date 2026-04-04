@@ -72,22 +72,44 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	lv.hidden, hidV = loadHiddenState(w, c.ID)
 	lv.lastLB = loadLegendBounds(w, c.ID)
 	lv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       lv.draw,
-		OnClick:      lv.internalClick,
-		OnHover:      lv.internalHover,
-		OnMouseLeave: lv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        lv.draw,
+		OnClick:       lv.internalClick,
+		OnHover:       lv.internalHover,
+		OnMouseMove:   lv.internalMouseMove,
+		OnMouseLeave:  lv.internalMouseLeave,
+		OnMouseScroll: lv.internalScroll,
+		OnGesture:     lv.internalGesture,
 	}).GenerateLayout(w)
 }
 
+func (lv *lineView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !lv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
+}
+
+func (lv *lineView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !lv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
+}
+
 func (lv *lineView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if lv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, lv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(lv.lastLB, mx, my); idx >= 0 {
@@ -97,6 +119,14 @@ func (lv *lineView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	}
 	if lv.cfg.OnClick != nil {
 		lv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (lv *lineView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if (lv.cfg.EnablePan || lv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, lv.cfg.ID, lv.lastPA,
+			lv.cfg.EnablePan, lv.cfg.EnableRangeSelect, true, true) {
+		return
 	}
 }
 
@@ -241,6 +271,8 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	xAxis := lv.xAxis
 	yAxis := lv.yAxis
 
+	zs := loadAndApplyZoom(lv.win, lv.cfg.ID, xAxis, yAxis, true, true)
+
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
 
 	// Resolve bottom from actual X-axis content.
@@ -319,8 +351,10 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	lv.drawSeries(ctx, cfg, th, xAxis, yAxis,
 		left, right, top, bottom, hovSI)
 
-	// Enlarged point marker on hovered series.
-	if hovSI >= 0 && !lv.hidden[hovSI] {
+	// Enlarged point marker on hovered series (only if inside plot).
+	if hovSI >= 0 && !lv.hidden[hovSI] &&
+		hovPx >= left && hovPx <= right &&
+		hovPy >= top && hovPy <= bottom {
 		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
 		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
@@ -338,6 +372,8 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	lv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, lv.hidden)
 	saveLegendBounds(lv.win, cfg.ID, lv.lastLB)
+
+	drawSelectionRectIf(ctx, zs, pr)
 
 	// Crosshair and tooltip.
 	if lv.hovering && lv.xAxis != nil {
@@ -381,29 +417,41 @@ func (lv *lineView) drawSeries(
 		}
 		lv.ptsBuf = pts
 
+		// Clip polyline to plot rect for correct boundary
+		// intersections.
+		clipped := clipPolylineToRect(pts, left, right, top, bottom)
+
 		// Filled area under the line.
-		if cfg.ShowArea && len(pts) >= 4 {
+		if cfg.ShowArea && len(clipped) >= 4 {
 			fill := gui.RGBA(color.R, color.G, color.B, 40)
 			var quad [8]float32
-			for k := 0; k < len(pts)-2; k += 2 {
-				quad[0] = pts[k]
-				quad[1] = pts[k+1]
-				quad[2] = pts[k+2]
-				quad[3] = pts[k+3]
-				quad[4] = pts[k+2]
+			for k := 0; k < len(clipped)-2; k += 2 {
+				quad[0] = clipped[k]
+				quad[1] = clipped[k+1]
+				quad[2] = clipped[k+2]
+				quad[3] = clipped[k+3]
+				quad[4] = clipped[k+2]
 				quad[5] = bottom
-				quad[6] = pts[k]
+				quad[6] = clipped[k]
 				quad[7] = bottom
 				ctx.FilledPolygon(quad[:], fill)
 			}
 		}
 
-		ctx.Polyline(pts, color, cfg.LineWidth)
+		ctx.Polyline(clipped, color, cfg.LineWidth)
 
-		// Markers at each data point.
+		// Markers only at points inside the plot area.
 		if cfg.ShowMarkers {
-			for j := 0; j < len(pts); j += 2 {
-				ctx.FilledCircle(pts[j], pts[j+1], cfg.LineWidth*2, color)
+			for _, p := range s.Points {
+				if !finite(p.X) || !finite(p.Y) {
+					continue
+				}
+				px := xAxis.Transform(p.X, left, right)
+				py := yAxis.Transform(p.Y, bottom, top)
+				if px < left || px > right || py < top || py > bottom {
+					continue
+				}
+				ctx.FilledCircle(px, py, cfg.LineWidth*2, color)
 			}
 		}
 	}

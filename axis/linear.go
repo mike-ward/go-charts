@@ -8,10 +8,11 @@ import (
 
 // Linear is a linear numeric axis with auto-tick generation.
 type Linear struct {
-	title      string
-	sc         *scale.Linear
-	autoRange  bool
-	tickFormat TickFormat
+	title          string
+	sc             *scale.Linear
+	autoRange      bool
+	overrideDomain bool
+	tickFormat     TickFormat
 }
 
 // LinearCfg configures a linear axis.
@@ -38,6 +39,16 @@ func (a *Linear) SetRange(min, max float64) {
 	a.sc.SetDomain(min, max)
 }
 
+// Domain returns the current data range.
+func (a *Linear) Domain() (float64, float64) {
+	return a.sc.Domain()
+}
+
+// SetOverrideDomain controls whether Ticks() skips auto-range
+// expansion. When true, the domain set by SetRange is preserved
+// exactly — useful for zoomed views.
+func (a *Linear) SetOverrideDomain(v bool) { a.overrideDomain = v }
+
 // Label implements Axis.
 func (a *Linear) Label() string { return a.title }
 
@@ -48,12 +59,17 @@ func (a *Linear) Ticks(pixelMin, pixelMax float32) []Tick {
 
 	// Expand domain to match nice tick range so gridlines and
 	// data points use the same coordinate space.
-	if a.autoRange && len(values) >= 2 {
+	if a.autoRange && !a.overrideDomain && len(values) >= 2 {
 		a.sc.SetDomain(values[0], values[len(values)-1])
 	}
 
 	ticks := make([]Tick, 0, len(values))
 	for _, v := range values {
+		// When the domain is overridden (zoomed), skip ticks
+		// outside the domain so off-screen labels aren't drawn.
+		if a.overrideDomain && (v < dMin-1e-9 || v > dMax+1e-9) {
+			continue
+		}
 		label := formatTickValue(v)
 		if a.tickFormat != nil {
 			label = a.tickFormat(v)

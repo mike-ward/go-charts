@@ -84,21 +84,23 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 	}
 
 	const maxTickCount = 500
-	estCap := (niceMax - niceMin) / spacing
-	capVal := maxTickCount
-	if estCap >= 0 && estCap < float64(maxTickCount) {
-		capVal = int(estCap) + 2
+	n := min(int(math.Round((niceMax-niceMin)/spacing))+1, maxTickCount)
+
+	// Compute decimal precision from spacing to snap tick values.
+	// E.g. spacing=0.2 → 1 decimal place, spacing=0.05 → 2.
+	prec := 0
+	s := spacing
+	for s != math.Floor(s) && prec < 15 {
+		s *= 10
+		prec++
 	}
-	ticks := make([]float64, 0, capVal)
-	for v := niceMin; v <= niceMax+spacing*0.5; v += spacing {
+	factor := math.Pow(10, float64(prec))
+
+	ticks := make([]float64, 0, n)
+	for i := range n {
+		v := niceMin + float64(i)*spacing
+		v = math.Round(v*factor) / factor
 		ticks = append(ticks, v)
-		if len(ticks) >= maxTickCount {
-			break
-		}
-		// Guard: float64 stall (v+spacing == v).
-		if v+spacing == v {
-			break
-		}
 	}
 	return ticks
 }

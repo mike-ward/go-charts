@@ -396,3 +396,46 @@ chart.Line(chart.LineCfg{
     Series:      data,
 })`)
 }
+
+func demoZoomPan(w *gui.Window) gui.View {
+	t := gui.CurrentTheme()
+	return demoWithCode(w, "style-zoom", gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		Spacing: gui.SomeF(16),
+		Content: []gui.View{
+			chart.Line(chart.LineCfg{
+				BaseCfg: chart.BaseCfg{
+					ID:                "zoom-all",
+					Title:             "Zoom & Pan",
+					Sizing:            gui.FillFixed,
+					Height:            300,
+					LegendPosition:    &posBottom,
+					EnableZoom:        true,
+					EnablePan:         true,
+					EnableRangeSelect: true,
+				},
+				ShowMarkers: true,
+				Series:      styleSeries(),
+			}),
+			gui.Text(gui.TextCfg{
+				Text: "Scroll wheel to zoom toward cursor. " +
+					"Click and drag to pan. " +
+					"Shift+drag to select a region and zoom to it. " +
+					"Double-click to reset.",
+				TextStyle: t.N4,
+				Mode:      gui.TextModeWrap,
+			}),
+		},
+	}), `chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title:             "Zoom & Pan",
+        EnableZoom:        true, // scroll-wheel zoom
+        EnablePan:         true, // click+drag to pan
+        EnableRangeSelect: true, // shift+drag brush-to-zoom
+    },
+    Series: data,
+})
+
+// Double-click to reset zoom`)
+}

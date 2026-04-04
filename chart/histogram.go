@@ -81,18 +81,60 @@ func (hv *histogramView) GenerateLayout(w *gui.Window) gui.Layout {
 	hvr := loadHover(w, c.ID,
 		&hv.hovering, &hv.hoverPx, &hv.hoverPy)
 	hv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hvr,
-		Clip:         true,
-		OnDraw:       hv.draw,
-		OnHover:      hv.internalHover,
-		OnMouseLeave: hv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hvr + zv,
+		Clip:          true,
+		OnDraw:        hv.draw,
+		OnClick:       hv.internalClick,
+		OnHover:       hv.internalHover,
+		OnMouseMove:   hv.internalMouseMove,
+		OnMouseLeave:  hv.internalMouseLeave,
+		OnMouseScroll: hv.internalScroll,
+		OnGesture:     hv.internalGesture,
 	}).GenerateLayout(w)
+}
+
+// zoomPA builds a plotArea from cached bounds for zoom handlers.
+func (hv *histogramView) zoomPA() plotArea {
+	return plotArea{
+		plotRect{hv.lastLeft, hv.lastRight, hv.lastTop, hv.lastBottom},
+		hv.xAxis, hv.yAxis,
+	}
+}
+
+func (hv *histogramView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !hv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
+}
+
+func (hv *histogramView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !hv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
+}
+
+func (hv *histogramView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if hv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, hv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
+}
+
+func (hv *histogramView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if (hv.cfg.EnablePan || hv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, hv.cfg.ID, hv.zoomPA(),
+			hv.cfg.EnablePan, hv.cfg.EnableRangeSelect, true, true) {
+		return
+	}
 }
 
 func (hv *histogramView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
@@ -199,6 +241,8 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 		return
 	}
 
+	zs := loadAndApplyZoom(hv.win, hv.cfg.ID, hv.xAxis, hv.yAxis, true, true)
+
 	left = resolveLeft(ctx, th, left, bottom, top, hv.yAxis)
 
 	bottom = ctx.Height() - resolveBottom(ctx, th,
@@ -213,6 +257,8 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 
 	pr := plotRect{left, right, top, bottom}
 	hv.drawBars(ctx, th, pr)
+
+	drawSelectionRectIf(ctx, zs, pr)
 
 	if hv.hovering {
 		hv.tooltipHistogram(ctx, th, pr)

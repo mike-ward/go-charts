@@ -82,22 +82,44 @@ func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 	sv.hidden, hidV = loadHiddenState(w, c.ID)
 	sv.lastLB = loadLegendBounds(w, c.ID)
 	sv.win = w
+	zv := loadZoomVersion(w, c.ID)
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:           c.ID,
-		Sizing:       c.Sizing,
-		Width:        width,
-		Height:       height,
-		Version:      c.Version + hv + hidV,
-		Clip:         true,
-		OnDraw:       sv.draw,
-		OnClick:      sv.internalClick,
-		OnHover:      sv.internalHover,
-		OnMouseLeave: sv.internalMouseLeave,
+		ID:            c.ID,
+		Sizing:        c.Sizing,
+		Width:         width,
+		Height:        height,
+		Version:       c.Version + hv + hidV + zv,
+		Clip:          true,
+		OnDraw:        sv.draw,
+		OnClick:       sv.internalClick,
+		OnHover:       sv.internalHover,
+		OnMouseMove:   sv.internalMouseMove,
+		OnMouseLeave:  sv.internalMouseLeave,
+		OnMouseScroll: sv.internalScroll,
+		OnGesture:     sv.internalGesture,
 	}).GenerateLayout(w)
 }
 
+func (sv *scatterView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !sv.cfg.EnableZoom {
+		return
+	}
+	handleZoomScroll(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
+}
+
+func (sv *scatterView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if !sv.cfg.EnableZoom {
+		return
+	}
+	handleZoomGesture(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
+}
+
 func (sv *scatterView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if sv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, sv.cfg.ID) {
+		e.IsHandled = true
+		return
+	}
 	mx := e.MouseX
 	my := e.MouseY
 	if idx := legendHitTest(sv.lastLB, mx, my); idx >= 0 {
@@ -107,6 +129,14 @@ func (sv *scatterView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window)
 	}
 	if sv.cfg.OnClick != nil {
 		sv.cfg.OnClick(l, e, w)
+	}
+}
+
+func (sv *scatterView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if (sv.cfg.EnablePan || sv.cfg.EnableRangeSelect) &&
+		handleDragHover(w, l, e, sv.cfg.ID, sv.lastPA,
+			sv.cfg.EnablePan, sv.cfg.EnableRangeSelect, true, true) {
+		return
 	}
 }
 
@@ -245,6 +275,8 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	xAxis := sv.xAxis
 	yAxis := sv.yAxis
 
+	zs := loadAndApplyZoom(sv.win, sv.cfg.ID, xAxis, yAxis, true, true)
+
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
 
 	bottom = ctx.Height() - resolveBottom(ctx, th,
@@ -305,29 +337,8 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		}
 	}
 
-	for i, s := range cfg.Series {
-		if s.Len() == 0 || sv.hidden[i] {
-			continue
-		}
-		color := seriesColor(s.Color(), i, th.Palette)
-		if hovSI >= 0 && i != hovSI {
-			color = dimColor(color, HoverDimAlpha)
-		}
-		for _, p := range s.Points {
-			if !finite(p.X) || !finite(p.Y) {
-				continue
-			}
-			px := xAxis.Transform(p.X, left, right)
-			py := yAxis.Transform(p.Y, bottom, top)
-			drawMarker(ctx, px, py, cfg.MarkerSize, cfg.Marker, color)
-		}
-	}
-
-	// Enlarged marker on hovered series/point.
-	if hovSI >= 0 && !sv.hidden[hovSI] {
-		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
-		drawMarker(ctx, hovPx, hovPy, cfg.MarkerSize*2, cfg.Marker, hc)
-	}
+	sv.drawMarkers(ctx, cfg, xAxis, yAxis,
+		left, right, top, bottom, hovSI, hovPx, hovPy)
 
 	entries := make([]legendEntry, len(cfg.Series))
 	for i, s := range cfg.Series {
@@ -341,6 +352,8 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	sv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, sv.hidden)
 	saveLegendBounds(sv.win, cfg.ID, sv.lastLB)
+
+	drawSelectionRectIf(ctx, zs, pr)
 
 	// Crosshair and tooltip.
 	if sv.hovering && sv.xAxis != nil {
@@ -382,5 +395,42 @@ func drawMarker(
 		ctx.Line(cx, cy-h, cx, cy+h, color, w)
 	default: // MarkerCircle
 		ctx.FilledCircle(cx, cy, h, color)
+	}
+}
+
+// drawMarkers renders scatter markers and the hovered highlight,
+// skipping points outside the plot area.
+func (sv *scatterView) drawMarkers(
+	ctx *render.Context, cfg *ScatterCfg,
+	xAxis, yAxis *axis.Linear,
+	left, right, top, bottom float32,
+	hovSI int, hovPx, hovPy float32,
+) {
+	th := cfg.Theme
+	for i, s := range cfg.Series {
+		if s.Len() == 0 || sv.hidden[i] {
+			continue
+		}
+		color := seriesColor(s.Color(), i, th.Palette)
+		if hovSI >= 0 && i != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+		}
+		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
+			px := xAxis.Transform(p.X, left, right)
+			py := yAxis.Transform(p.Y, bottom, top)
+			if px < left || px > right || py < top || py > bottom {
+				continue
+			}
+			drawMarker(ctx, px, py, cfg.MarkerSize, cfg.Marker, color)
+		}
+	}
+	if hovSI >= 0 && !sv.hidden[hovSI] &&
+		hovPx >= left && hovPx <= right &&
+		hovPy >= top && hovPy <= bottom {
+		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		drawMarker(ctx, hovPx, hovPy, cfg.MarkerSize*2, cfg.Marker, hc)
 	}
 }

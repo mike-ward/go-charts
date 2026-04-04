@@ -72,3 +72,44 @@ func TestLinearTickFormatNil(t *testing.T) {
 		}
 	}
 }
+
+func TestOverrideDomainPreventsTickExpansion(t *testing.T) {
+	t.Parallel()
+	a := NewLinear(LinearCfg{AutoRange: true})
+	a.SetRange(1.3, 4.7) // not "nice" boundaries
+	a.SetOverrideDomain(true)
+	_ = a.Ticks(0, 400) // should not expand domain
+
+	dMin, dMax := a.Domain()
+	if dMin != 1.3 || dMax != 4.7 {
+		t.Errorf("domain changed to [%g, %g], want [1.3, 4.7]",
+			dMin, dMax)
+	}
+}
+
+func TestOverrideDomainFalseAllowsExpansion(t *testing.T) {
+	t.Parallel()
+	a := NewLinear(LinearCfg{AutoRange: true})
+	a.SetRange(1.3, 4.7)
+	// overrideDomain defaults to false — Ticks should expand.
+	_ = a.Ticks(0, 400)
+
+	dMin, dMax := a.Domain()
+	// Nice ticks for [1.3, 4.7] will expand to something like [1, 5].
+	if dMin == 1.3 && dMax == 4.7 {
+		t.Error("domain was not expanded by Ticks with AutoRange")
+	}
+	if dMin > 1.3 || dMax < 4.7 {
+		t.Errorf("domain [%g, %g] does not contain [1.3, 4.7]",
+			dMin, dMax)
+	}
+}
+
+func TestDomainMethod(t *testing.T) {
+	t.Parallel()
+	a := NewLinear(LinearCfg{Min: 10, Max: 20})
+	lo, hi := a.Domain()
+	if lo != 10 || hi != 20 {
+		t.Errorf("Domain() = [%g, %g], want [10, 20]", lo, hi)
+	}
+}

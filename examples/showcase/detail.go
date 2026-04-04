@@ -113,6 +113,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"style_rotation":    demoRotatedLabels,
 	"style_padding":     demoCustomPadding,
 	"style_kitchen":     demoKitchenSink,
+	"style_zoom":        demoZoomPan,
 }
 
 func componentDemo(w *gui.Window, id string) gui.View {
