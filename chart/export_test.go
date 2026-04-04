@@ -190,6 +190,142 @@ func TestExportPNG_Candlestick(t *testing.T) {
 	assertValidPNG(t, path, 400, 300)
 }
 
+func TestExportPNG_Area(t *testing.T) {
+	v := Area(AreaCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-area",
+			Width: 400, Height: 300,
+		},
+		Series: []series.XY{
+			series.NewXY(series.XYCfg{
+				Name:  "signups",
+				Color: gui.Hex(0x4E79A7),
+				Points: []series.Point{
+					{X: 0, Y: 10}, {X: 1, Y: 25},
+					{X: 2, Y: 18}, {X: 3, Y: 30},
+				},
+			}),
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "area.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_Scatter(t *testing.T) {
+	v := Scatter(ScatterCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-scatter",
+			Width: 400, Height: 300,
+		},
+		Series: []series.XY{
+			series.NewXY(series.XYCfg{
+				Name:  "data",
+				Color: gui.Hex(0xE15759),
+				Points: []series.Point{
+					{X: 1, Y: 2}, {X: 3, Y: 7},
+					{X: 5, Y: 4}, {X: 8, Y: 9},
+				},
+			}),
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "scatter.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_Pie(t *testing.T) {
+	v := Pie(PieCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-pie",
+			Width: 400, Height: 300,
+		},
+		Slices: []PieSlice{
+			{Label: "A", Value: 40},
+			{Label: "B", Value: 30},
+			{Label: "C", Value: 20},
+			{Label: "D", Value: 10},
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "pie.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_Gauge(t *testing.T) {
+	v := Gauge(GaugeCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-gauge",
+			Width: 400, Height: 300,
+		},
+		Value: 72,
+		Min:   0,
+		Max:   100,
+		Zones: []GaugeZone{
+			{Threshold: 50, Color: gui.Hex(0x59A14F)},
+			{Threshold: 80, Color: gui.Hex(0xF28E2B)},
+			{Threshold: 100, Color: gui.Hex(0xE15759)},
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "gauge.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_Histogram(t *testing.T) {
+	v := Histogram(HistogramCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-histogram",
+			Width: 400, Height: 300,
+		},
+		Data: []float64{
+			1, 2, 2, 3, 3, 3, 4, 4, 5, 6,
+			7, 7, 8, 8, 8, 9, 9, 10,
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "histogram.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
+func TestExportPNG_BoxPlot(t *testing.T) {
+	v := BoxPlot(BoxPlotCfg{
+		BaseCfg: BaseCfg{
+			ID:    "test-boxplot",
+			Width: 400, Height: 300,
+		},
+		Data: []BoxData{
+			{Label: "A", Values: []float64{
+				10, 15, 20, 25, 30, 35, 40, 45, 50, 90,
+			}},
+			{Label: "B", Values: []float64{
+				5, 12, 18, 22, 28, 33, 38, 42, 48,
+			}},
+		},
+	})
+
+	path := filepath.Join(t.TempDir(), "boxplot.png")
+	if err := ExportPNG(v, 400, 300, path); err != nil {
+		t.Fatal(err)
+	}
+	assertValidPNG(t, path, 400, 300)
+}
+
 func TestExportPNG_RejectsNonChartView(t *testing.T) {
 	v := nonChartView{}
 	err := ExportPNG(v, 100, 100, "/dev/null")
