@@ -17,36 +17,58 @@ const (
 	AnnotationY
 )
 
+// LabelPosition controls where a line annotation label is placed
+// along the reference line.
+type LabelPosition uint8
+
+const (
+	// LabelEnd places the label at the end of the line
+	// (right for horizontal, top for vertical).
+	LabelEnd LabelPosition = iota
+	// LabelStart places the label at the start of the line
+	// (left for horizontal, bottom for vertical).
+	LabelStart
+	// LabelCenter places the label at the midpoint.
+	LabelCenter
+)
+
 // LineAnnotation draws a reference line spanning the plot area at
 // a data-coordinate value. Horizontal for AnnotationY, vertical
 // for AnnotationX.
 type LineAnnotation struct {
-	Axis    AnnotationAxis
-	Value   float64
-	Color   gui.Color // zero → theme GridColor
-	Width   float32   // zero → DefaultAnnotationLineWidth
-	DashLen float32   // zero → solid line
-	GapLen  float32
-	Label   string
+	Axis            AnnotationAxis
+	Value           float64
+	Color           gui.Color // zero → theme GridColor
+	Width           float32   // zero → DefaultAnnotationLineWidth
+	DashLen         float32   // zero → solid line
+	GapLen          float32
+	Label           string
+	LabelPos        LabelPosition // zero → LabelEnd
+	LabelBackground gui.Color     // zero → no background
+	LabelRadius     float32       // corner radius for background
 }
 
 // TextAnnotation draws a text label at a data-coordinate position.
 type TextAnnotation struct {
-	X, Y     float64
-	Text     string
-	Color    gui.Color // zero → theme TickStyle color
-	FontSize float32   // zero → theme TickStyle size
+	X, Y            float64
+	Text            string
+	Color           gui.Color // zero → theme TickStyle color
+	FontSize        float32   // zero → theme TickStyle size
+	LabelBackground gui.Color // zero → no background
+	LabelRadius     float32   // corner radius for background
 }
 
 // RegionAnnotation draws a shaded rectangle between two
 // data-coordinate values on one axis, spanning the full extent
 // of the other axis.
 type RegionAnnotation struct {
-	Axis  AnnotationAxis
-	Min   float64
-	Max   float64
-	Color gui.Color // zero → semi-transparent gray
-	Label string
+	Axis            AnnotationAxis
+	Min             float64
+	Max             float64
+	Color           gui.Color // zero → semi-transparent gray
+	Label           string
+	LabelBackground gui.Color // zero → no background
+	LabelRadius     float32   // corner radius for background
 }
 
 // Annotations groups all annotation types for a chart.
@@ -138,6 +160,8 @@ func drawRegionAnnotation(
 		fh := ctx.FontHeight(style)
 		lx := x + (w-tw)/2
 		ly := y + (h-fh)/2
+		drawLabelBackground(ctx, lx, ly, r.Label, style,
+			r.LabelBackground, r.LabelRadius)
 		ctx.Text(lx, ly, r.Label, style)
 	}
 }
@@ -176,7 +200,20 @@ func drawLineAnnotation(
 		}
 		if la.Label != "" {
 			style := th.TickStyle
-			ctx.Text(px+4, pr.Top+2, la.Label, style)
+			fh := ctx.FontHeight(style)
+			lx := px + 4
+			var ly float32
+			switch la.LabelPos {
+			case LabelStart:
+				ly = pr.Bottom - fh - 2
+			case LabelCenter:
+				ly = (pr.Top+pr.Bottom)/2 - fh/2
+			default: // LabelEnd
+				ly = pr.Top + 2
+			}
+			drawLabelBackground(ctx, lx, ly, la.Label, style,
+				la.LabelBackground, la.LabelRadius)
+			ctx.Text(lx, ly, la.Label, style)
 		}
 
 	case AnnotationY:
@@ -197,7 +234,19 @@ func drawLineAnnotation(
 			style := th.TickStyle
 			tw := ctx.TextWidth(la.Label, style)
 			fh := ctx.FontHeight(style)
-			ctx.Text(pr.Right-tw-4, py-fh-2, la.Label, style)
+			ly := py - fh - 2
+			var lx float32
+			switch la.LabelPos {
+			case LabelStart:
+				lx = pr.Left + 4
+			case LabelCenter:
+				lx = (pr.Left+pr.Right)/2 - tw/2
+			default: // LabelEnd
+				lx = pr.Right - tw - 4
+			}
+			drawLabelBackground(ctx, lx, ly, la.Label, style,
+				la.LabelBackground, la.LabelRadius)
+			ctx.Text(lx, ly, la.Label, style)
 		}
 	}
 }
@@ -212,6 +261,9 @@ func drawTextAnnotation(
 	if !finite(ta.X) || !finite(ta.Y) {
 		return
 	}
+	if ta.Text == "" {
+		return
+	}
 	px := xAxis.Transform(ta.X, pr.Left, pr.Right)
 	py := yAxis.Transform(ta.Y, pr.Bottom, pr.Top)
 	if px < pr.Left || px > pr.Right || py < pr.Top || py > pr.Bottom {
@@ -224,7 +276,35 @@ func drawTextAnnotation(
 	if ta.FontSize > 0 {
 		style.Size = ta.FontSize
 	}
+	drawLabelBackground(ctx, px, py, ta.Text, style,
+		ta.LabelBackground, ta.LabelRadius)
 	ctx.Text(px, py, ta.Text, style)
+}
+
+const annotationLabelPad float32 = 4
+
+// drawLabelBackground draws a padded background rect behind
+// text at (x, y). Does nothing when bg is unset.
+func drawLabelBackground(
+	ctx *render.Context, x, y float32,
+	text string, style gui.TextStyle,
+	bg gui.Color, radius float32,
+) {
+	if !bg.IsSet() {
+		return
+	}
+	tw := ctx.TextWidth(text, style)
+	fh := ctx.FontHeight(style)
+	pad := annotationLabelPad
+	bx := x - pad
+	by := y - pad
+	bw := tw + pad*2
+	bh := fh + pad*2
+	if radius > 0 {
+		ctx.FilledRoundedRect(bx, by, bw, bh, radius, bg)
+	} else {
+		ctx.FilledRect(bx, by, bw, bh, bg)
+	}
 }
 
 // clampF restricts v to [lo, hi].

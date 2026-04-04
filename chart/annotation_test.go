@@ -334,6 +334,27 @@ func TestDrawLineAnnotationNegativeDashFallsBackToSolid(t *testing.T) {
 	}
 }
 
+// --- empty text guard ---
+
+func TestDrawTextAnnotationEmptyText(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pr := testPlotRect()
+	xAxis, yAxis := testLinearAxes()
+	ann := Annotations{
+		Texts: []TextAnnotation{{
+			X:               50,
+			Y:               50,
+			Text:            "",
+			LabelBackground: gui.RGBA(0, 0, 0, 100),
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, xAxis, yAxis)
+	if len(dc.Batches()) != 0 {
+		t.Error("empty text should not draw background rect")
+	}
+}
+
 // --- text annotation styling ---
 
 func TestDrawTextAnnotationCustomStyle(t *testing.T) {
@@ -489,6 +510,217 @@ func TestDrawAnnotationsDefaultColors(t *testing.T) {
 	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
 	if len(dc.Batches()) == 0 {
 		t.Fatal("default-color annotations should still draw")
+	}
+}
+
+// --- label positions ---
+
+func findText(dc *gui.DrawContext, text string) (gui.DrawCanvasTextEntry, bool) {
+	for _, te := range dc.Texts() {
+		if te.Text == text {
+			return te, true
+		}
+	}
+	return gui.DrawCanvasTextEntry{}, false
+}
+
+func TestDrawLineAnnotationHorizontalLabelPositions(t *testing.T) {
+	pr := testPlotRect()
+	_, yAxis := testLinearAxes()
+	th := testTheme()
+
+	xs := make(map[LabelPosition]float32)
+	for _, pos := range []LabelPosition{LabelStart, LabelCenter, LabelEnd} {
+		ctx, dc := testCtx(400, 300)
+		ann := Annotations{
+			Lines: []LineAnnotation{{
+				Axis:     AnnotationY,
+				Value:    50,
+				Label:    "pos",
+				LabelPos: pos,
+			}},
+		}
+		drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
+		te, ok := findText(dc, "pos")
+		if !ok {
+			t.Fatalf("LabelPosition %d: label not rendered", pos)
+		}
+		xs[pos] = te.X
+	}
+	if xs[LabelStart] >= xs[LabelCenter] {
+		t.Errorf("Start X (%g) should be < Center X (%g)",
+			xs[LabelStart], xs[LabelCenter])
+	}
+	if xs[LabelCenter] >= xs[LabelEnd] {
+		t.Errorf("Center X (%g) should be < End X (%g)",
+			xs[LabelCenter], xs[LabelEnd])
+	}
+}
+
+func TestDrawLineAnnotationVerticalLabelPositions(t *testing.T) {
+	pr := testPlotRect()
+	xAxis, _ := testLinearAxes()
+	th := testTheme()
+
+	ys := make(map[LabelPosition]float32)
+	for _, pos := range []LabelPosition{LabelStart, LabelCenter, LabelEnd} {
+		ctx, dc := testCtx(400, 300)
+		ann := Annotations{
+			Lines: []LineAnnotation{{
+				Axis:     AnnotationX,
+				Value:    50,
+				Label:    "vpos",
+				LabelPos: pos,
+			}},
+		}
+		drawAnnotations(ctx, &ann, th, pr, xAxis, nil)
+		te, ok := findText(dc, "vpos")
+		if !ok {
+			t.Fatalf("vertical LabelPosition %d: label not rendered", pos)
+		}
+		ys[pos] = te.Y
+	}
+	// End = top (small Y), Start = bottom (large Y)
+	if ys[LabelEnd] >= ys[LabelCenter] {
+		t.Errorf("End Y (%g) should be < Center Y (%g)",
+			ys[LabelEnd], ys[LabelCenter])
+	}
+	if ys[LabelCenter] >= ys[LabelStart] {
+		t.Errorf("Center Y (%g) should be < Start Y (%g)",
+			ys[LabelCenter], ys[LabelStart])
+	}
+}
+
+func TestDrawLineAnnotationVerticalDefaultIsTop(t *testing.T) {
+	pr := testPlotRect()
+	xAxis, _ := testLinearAxes()
+	th := testTheme()
+	ctx, dc := testCtx(400, 300)
+	ann := Annotations{
+		Lines: []LineAnnotation{{
+			Axis:  AnnotationX,
+			Value: 50,
+			Label: "def",
+			// LabelPos zero = LabelEnd = top for vertical
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, xAxis, nil)
+	te, ok := findText(dc, "def")
+	if !ok {
+		t.Fatal("default label not rendered")
+	}
+	// Default (LabelEnd) should be near top of plot.
+	mid := (pr.Top + pr.Bottom) / 2
+	if te.Y > mid {
+		t.Errorf("default vertical label Y (%g) should be above midpoint (%g)",
+			te.Y, mid)
+	}
+}
+
+// --- label backgrounds ---
+
+func TestDrawTextAnnotationBackground(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pr := testPlotRect()
+	xAxis, yAxis := testLinearAxes()
+	ann := Annotations{
+		Texts: []TextAnnotation{{
+			X:               50,
+			Y:               50,
+			Text:            "bg",
+			LabelBackground: gui.RGBA(20, 20, 20, 180),
+			LabelRadius:     4,
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, xAxis, yAxis)
+	if len(dc.Batches()) == 0 {
+		t.Fatal("text with background should produce batches")
+	}
+	found := false
+	for _, te := range dc.Texts() {
+		if te.Text == "bg" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("text annotation with background not rendered")
+	}
+}
+
+func TestDrawLineAnnotationLabelBackground(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pr := testPlotRect()
+	_, yAxis := testLinearAxes()
+	ann := Annotations{
+		Lines: []LineAnnotation{{
+			Axis:            AnnotationY,
+			Value:           50,
+			Label:           "ref",
+			LabelBackground: gui.RGBA(200, 0, 0, 180),
+			LabelRadius:     3,
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
+	found := false
+	for _, te := range dc.Texts() {
+		if te.Text == "ref" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("line annotation label with background not rendered")
+	}
+	// Background rect + line = batches.
+	if len(dc.Batches()) == 0 {
+		t.Fatal("label background should produce batches")
+	}
+}
+
+func TestDrawRegionAnnotationLabelBackground(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pr := testPlotRect()
+	_, yAxis := testLinearAxes()
+	ann := Annotations{
+		Regions: []RegionAnnotation{{
+			Axis:            AnnotationY,
+			Min:             20,
+			Max:             80,
+			Label:           "zone",
+			LabelBackground: gui.RGBA(0, 0, 0, 120),
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
+	found := false
+	for _, te := range dc.Texts() {
+		if te.Text == "zone" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("region label with background not rendered")
+	}
+}
+
+func TestDrawLabelBackgroundNoRadius(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pr := testPlotRect()
+	xAxis, yAxis := testLinearAxes()
+	ann := Annotations{
+		Texts: []TextAnnotation{{
+			X:               50,
+			Y:               50,
+			Text:            "flat",
+			LabelBackground: gui.RGBA(0, 0, 0, 100),
+			LabelRadius:     0, // no rounding
+		}},
+	}
+	drawAnnotations(ctx, &ann, th, pr, xAxis, yAxis)
+	if len(dc.Batches()) == 0 {
+		t.Fatal("label background with radius=0 should use FilledRect")
 	}
 }
 

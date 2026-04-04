@@ -17,11 +17,14 @@ func demoLineAnnotations(w *gui.Window) gui.View {
 			Annotations: chart.Annotations{
 				Lines: []chart.LineAnnotation{
 					{
-						Axis:  chart.AnnotationY,
-						Value: 150,
-						Color: gui.Hex(0xE15759),
-						Width: 2,
-						Label: "SLA limit",
+						Axis:            chart.AnnotationY,
+						Value:           150,
+						Color:           gui.Hex(0xE15759),
+						Width:           2,
+						Label:           "SLA limit",
+						LabelPos:        chart.LabelStart,
+						LabelBackground: gui.RGBA(225, 87, 89, 200),
+						LabelRadius:     3,
 					},
 					{
 						Axis:    chart.AnnotationX,
@@ -50,9 +53,11 @@ func demoLineAnnotations(w *gui.Window) gui.View {
 				},
 				Texts: []chart.TextAnnotation{
 					{
-						X:    9,
-						Y:    170,
-						Text: "spike",
+						X:               9,
+						Y:               170,
+						Text:            "spike",
+						LabelBackground: gui.RGBA(20, 20, 20, 180),
+						LabelRadius:     3,
 					},
 				},
 			},
@@ -84,10 +89,13 @@ func demoLineAnnotations(w *gui.Window) gui.View {
         Title: "Server Response Time (ms)",
         Annotations: chart.Annotations{
             Lines: []chart.LineAnnotation{{
-                Axis:  chart.AnnotationY,
-                Value: 150,
-                Color: gui.Hex(0xE15759),
-                Label: "SLA limit",
+                Axis:            chart.AnnotationY,
+                Value:           150,
+                Color:           gui.Hex(0xE15759),
+                Label:           "SLA limit",
+                LabelPos:        chart.LabelStart,
+                LabelBackground: gui.RGBA(225, 87, 89, 200),
+                LabelRadius:     3,
             }},
             Regions: []chart.RegionAnnotation{{
                 Axis:  chart.AnnotationY,
