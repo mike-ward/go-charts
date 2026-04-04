@@ -20,7 +20,7 @@ func main() {
 		State:  newShowcaseApp(),
 		Title:  "Charts Showcase",
 		Width:  800,
-		Height: 600,
+		Height: 768,
 		OnInit: func(w *gui.Window) {
 			w.UpdateView(mainView)
 		},
