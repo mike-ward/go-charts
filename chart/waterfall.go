@@ -460,6 +460,9 @@ func (wv *waterfallView) hoveredBar(mx, left, right float32) int {
 func (wv *waterfallView) tooltipWaterfall(
 	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
+	if wv.yAxis == nil {
+		return
+	}
 	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &wv.cfg
 	mx := wv.hoverPx

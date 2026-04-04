@@ -25,7 +25,7 @@ type Drawer interface {
 
 // ExportPNG renders a chart view to a PNG file at the given
 // pixel dimensions. v must be a chart view created by Line,
-// Bar, Area, Scatter, or Pie.
+// Bar, Area, Scatter, Pie, Combo, or other chart type.
 func ExportPNG(v gui.View, width, height int, path string) error {
 	d, ok := v.(Drawer)
 	if !ok {

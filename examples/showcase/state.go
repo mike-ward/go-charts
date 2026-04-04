@@ -19,6 +19,7 @@ const (
 	groupHistogram   = "histogram"
 	groupBoxPlot     = "boxplot"
 	groupWaterfall   = "waterfall"
+	groupCombo       = "combo"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -66,6 +67,7 @@ var demoGroups = []DemoGroup{
 	{groupHistogram, "Histogram"},
 	{groupBoxPlot, "Box Plot"},
 	{groupWaterfall, "Waterfall"},
+	{groupCombo, "Combo"},
 	{groupStyles, "Styles"},
 }
 
@@ -121,6 +123,10 @@ var demoEntries = []DemoEntry{
 	// Waterfall
 	{ID: "waterfall_basic", Label: "Basic Waterfall", Group: groupWaterfall, Summary: "Profit & Loss breakdown from revenue to net income.", Tags: []string{"waterfall", "pnl", "profit", "loss", "running", "total"}},
 	{ID: "waterfall_styled", Label: "Styled Waterfall", Group: groupWaterfall, Summary: "Monthly cash flow with custom colors and rounded bars.", Tags: []string{"waterfall", "cashflow", "custom", "color", "rounded"}},
+
+	// Combo
+	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},
+	{ID: "combo_multi", Label: "Multi-Series Combo", Group: groupCombo, Summary: "Multiple bar and line series on shared axes.", Tags: []string{"combo", "bar", "line", "multi", "series"}},
 
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},

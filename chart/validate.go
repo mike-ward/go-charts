@@ -160,3 +160,41 @@ func (c *BoxPlotCfg) Validate() error {
 	}
 	return buildError("chart.BoxPlot", errs)
 }
+
+// Validate checks ComboCfg for invalid settings.
+// Returns nil when valid.
+func (c *ComboCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.BarWidth < 0 {
+		errs = append(errs, "negative BarWidth")
+	}
+	if c.BarGap < 0 {
+		errs = append(errs, "negative BarGap")
+	}
+	if c.Radius < 0 {
+		errs = append(errs, "negative Radius")
+	}
+	if c.LineWidth < 0 {
+		errs = append(errs, "negative LineWidth")
+	}
+	if len(c.Series) > 1 {
+		n := len(c.Series[0].Values)
+		for i, s := range c.Series[1:] {
+			if len(s.Values) != n {
+				errs = append(errs,
+					"series length mismatch: series 0 has "+
+						strconv.Itoa(n)+" values, series "+
+						strconv.Itoa(i+1)+" has "+
+						strconv.Itoa(len(s.Values)))
+				break
+			}
+		}
+	}
+	return buildError("chart.Combo", errs)
+}

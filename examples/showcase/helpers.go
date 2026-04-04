@@ -62,6 +62,11 @@ var chartTypeDescriptions = map[string]string{
 		" quartile, and maximum, allowing for a quick visual" +
 		" summary of the data's spread and skewness.",
 
+	"combo": "Combo charts overlay bar and line series on shared" +
+		" category axes, making it easy to compare absolute values" +
+		" (bars) with trends or rates (lines) in a single view." +
+		" Bars render underneath and lines draw on top.",
+
 	"waterfall": "Waterfall charts show how an initial value is" +
 		" affected by a series of intermediate positive or negative" +
 		" values. Each bar floats, starting where the previous bar" +

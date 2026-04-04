@@ -412,6 +412,9 @@ func (bv *boxplotView) hoveredBox(mx, left, right float32) int {
 func (bv *boxplotView) tooltipBoxPlot(
 	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
+	if bv.yAxis == nil {
+		return
+	}
 	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &bv.cfg
 	mx := bv.hoverPx

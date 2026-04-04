@@ -57,7 +57,7 @@ First renderable chart types.
 - [x] Histogram (bin calculation, frequency distribution)
 - [x] Box plot (quartiles, whiskers, outliers)
 - [x] Waterfall chart (running total, positive/negative)
-- [ ] Combo chart (mixed line + bar on shared axes)
+- [x] Combo chart (mixed line + bar on shared axes)
 
 ## Phase 6 — Zoom, Pan, Annotations
 

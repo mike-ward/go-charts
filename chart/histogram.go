@@ -328,6 +328,9 @@ func (hv *histogramView) hoveredBin(mx, left, right float32) int {
 func (hv *histogramView) tooltipHistogram(
 	ctx *render.Context, th *theme.Theme, pr plotRect,
 ) {
+	if hv.yAxis == nil {
+		return
+	}
 	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	mx := hv.hoverPx
 	my := hv.hoverPy

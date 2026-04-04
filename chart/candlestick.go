@@ -378,6 +378,9 @@ func (cv *candlestickView) firstVisibleSeries() int {
 func (cv *candlestickView) tooltipCandlestick(
 	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
+	if cv.yAxis == nil {
+		return
+	}
 	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &cv.cfg
 	mx := cv.hoverPx
