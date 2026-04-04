@@ -122,3 +122,22 @@ func (c *HistogramCfg) Validate() error {
 	}
 	return buildError("chart.Histogram", errs)
 }
+
+// Validate checks BoxPlotCfg for invalid settings.
+// Returns nil when valid.
+func (c *BoxPlotCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Data) == 0 {
+		errs = append(errs, "no data")
+	}
+	if c.BoxWidth < 0 {
+		errs = append(errs, "negative BoxWidth")
+	}
+	if c.OutlierRadius < 0 {
+		errs = append(errs, "negative OutlierRadius")
+	}
+	return buildError("chart.BoxPlot", errs)
+}

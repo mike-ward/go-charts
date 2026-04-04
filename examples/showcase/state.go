@@ -17,6 +17,7 @@ const (
 	groupCandlestick = "candlestick"
 	groupStyles      = "styles"
 	groupHistogram   = "histogram"
+	groupBoxPlot     = "boxplot"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -62,6 +63,7 @@ var demoGroups = []DemoGroup{
 	{groupScatter, "Scatter"},
 	{groupCandlestick, "Candlestick"},
 	{groupHistogram, "Histogram"},
+	{groupBoxPlot, "Box Plot"},
 	{groupStyles, "Styles"},
 }
 
@@ -109,6 +111,10 @@ var demoEntries = []DemoEntry{
 	// Histogram
 	{ID: "histogram_basic", Label: "Basic Histogram", Group: groupHistogram, Summary: "Score distribution with auto bin count.", Tags: []string{"histogram", "bin", "frequency", "distribution", "count"}},
 	{ID: "histogram_density", Label: "Density Histogram", Group: groupHistogram, Summary: "Normalized frequency density with 20 bins.", Tags: []string{"histogram", "density", "normalized", "bins"}},
+
+	// Box Plot
+	{ID: "boxplot_basic", Label: "Basic Box Plot", Group: groupBoxPlot, Summary: "Quarterly scores with quartiles, whiskers, and outliers.", Tags: []string{"boxplot", "quartile", "whisker", "outlier", "median", "statistics"}},
+	{ID: "boxplot_styled", Label: "Styled Box Plot", Group: groupBoxPlot, Summary: "Response times with custom colors and fixed box width.", Tags: []string{"boxplot", "color", "style", "custom", "width"}},
 
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},

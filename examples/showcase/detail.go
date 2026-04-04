@@ -99,6 +99,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"candlestick_basic": demoCandlestickBasic,
 	"histogram_basic":   demoHistogramBasic,
 	"histogram_density": demoHistogramDensity,
+	"boxplot_basic":     demoBoxPlotBasic,
+	"boxplot_styled":    demoBoxPlotStyled,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,
 	"style_legend_pos":  demoLegendPositions,

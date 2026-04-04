@@ -55,7 +55,7 @@ First renderable chart types.
 
 - [x] Candlestick chart (OHLC data, up/down colors)
 - [x] Histogram (bin calculation, frequency distribution)
-- [ ] Box plot (quartiles, whiskers, outliers)
+- [x] Box plot (quartiles, whiskers, outliers)
 - [ ] Waterfall chart (running total, positive/negative)
 - [ ] Combo chart (mixed line + bar on shared axes)
 
