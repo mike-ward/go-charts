@@ -3,8 +3,8 @@ package chart
 
 import (
 	"log/slog"
-	"math"
 
+	"github.com/mike-ward/go-charts/internal/fmath"
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -82,9 +82,7 @@ func dimColor(c gui.Color, alpha uint8) gui.Color {
 }
 
 // finite reports whether v is neither NaN nor +/-Inf.
-func finite(v float64) bool {
-	return !math.IsNaN(v) && !math.IsInf(v, 0)
-}
+func finite(v float64) bool { return fmath.Finite(v) }
 
 // resolveSize returns width/height, falling back to window
 // dimensions when either is zero.
