@@ -30,6 +30,59 @@ type legendEntryRect struct {
 	X, Y, Width, Height float32
 }
 
+// legendStyle holds resolved legend appearance values. Constructed
+// by newLegendStyle from theme defaults.
+type legendStyle struct {
+	Style      gui.TextStyle
+	BgColor    gui.Color
+	SwatchSize float32
+	Padding    float32
+	ItemGap    float32
+	RowGap     float32
+	FH         float32 // font height
+	RowH       float32 // max(fh, swatchSize)
+}
+
+// newLegendStyle resolves legend style defaults from the theme.
+func newLegendStyle(ctx *render.Context, th *theme.Theme) legendStyle {
+	ls := th.Legend
+	style := ls.TextStyle
+	if !style.Color.IsSet() && style.Size == 0 {
+		style = th.LabelStyle
+	}
+	bgColor := ls.Background
+	if !bgColor.IsSet() {
+		bgColor = gui.RGBA(0, 0, 0, 120)
+	}
+	swatchSize := ls.SwatchSize
+	if swatchSize == 0 {
+		swatchSize = 12
+	}
+	padding := ls.Padding
+	if padding == 0 {
+		padding = 6
+	}
+	itemGap := ls.ItemGap
+	if itemGap == 0 {
+		itemGap = 4
+	}
+	rowGap := ls.RowGap
+	if rowGap == 0 {
+		rowGap = 2
+	}
+	fh := ctx.FontHeight(style)
+	return legendStyle{
+		Style:      style,
+		BgColor:    bgColor,
+		SwatchSize: swatchSize,
+		Padding:    padding,
+		ItemGap:    itemGap,
+		RowGap:     rowGap,
+		FH:         fh,
+		RowH:       max(fh, swatchSize),
+	}
+}
+
 // resolvedTickMark returns the tick mark visual properties,
 // falling back to axis defaults from the theme.
 func resolvedTickMark(
@@ -184,24 +237,7 @@ func legendRightReserve(
 		return 0
 	}
 
-	ls := th.Legend
-	style := ls.TextStyle
-	if !style.Color.IsSet() && style.Size == 0 {
-		style = th.LabelStyle
-	}
-	swatchSize := ls.SwatchSize
-	if swatchSize == 0 {
-		swatchSize = 12
-	}
-	padding := ls.Padding
-	if padding == 0 {
-		padding = 6
-	}
-	itemGap := ls.ItemGap
-	if itemGap == 0 {
-		itemGap = 4
-	}
-
+	lp := newLegendStyle(ctx, th)
 	maxW := float32(0)
 	any := false
 	for _, n := range names {
@@ -209,14 +245,14 @@ func legendRightReserve(
 			continue
 		}
 		any = true
-		w := ctx.TextWidth(n, style)
+		w := ctx.TextWidth(n, lp.Style)
 		maxW = max(maxW, w)
 	}
 	if !any {
 		return 0
 	}
 	// box width + gap between plot edge and legend
-	return padding*2 + swatchSize + itemGap + maxW + 8
+	return lp.Padding*2 + lp.SwatchSize + lp.ItemGap + maxW + 8
 }
 
 // legendTopReserve returns the vertical space to add to the top
@@ -236,30 +272,7 @@ func legendTopReserve(
 		return 0
 	}
 
-	ls := th.Legend
-	style := ls.TextStyle
-	if !style.Color.IsSet() && style.Size == 0 {
-		style = th.LabelStyle
-	}
-	swatchSize := ls.SwatchSize
-	if swatchSize == 0 {
-		swatchSize = 12
-	}
-	padding := ls.Padding
-	if padding == 0 {
-		padding = 6
-	}
-	itemGap := ls.ItemGap
-	if itemGap == 0 {
-		itemGap = 4
-	}
-	rowGap := ls.RowGap
-	if rowGap == 0 {
-		rowGap = 2
-	}
-
-	fh := ctx.FontHeight(style)
-	rowH := max(fh, swatchSize)
+	lp := newLegendStyle(ctx, th)
 
 	// Count rows needed for the horizontal layout.
 	const interItemGap = float32(12)
@@ -272,8 +285,8 @@ func legendTopReserve(
 			continue
 		}
 		any = true
-		tw := ctx.TextWidth(n, style)
-		w := swatchSize + itemGap + tw
+		tw := ctx.TextWidth(n, lp.Style)
+		w := lp.SwatchSize + lp.ItemGap + tw
 		addition := w
 		if rowW > 0 {
 			addition += interItemGap
@@ -289,9 +302,9 @@ func legendTopReserve(
 		return 0
 	}
 	// box height + gap below legend
-	return padding*2 +
-		float32(nRows)*rowH +
-		float32(max(nRows-1, 0))*rowGap + 8
+	return lp.Padding*2 +
+		float32(nRows)*lp.RowH +
+		float32(max(nRows-1, 0))*lp.RowGap + 8
 }
 
 // legendBottomReserve returns the vertical space to add to the
@@ -311,30 +324,7 @@ func legendBottomReserve(
 		return 0
 	}
 
-	ls := th.Legend
-	style := ls.TextStyle
-	if !style.Color.IsSet() && style.Size == 0 {
-		style = th.LabelStyle
-	}
-	swatchSize := ls.SwatchSize
-	if swatchSize == 0 {
-		swatchSize = 12
-	}
-	padding := ls.Padding
-	if padding == 0 {
-		padding = 6
-	}
-	itemGap := ls.ItemGap
-	if itemGap == 0 {
-		itemGap = 4
-	}
-	rowGap := ls.RowGap
-	if rowGap == 0 {
-		rowGap = 2
-	}
-
-	fh := ctx.FontHeight(style)
-	rowH := max(fh, swatchSize)
+	lp := newLegendStyle(ctx, th)
 
 	const interItemGap = float32(12)
 	availW := right - left
@@ -346,8 +336,8 @@ func legendBottomReserve(
 			continue
 		}
 		any = true
-		tw := ctx.TextWidth(n, style)
-		w := swatchSize + itemGap + tw
+		tw := ctx.TextWidth(n, lp.Style)
+		w := lp.SwatchSize + lp.ItemGap + tw
 		addition := w
 		if rowW > 0 {
 			addition += interItemGap
@@ -362,9 +352,9 @@ func legendBottomReserve(
 	if !any {
 		return 0
 	}
-	return padding*2 +
-		float32(nRows)*rowH +
-		float32(max(nRows-1, 0))*rowGap
+	return lp.Padding*2 +
+		float32(nRows)*lp.RowH +
+		float32(max(nRows-1, 0))*lp.RowGap
 }
 
 // drawLegend renders the legend in the plot area. Position is
@@ -390,76 +380,38 @@ func drawLegend(
 		return legendBounds{}
 	}
 
-	ls := th.Legend
-
-	// Resolve style fields with defaults.
-	style := ls.TextStyle
-	if !style.Color.IsSet() && style.Size == 0 {
-		style = th.LabelStyle
-	}
-	bgColor := ls.Background
-	if !bgColor.IsSet() {
-		bgColor = gui.RGBA(0, 0, 0, 120)
-	}
-	swatchSize := ls.SwatchSize
-	if swatchSize == 0 {
-		swatchSize = 12
-	}
-	padding := ls.Padding
-	if padding == 0 {
-		padding = 6
-	}
-	itemGap := ls.ItemGap
-	if itemGap == 0 {
-		itemGap = 4
-	}
-	rowGap := ls.RowGap
-	if rowGap == 0 {
-		rowGap = 2
-	}
-
 	// Determine position.
-	pos := ls.Position
+	pos := th.Legend.Position
 	if posOverride != nil {
 		pos = *posOverride
 	}
-
 	if pos == theme.LegendNone {
 		return legendBounds{}
 	}
 
-	fh := ctx.FontHeight(style)
-	rowH := max(fh, swatchSize)
+	lp := newLegendStyle(ctx, th)
 
 	if pos == theme.LegendBottom {
-		return drawLegendBottom(ctx, named, hidden,
-			style, bgColor, swatchSize, padding,
-			itemGap, rowGap, fh, rowH, left, right)
+		return drawLegendBottom(ctx, named, hidden, lp, left, right)
 	}
-
 	if pos == theme.LegendRight {
-		return drawLegendRight(ctx, named, hidden,
-			style, bgColor, swatchSize, padding,
-			itemGap, rowGap, fh, rowH, right, top)
+		return drawLegendRight(ctx, named, hidden, lp, right, top)
 	}
-
 	if pos == theme.LegendTop {
-		return drawLegendTop(ctx, named, hidden,
-			style, bgColor, swatchSize, padding,
-			itemGap, rowGap, fh, rowH, left, right, top)
+		return drawLegendTop(ctx, named, hidden, lp, left, right, top)
 	}
 
 	// Measure widest entry.
 	maxW := float32(0)
 	for _, e := range named {
-		w := ctx.TextWidth(e.Name, style)
+		w := ctx.TextWidth(e.Name, lp.Style)
 		maxW = max(maxW, w)
 	}
 
-	boxW := padding*2 + swatchSize + itemGap + maxW
-	boxH := padding*2 +
-		float32(len(named))*rowH +
-		float32(len(named)-1)*rowGap
+	boxW := lp.Padding*2 + lp.SwatchSize + lp.ItemGap + maxW
+	boxH := lp.Padding*2 +
+		float32(len(named))*lp.RowH +
+		float32(len(named)-1)*lp.RowGap
 
 	var bx, by float32
 	switch pos {
@@ -478,50 +430,50 @@ func drawLegend(
 	}
 
 	// Background.
-	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, lp.BgColor)
 
 	// Entries.
 	lb := legendBounds{
 		EntryRects: make([]legendEntryRect, len(named)),
 	}
 	for i, e := range named {
-		ey := by + padding +
-			float32(i)*(rowH+rowGap)
+		ey := by + lp.Padding +
+			float32(i)*(lp.RowH+lp.RowGap)
 
 		lb.EntryRects[i] = legendEntryRect{
 			Index:  e.Index,
 			X:      bx,
 			Y:      ey,
 			Width:  boxW,
-			Height: rowH,
+			Height: lp.RowH,
 		}
 
 		isHidden := hidden[e.Index]
 		color := e.Color
-		textStyle := style
+		textStyle := lp.Style
 		if isHidden {
 			color = dimColor(color, HoverDimAlpha)
 			textStyle.Color = gui.RGBA(
-				style.Color.R, style.Color.G,
-				style.Color.B, HoverDimAlpha)
+				lp.Style.Color.R, lp.Style.Color.G,
+				lp.Style.Color.B, HoverDimAlpha)
 		}
 
 		// Color swatch.
-		sx := bx + padding
-		sy := ey + (rowH-swatchSize)/2
+		sx := bx + lp.Padding
+		sy := ey + (lp.RowH-lp.SwatchSize)/2
 		ctx.FilledRoundedRect(sx, sy,
-			swatchSize, swatchSize, 2, color)
+			lp.SwatchSize, lp.SwatchSize, 2, color)
 
 		// Strikethrough for hidden entries.
 		if isHidden {
-			mid := sy + swatchSize/2
-			ctx.Line(sx-1, mid, sx+swatchSize+1, mid,
+			mid := sy + lp.SwatchSize/2
+			ctx.Line(sx-1, mid, sx+lp.SwatchSize+1, mid,
 				gui.RGBA(200, 200, 200, 180), 1.5)
 		}
 
 		// Label.
-		tx := sx + swatchSize + itemGap
-		ty := ey + (rowH-fh)/2
+		tx := sx + lp.SwatchSize + lp.ItemGap
+		ty := ey + (lp.RowH-lp.FH)/2
 		ctx.Text(tx, ty, e.Name, textStyle)
 	}
 
@@ -535,10 +487,8 @@ func drawLegendBottom(
 	ctx *render.Context,
 	entries []legendEntry,
 	hidden map[int]bool,
-	style gui.TextStyle,
-	bgColor gui.Color,
-	swatchSize, padding, itemGap, rowGap,
-	fh, rowH, left, right float32,
+	lp legendStyle,
+	left, right float32,
 ) legendBounds {
 	const interItemGap = float32(12)
 
@@ -548,8 +498,8 @@ func drawLegendBottom(
 	}
 	items := make([]itemInfo, len(entries))
 	for i, e := range entries {
-		tw := ctx.TextWidth(e.Name, style)
-		items[i] = itemInfo{width: swatchSize + itemGap + tw}
+		tw := ctx.TextWidth(e.Name, lp.Style)
+		items[i] = itemInfo{width: lp.SwatchSize + lp.ItemGap + tw}
 	}
 
 	// Layout rows, wrapping when the row exceeds available width.
@@ -583,25 +533,25 @@ func drawLegendBottom(
 	for _, r := range rows {
 		maxRowW = max(maxRowW, r.width)
 	}
-	boxW := maxRowW + padding*2
-	boxH := padding*2 +
-		float32(len(rows))*rowH +
-		float32(max(len(rows)-1, 0))*rowGap
+	boxW := maxRowW + lp.Padding*2
+	boxH := lp.Padding*2 +
+		float32(len(rows))*lp.RowH +
+		float32(max(len(rows)-1, 0))*lp.RowGap
 
 	// Position centered horizontally, at the bottom of the canvas.
 	bx := (left + right - boxW) / 2
 	by := ctx.Height() - boxH
 
-	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, lp.BgColor)
 
 	// Draw entries row by row.
 	lb := legendBounds{
 		EntryRects: make([]legendEntryRect, len(entries)),
 	}
 	for ri, r := range rows {
-		ey := by + padding + float32(ri)*(rowH+rowGap)
+		ey := by + lp.Padding + float32(ri)*(lp.RowH+lp.RowGap)
 		// Center this row within the box.
-		x := bx + padding + (maxRowW-r.width)/2
+		x := bx + lp.Padding + (maxRowW-r.width)/2
 		for i := r.start; i < r.end; i++ {
 			if i > r.start {
 				x += interItemGap
@@ -612,33 +562,33 @@ func drawLegendBottom(
 				X:      x,
 				Y:      ey,
 				Width:  items[i].width,
-				Height: rowH,
+				Height: lp.RowH,
 			}
 
 			isHidden := hidden[e.Index]
 			color := e.Color
-			ts := style
+			ts := lp.Style
 			if isHidden {
 				color = dimColor(color, HoverDimAlpha)
 				ts.Color = gui.RGBA(
-					style.Color.R, style.Color.G,
-					style.Color.B, HoverDimAlpha)
+					lp.Style.Color.R, lp.Style.Color.G,
+					lp.Style.Color.B, HoverDimAlpha)
 			}
 
 			// Color swatch.
-			sy := ey + (rowH-swatchSize)/2
+			sy := ey + (lp.RowH-lp.SwatchSize)/2
 			ctx.FilledRoundedRect(x, sy,
-				swatchSize, swatchSize, 2, color)
+				lp.SwatchSize, lp.SwatchSize, 2, color)
 
 			if isHidden {
-				mid := sy + swatchSize/2
-				ctx.Line(x-1, mid, x+swatchSize+1, mid,
+				mid := sy + lp.SwatchSize/2
+				ctx.Line(x-1, mid, x+lp.SwatchSize+1, mid,
 					gui.RGBA(200, 200, 200, 180), 1.5)
 			}
 
 			// Label.
-			tx := x + swatchSize + itemGap
-			ty := ey + (rowH-fh)/2
+			tx := x + lp.SwatchSize + lp.ItemGap
+			ty := ey + (lp.RowH-lp.FH)/2
 			ctx.Text(tx, ty, e.Name, ts)
 
 			x += items[i].width
@@ -656,18 +606,16 @@ func drawLegendTop(
 	ctx *render.Context,
 	entries []legendEntry,
 	hidden map[int]bool,
-	style gui.TextStyle,
-	bgColor gui.Color,
-	swatchSize, padding, itemGap, rowGap,
-	fh, rowH, left, right, top float32,
+	lp legendStyle,
+	left, right, top float32,
 ) legendBounds {
 	const interItemGap = float32(12)
 
 	type itemInfo struct{ width float32 }
 	items := make([]itemInfo, len(entries))
 	for i, e := range entries {
-		tw := ctx.TextWidth(e.Name, style)
-		items[i] = itemInfo{width: swatchSize + itemGap + tw}
+		tw := ctx.TextWidth(e.Name, lp.Style)
+		items[i] = itemInfo{width: lp.SwatchSize + lp.ItemGap + tw}
 	}
 
 	availW := right - left
@@ -699,23 +647,23 @@ func drawLegendTop(
 	for _, r := range rows {
 		maxRowW = max(maxRowW, r.width)
 	}
-	boxW := maxRowW + padding*2
-	boxH := padding*2 +
-		float32(len(rows))*rowH +
-		float32(max(len(rows)-1, 0))*rowGap
+	boxW := maxRowW + lp.Padding*2
+	boxH := lp.Padding*2 +
+		float32(len(rows))*lp.RowH +
+		float32(max(len(rows)-1, 0))*lp.RowGap
 
 	// Position centered horizontally, just above the plot area.
 	bx := (left + right - boxW) / 2
 	by := top - boxH - 8
 
-	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, lp.BgColor)
 
 	lb := legendBounds{
 		EntryRects: make([]legendEntryRect, len(entries)),
 	}
 	for ri, r := range rows {
-		ey := by + padding + float32(ri)*(rowH+rowGap)
-		x := bx + padding + (maxRowW-r.width)/2
+		ey := by + lp.Padding + float32(ri)*(lp.RowH+lp.RowGap)
+		x := bx + lp.Padding + (maxRowW-r.width)/2
 		for i := r.start; i < r.end; i++ {
 			if i > r.start {
 				x += interItemGap
@@ -726,31 +674,31 @@ func drawLegendTop(
 				X:      x,
 				Y:      ey,
 				Width:  items[i].width,
-				Height: rowH,
+				Height: lp.RowH,
 			}
 
 			isHidden := hidden[e.Index]
 			color := e.Color
-			ts := style
+			ts := lp.Style
 			if isHidden {
 				color = dimColor(color, HoverDimAlpha)
 				ts.Color = gui.RGBA(
-					style.Color.R, style.Color.G,
-					style.Color.B, HoverDimAlpha)
+					lp.Style.Color.R, lp.Style.Color.G,
+					lp.Style.Color.B, HoverDimAlpha)
 			}
 
-			sy := ey + (rowH-swatchSize)/2
+			sy := ey + (lp.RowH-lp.SwatchSize)/2
 			ctx.FilledRoundedRect(x, sy,
-				swatchSize, swatchSize, 2, color)
+				lp.SwatchSize, lp.SwatchSize, 2, color)
 
 			if isHidden {
-				mid := sy + swatchSize/2
-				ctx.Line(x-1, mid, x+swatchSize+1, mid,
+				mid := sy + lp.SwatchSize/2
+				ctx.Line(x-1, mid, x+lp.SwatchSize+1, mid,
 					gui.RGBA(200, 200, 200, 180), 1.5)
 			}
 
-			tx := x + swatchSize + itemGap
-			ty := ey + (rowH-fh)/2
+			tx := x + lp.SwatchSize + lp.ItemGap
+			ty := ey + (lp.RowH-lp.FH)/2
 			ctx.Text(tx, ty, e.Name, ts)
 
 			x += items[i].width
@@ -766,22 +714,20 @@ func drawLegendRight(
 	ctx *render.Context,
 	entries []legendEntry,
 	hidden map[int]bool,
-	style gui.TextStyle,
-	bgColor gui.Color,
-	swatchSize, padding, itemGap, rowGap,
-	fh, rowH, right, top float32,
+	lp legendStyle,
+	right, top float32,
 ) legendBounds {
 	// Measure widest entry.
 	maxW := float32(0)
 	for _, e := range entries {
-		w := ctx.TextWidth(e.Name, style)
+		w := ctx.TextWidth(e.Name, lp.Style)
 		maxW = max(maxW, w)
 	}
 
-	boxW := padding*2 + swatchSize + itemGap + maxW
-	boxH := padding*2 +
-		float32(len(entries))*rowH +
-		float32(len(entries)-1)*rowGap
+	boxW := lp.Padding*2 + lp.SwatchSize + lp.ItemGap + maxW
+	boxH := lp.Padding*2 +
+		float32(len(entries))*lp.RowH +
+		float32(len(entries)-1)*lp.RowGap
 
 	// Position to the right of the plot area, top-aligned.
 	bx := right + 8
@@ -792,45 +738,45 @@ func drawLegendRight(
 		bx = ctx.Width() - boxW
 	}
 
-	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, lp.BgColor)
 
 	lb := legendBounds{
 		EntryRects: make([]legendEntryRect, len(entries)),
 	}
 	for i, e := range entries {
-		ey := by + padding + float32(i)*(rowH+rowGap)
+		ey := by + lp.Padding + float32(i)*(lp.RowH+lp.RowGap)
 
 		lb.EntryRects[i] = legendEntryRect{
 			Index:  e.Index,
 			X:      bx,
 			Y:      ey,
 			Width:  boxW,
-			Height: rowH,
+			Height: lp.RowH,
 		}
 
 		isHidden := hidden[e.Index]
 		color := e.Color
-		ts := style
+		ts := lp.Style
 		if isHidden {
 			color = dimColor(color, HoverDimAlpha)
 			ts.Color = gui.RGBA(
-				style.Color.R, style.Color.G,
-				style.Color.B, HoverDimAlpha)
+				lp.Style.Color.R, lp.Style.Color.G,
+				lp.Style.Color.B, HoverDimAlpha)
 		}
 
-		sx := bx + padding
-		sy := ey + (rowH-swatchSize)/2
+		sx := bx + lp.Padding
+		sy := ey + (lp.RowH-lp.SwatchSize)/2
 		ctx.FilledRoundedRect(sx, sy,
-			swatchSize, swatchSize, 2, color)
+			lp.SwatchSize, lp.SwatchSize, 2, color)
 
 		if isHidden {
-			mid := sy + swatchSize/2
-			ctx.Line(sx-1, mid, sx+swatchSize+1, mid,
+			mid := sy + lp.SwatchSize/2
+			ctx.Line(sx-1, mid, sx+lp.SwatchSize+1, mid,
 				gui.RGBA(200, 200, 200, 180), 1.5)
 		}
 
-		tx := sx + swatchSize + itemGap
-		ty := ey + (rowH-fh)/2
+		tx := sx + lp.SwatchSize + lp.ItemGap
+		ty := ey + (lp.RowH-lp.FH)/2
 		ctx.Text(tx, ty, e.Name, ts)
 	}
 
