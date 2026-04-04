@@ -365,7 +365,7 @@ func drawLegend(
 	ctx *render.Context,
 	entries []legendEntry,
 	th *theme.Theme,
-	left, right, top, bottom float32,
+	pr plotRect,
 	posOverride *theme.LegendPosition,
 	hidden map[int]bool,
 ) legendBounds {
@@ -392,13 +392,13 @@ func drawLegend(
 	lp := newLegendStyle(ctx, th)
 
 	if pos == theme.LegendBottom {
-		return drawLegendBottom(ctx, named, hidden, lp, left, right)
+		return drawLegendBottom(ctx, named, hidden, lp, pr.Left, pr.Right)
 	}
 	if pos == theme.LegendRight {
-		return drawLegendRight(ctx, named, hidden, lp, right, top)
+		return drawLegendRight(ctx, named, hidden, lp, pr.Right, pr.Top)
 	}
 	if pos == theme.LegendTop {
-		return drawLegendTop(ctx, named, hidden, lp, left, right, top)
+		return drawLegendTop(ctx, named, hidden, lp, pr.Left, pr.Right, pr.Top)
 	}
 
 	// Measure widest entry.
@@ -416,17 +416,17 @@ func drawLegend(
 	var bx, by float32
 	switch pos {
 	case theme.LegendTopLeft:
-		bx = left + 4
-		by = top + 4
+		bx = pr.Left + 4
+		by = pr.Top + 4
 	case theme.LegendBottomRight:
-		bx = right - boxW - 4
-		by = bottom - boxH - 4
+		bx = pr.Right - boxW - 4
+		by = pr.Bottom - boxH - 4
 	case theme.LegendBottomLeft:
-		bx = left + 4
-		by = bottom - boxH - 4
+		bx = pr.Left + 4
+		by = pr.Bottom - boxH - 4
 	default: // LegendTopRight
-		bx = right - boxW - 4
-		by = top + 4
+		bx = pr.Right - boxW - 4
+		by = pr.Top + 4
 	}
 
 	// Background.
@@ -848,9 +848,9 @@ func drawTooltip(
 // (mx, my). Does nothing when the cursor is outside the plot area.
 func drawCrosshair(
 	ctx *render.Context, th *theme.Theme,
-	mx, my, left, right, top, bottom float32,
+	mx, my float32, pr plotRect,
 ) {
-	if mx < left || mx > right || my < top || my > bottom {
+	if mx < pr.Left || mx > pr.Right || my < pr.Top || my > pr.Bottom {
 		return
 	}
 	cs := th.Crosshair
@@ -870,6 +870,6 @@ func drawCrosshair(
 	if gapLen == 0 {
 		gapLen = 4
 	}
-	ctx.DashedLine(mx, top, mx, bottom, color, width, dashLen, gapLen)
-	ctx.DashedLine(left, my, right, my, color, width, dashLen, gapLen)
+	ctx.DashedLine(mx, pr.Top, mx, pr.Bottom, color, width, dashLen, gapLen)
+	ctx.DashedLine(pr.Left, my, pr.Right, my, color, width, dashLen, gapLen)
 }

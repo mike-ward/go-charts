@@ -211,17 +211,18 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 	hv.lastTop = top
 	hv.lastBottom = bottom
 
-	hv.drawBars(ctx, th, left, right, top, bottom)
+	pr := plotRect{left, right, top, bottom}
+	hv.drawBars(ctx, th, pr)
 
 	if hv.hovering {
-		hv.tooltipHistogram(ctx, th, left, right, top, bottom)
+		hv.tooltipHistogram(ctx, th, pr)
 	}
 }
 
 func (hv *histogramView) drawBars(
-	ctx *render.Context, th *theme.Theme,
-	left, right, top, bottom float32,
+	ctx *render.Context, th *theme.Theme, pr plotRect,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &hv.cfg
 	yAxis := hv.yAxis
 	xAxis := hv.xAxis
@@ -325,9 +326,9 @@ func (hv *histogramView) hoveredBin(mx, left, right float32) int {
 }
 
 func (hv *histogramView) tooltipHistogram(
-	ctx *render.Context, th *theme.Theme,
-	left, right, top, bottom float32,
+	ctx *render.Context, th *theme.Theme, pr plotRect,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	mx := hv.hoverPx
 	my := hv.hoverPy
 	edges := hv.binEdges

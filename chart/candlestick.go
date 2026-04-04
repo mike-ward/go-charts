@@ -304,13 +304,14 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 			legendEntry{Name: downLabel, Color: candleColor(s, false), Index: 2*i + 1},
 		)
 	}
-	cv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pr := plotRect{left, right, top, bottom}
+	cv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, cv.hidden)
 	saveLegendBounds(cv.win, cfg.ID, cv.lastLB)
 
 	if cv.hovering {
-		drawCrosshair(ctx, th, cv.hoverPx, cv.hoverPy, left, right, top, bottom)
-		cv.tooltipCandlestick(ctx, left, right, top, bottom, th)
+		drawCrosshair(ctx, th, cv.hoverPx, cv.hoverPy, pr)
+		cv.tooltipCandlestick(ctx, pr, th)
 	}
 }
 
@@ -375,10 +376,9 @@ func (cv *candlestickView) firstVisibleSeries() int {
 
 // tooltipCandlestick draws an OHLC tooltip for the candle nearest the cursor.
 func (cv *candlestickView) tooltipCandlestick(
-	ctx *render.Context,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &cv.cfg
 	mx := cv.hoverPx
 	my := cv.hoverPy

@@ -315,7 +315,7 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	alpha := uint8(cfg.Opacity * 255)
 
 	// Cache plot area for cursor hit-testing in hover callback.
-	av.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+	av.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 
 	// Hover highlight: find nearest series/point.
 	// Stacked mode uses cumulative Y values so the hit-test matches the
@@ -353,7 +353,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 			Index: i,
 		}
 	}
-	av.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pr := plotRect{left, right, top, bottom}
+	av.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, av.hidden)
 	saveLegendBounds(av.win, cfg.ID, av.lastLB)
 
@@ -365,9 +366,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 
 	// Crosshair and tooltip.
 	if av.hovering && av.xAxis != nil {
-		drawCrosshair(ctx, th, av.hoverPx, av.hoverPy,
-			left, right, top, bottom)
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		drawCrosshair(ctx, th, av.hoverPx, av.hoverPy, pr)
+		pa := plotArea{pr, xAxis, yAxis}
 		if cfg.Stacked {
 			drawStackedXYTooltip(ctx, th, cfg.Series, pa,
 				av.hoverPx, av.hoverPy)

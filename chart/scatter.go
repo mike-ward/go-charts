@@ -287,7 +287,7 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
 	// Cache plot area for cursor hit-testing in hover callback.
-	sv.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+	sv.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 
 	// Hover highlight: find nearest series/point.
 	hovSI := -1
@@ -333,15 +333,15 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 			Index: i,
 		}
 	}
-	sv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pr := plotRect{left, right, top, bottom}
+	sv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, sv.hidden)
 	saveLegendBounds(sv.win, cfg.ID, sv.lastLB)
 
 	// Crosshair and tooltip.
 	if sv.hovering && sv.xAxis != nil {
-		drawCrosshair(ctx, th, sv.hoverPx, sv.hoverPy,
-			left, right, top, bottom)
-		pa := plotArea{left, right, top, bottom, xAxis, yAxis}
+		drawCrosshair(ctx, th, sv.hoverPx, sv.hoverPy, pr)
+		pa := plotArea{pr, xAxis, yAxis}
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			sv.hoverPx, sv.hoverPy)
 	}

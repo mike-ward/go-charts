@@ -264,9 +264,9 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	// Crosshair and tooltip.
 	if bv.hovering {
-		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy,
-			left, right, top, bottom)
-		bv.tooltipBar(ctx, left, right, top, bottom, th)
+		pr := plotRect{left, right, top, bottom}
+		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy, pr)
+		bv.tooltipBar(ctx, pr, th)
 	}
 }
 
@@ -435,7 +435,8 @@ func (bv *barView) drawVertical(
 			Index: i,
 		}
 	}
-	bv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	bv.lastLB = drawLegend(ctx, entries, th,
+		plotRect{left, right, top, bottom},
 		cfg.LegendPosition, bv.hidden)
 	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 }
@@ -627,9 +628,7 @@ func (bv *barView) hoveredBarHorizontal(
 // tooltipBar hit-tests the cursor against actual bar rectangles
 // and draws a tooltip only when the cursor is over a bar.
 func (bv *barView) tooltipBar(
-	ctx *render.Context,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
 	cfg := &bv.cfg
 	if len(cfg.Series) == 0 || bv.yAxis == nil {
@@ -647,23 +646,21 @@ func (bv *barView) tooltipBar(
 	barGap := cfg.BarGap
 
 	if cfg.Horizontal {
-		bv.tooltipHorizontal(ctx, mx, my,
-			left, right, top, bottom, th,
+		bv.tooltipHorizontal(ctx, mx, my, pr, th,
 			labels, nCat, nSer, barGap)
 	} else {
-		bv.tooltipVertical(ctx, mx, my,
-			left, right, top, bottom, th,
+		bv.tooltipVertical(ctx, mx, my, pr, th,
 			labels, nCat, nSer, barGap)
 	}
 }
 
 func (bv *barView) tooltipVertical(
-	ctx *render.Context, mx, my,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, mx, my float32,
+	pr plotRect, th *theme.Theme,
 	labels []series.CategoryValue,
 	nCat, nSer int, barGap float32,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &bv.cfg
 	yAxis := bv.yAxis
 	baseline := yAxis.Transform(0, bottom, top)
@@ -746,12 +743,12 @@ func (bv *barView) tooltipVertical(
 }
 
 func (bv *barView) tooltipHorizontal(
-	ctx *render.Context, mx, my,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, mx, my float32,
+	pr plotRect, th *theme.Theme,
 	labels []series.CategoryValue,
 	nCat, nSer int, barGap float32,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &bv.cfg
 	xAxis := bv.yAxis
 	baseline := xAxis.Transform(0, left, right)
@@ -1007,7 +1004,8 @@ func (bv *barView) drawHorizontal(
 			Index: i,
 		}
 	}
-	bv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	bv.lastLB = drawLegend(ctx, entries, th,
+		plotRect{left, right, top, bottom},
 		cfg.LegendPosition, bv.hidden)
 	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 }

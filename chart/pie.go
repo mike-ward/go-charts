@@ -185,20 +185,18 @@ func (pv *pieView) hoveredSliceIndex(mx, my, cx, cy, outerR float32) int {
 // tooltipPie draws a tooltip for the slice under the cursor.
 // Delegates hit-testing to hoveredSliceIndex so both use the same geometry.
 func (pv *pieView) tooltipPie(
-	ctx *render.Context,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
 	cfg := &pv.cfg
 	if len(cfg.Slices) == 0 {
 		return
 	}
 
-	plotW := right - left
-	plotH := bottom - top
+	plotW := pr.Right - pr.Left
+	plotH := pr.Bottom - pr.Top
 	outerR := min(plotW, plotH) / 2 * 0.85
-	cx := (left + right) / 2
-	cy := (top + bottom) / 2
+	cx := (pr.Left + pr.Right) / 2
+	cy := (pr.Top + pr.Bottom) / 2
 
 	idx := pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, cx, cy, outerR)
 	if idx < 0 {
@@ -342,13 +340,14 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		}
 		entries[i] = legendEntry{Name: s.Label, Color: color, Index: i}
 	}
-	pv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pv.lastLB = drawLegend(ctx, entries, th,
+		plotRect{left, right, top, bottom},
 		cfg.LegendPosition, pv.hidden)
 	saveLegendBounds(pv.win, cfg.ID, pv.lastLB)
 
 	// Tooltip.
 	if pv.hovering {
-		pv.tooltipPie(ctx, left, right, top, bottom, th)
+		pv.tooltipPie(ctx, plotRect{left, right, top, bottom}, th)
 	}
 }
 

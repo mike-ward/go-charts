@@ -9,11 +9,16 @@ import (
 	"github.com/mike-ward/go-charts/theme"
 )
 
+// plotRect holds the pixel bounds of the chart's data region.
+type plotRect struct {
+	Left, Right, Top, Bottom float32
+}
+
 // plotArea describes the pixel bounds and axes of the chart's data
 // region. Passed to tooltip helpers to avoid long parameter lists.
 type plotArea struct {
-	Left, Right, Top, Bottom float32
-	XAxis, YAxis             *axis.Linear
+	plotRect
+	XAxis, YAxis *axis.Linear
 }
 
 // nearestXYPoint finds the series/point index and pixel position

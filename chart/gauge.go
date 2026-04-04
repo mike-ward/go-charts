@@ -332,7 +332,8 @@ func (gv *gaugeView) draw(dc *gui.DrawContext) {
 			}
 			entries[i] = legendEntry{Name: z.Label, Color: color, Index: i}
 		}
-		drawLegend(ctx, entries, th, left, right, top, bottom,
+		drawLegend(ctx, entries, th,
+			plotRect{left, right, top, bottom},
 			cfg.LegendPosition, nil)
 	}
 

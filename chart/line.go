@@ -298,7 +298,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
 	// Cache plot area for cursor hit-testing in hover callback.
-	lv.lastPA = plotArea{left, right, top, bottom, xAxis, yAxis}
+	lv.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 
 	// Hover highlight: find nearest series/point.
 	hovSI := -1
@@ -330,14 +330,14 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 			Index: i,
 		}
 	}
-	lv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pr := plotRect{left, right, top, bottom}
+	lv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, lv.hidden)
 	saveLegendBounds(lv.win, cfg.ID, lv.lastLB)
 
 	// Crosshair and tooltip.
 	if lv.hovering && lv.xAxis != nil {
-		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy,
-			left, right, top, bottom)
+		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy, pr)
 		pa := lv.lastPA
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			lv.hoverPx, lv.hoverPy)

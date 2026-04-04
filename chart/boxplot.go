@@ -322,14 +322,14 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 			Index: i,
 		})
 	}
-	bv.lastLB = drawLegend(ctx, entries, th, left, right, top, bottom,
+	pr := plotRect{left, right, top, bottom}
+	bv.lastLB = drawLegend(ctx, entries, th, pr,
 		cfg.LegendPosition, bv.hidden)
 	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 
 	if bv.hovering {
-		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy,
-			left, right, top, bottom)
-		bv.tooltipBoxPlot(ctx, left, right, top, bottom, th)
+		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy, pr)
+		bv.tooltipBoxPlot(ctx, pr, th)
 	}
 }
 
@@ -410,10 +410,9 @@ func (bv *boxplotView) hoveredBox(mx, left, right float32) int {
 // (horizontally within the box body, vertically within whisker
 // range).
 func (bv *boxplotView) tooltipBoxPlot(
-	ctx *render.Context,
-	left, right, top, bottom float32,
-	th *theme.Theme,
+	ctx *render.Context, pr plotRect, th *theme.Theme,
 ) {
+	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &bv.cfg
 	mx := bv.hoverPx
 	my := bv.hoverPy
