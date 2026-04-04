@@ -317,7 +317,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	pr := plotRect{left, right, top, bottom}
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	// Crosshair and tooltip.
 	if bv.hovering {
@@ -405,11 +405,8 @@ func (bv *barView) drawVertical(
 				}
 				bh := float32(math.Abs(float64(segBot - segTop)))
 				by := min(segTop, segBot)
-				if cfg.Radius > 0 {
-					ctx.FilledRoundedRect(bx, by, barWidth, bh, cfg.Radius, color)
-				} else {
-					ctx.FilledRect(bx, by, barWidth, bh, color)
-				}
+				drawClampedBar(ctx, bx, by, barWidth, bh,
+					cfg.Radius, color, left, right, top, bottom)
 			}
 
 			cx := groupX + groupWidth/2
@@ -463,11 +460,8 @@ func (bv *barView) drawVertical(
 				barTop := min(by, baseline)
 				bh := float32(math.Abs(float64(by - baseline)))
 
-				if cfg.Radius > 0 {
-					ctx.FilledRoundedRect(bx, barTop, barWidth, bh, cfg.Radius, color)
-				} else {
-					ctx.FilledRect(bx, barTop, barWidth, bh, color)
-				}
+				drawClampedBar(ctx, bx, barTop, barWidth, bh,
+					cfg.Radius, color, left, right, top, bottom)
 			}
 
 			cx := groupX + groupWidth/2
@@ -985,11 +979,8 @@ func (bv *barView) drawHorizontal(
 				}
 				bw := float32(math.Abs(float64(segRight - segLeft)))
 				bx := min(segLeft, segRight)
-				if cfg.Radius > 0 {
-					ctx.FilledRoundedRect(bx, by, bw, barHeight, cfg.Radius, color)
-				} else {
-					ctx.FilledRect(bx, by, bw, barHeight, color)
-				}
+				drawClampedBar(ctx, bx, by, bw, barHeight,
+					cfg.Radius, color, left, right, top, bottom)
 			}
 
 			cy := groupY + groupHeight/2
@@ -1037,11 +1028,8 @@ func (bv *barView) drawHorizontal(
 				bw := float32(math.Abs(float64(bx - baseline)))
 				by := barStart + float32(si)*(barHeight+barGap)
 
-				if cfg.Radius > 0 {
-					ctx.FilledRoundedRect(barLeft, by, bw, barHeight, cfg.Radius, color)
-				} else {
-					ctx.FilledRect(barLeft, by, bw, barHeight, color)
-				}
+				drawClampedBar(ctx, barLeft, by, bw, barHeight,
+					cfg.Radius, color, left, right, top, bottom)
 			}
 
 			// Category tick and label on the left.
@@ -1064,4 +1052,24 @@ func (bv *barView) drawHorizontal(
 		plotRect{left, right, top, bottom},
 		cfg.LegendPosition, bv.hidden)
 	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
+}
+
+// drawClampedBar draws a filled (optionally rounded) rectangle
+// clamped to the plot area. Returns false if fully clipped.
+func drawClampedBar(
+	ctx *render.Context, x, y, w, h, radius float32,
+	color gui.Color,
+	left, right, top, bottom float32,
+) bool {
+	x, y, w, h, vis := clampRectToPlot(
+		x, y, w, h, left, right, top, bottom)
+	if !vis {
+		return false
+	}
+	if radius > 0 {
+		ctx.FilledRoundedRect(x, y, w, h, radius, color)
+	} else {
+		ctx.FilledRect(x, y, w, h, color)
+	}
+	return true
 }

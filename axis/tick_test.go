@@ -105,6 +105,38 @@ func TestOverrideDomainFalseAllowsExpansion(t *testing.T) {
 	}
 }
 
+func TestGenerateNiceTicksPrecision(t *testing.T) {
+	t.Parallel()
+	// Verify ticks are cleanly snapped for various spacings,
+	// including those with float64 representation issues.
+	tests := []struct {
+		min, max float64
+		ticks    int
+	}{
+		{0, 1, 10},   // spacing ~ 0.1
+		{0, 2, 10},   // spacing ~ 0.2
+		{0, 3, 10},   // spacing ~ 0.3
+		{0, 0.5, 10}, // spacing ~ 0.05
+		{0, 50, 10},  // spacing ~ 5 (integer)
+	}
+	for _, tt := range tests {
+		ticks := GenerateNiceTicks(tt.min, tt.max, tt.ticks)
+		if len(ticks) < 2 {
+			t.Errorf("[%g,%g]: got %d ticks, want >= 2",
+				tt.min, tt.max, len(ticks))
+			continue
+		}
+		spacing := ticks[1] - ticks[0]
+		for i := 1; i < len(ticks); i++ {
+			gap := ticks[i] - ticks[i-1]
+			if math.Abs(gap-spacing) > 1e-9 {
+				t.Errorf("[%g,%g]: uneven gap at tick %d: %g vs %g",
+					tt.min, tt.max, i, gap, spacing)
+			}
+		}
+	}
+}
+
 func TestDomainMethod(t *testing.T) {
 	t.Parallel()
 	a := NewLinear(LinearCfg{Min: 10, Max: 20})

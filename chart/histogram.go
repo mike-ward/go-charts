@@ -258,7 +258,7 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 	pr := plotRect{left, right, top, bottom}
 	hv.drawBars(ctx, th, pr)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	if hv.hovering {
 		hv.tooltipHistogram(ctx, th, pr)
@@ -331,12 +331,17 @@ func (hv *histogramView) drawBars(
 		if hovI >= 0 && hovI != i {
 			barColor = dimColor(color, HoverDimAlpha)
 		}
+		rx, ry, rw, rh, vis := clampRectToPlot(
+			bx, by, barWidth, bh, left, right, top, bottom)
+		if !vis {
+			continue
+		}
 		if cfg.Radius > 0 {
-			ctx.FilledRoundedRect(bx, by, barWidth, bh, cfg.Radius, barColor)
-			ctx.RoundedRect(bx, by, barWidth, bh, cfg.Radius, th.AxisColor, th.AxisWidth)
+			ctx.FilledRoundedRect(rx, ry, rw, rh, cfg.Radius, barColor)
+			ctx.RoundedRect(rx, ry, rw, rh, cfg.Radius, th.AxisColor, th.AxisWidth)
 		} else {
-			ctx.FilledRect(bx, by, barWidth, bh, barColor)
-			ctx.Rect(bx, by, barWidth, bh, th.AxisColor, th.AxisWidth)
+			ctx.FilledRect(rx, ry, rw, rh, barColor)
+			ctx.Rect(rx, ry, rw, rh, th.AxisColor, th.AxisWidth)
 		}
 	}
 

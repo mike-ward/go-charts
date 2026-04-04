@@ -88,11 +88,11 @@ func GenerateNiceTicks(dataMin, dataMax float64, maxTicks int) []float64 {
 
 	// Compute decimal precision from spacing to snap tick values.
 	// E.g. spacing=0.2 → 1 decimal place, spacing=0.05 → 2.
+	// Uses log10 instead of iterative multiplication to avoid
+	// float64 representation issues (e.g. 0.3).
 	prec := 0
-	s := spacing
-	for s != math.Floor(s) && prec < 15 {
-		s *= 10
-		prec++
+	if spacing > 0 && spacing < 1 {
+		prec = max(0, int(-math.Floor(math.Log10(spacing))))
 	}
 	factor := math.Pow(10, float64(prec))
 

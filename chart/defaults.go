@@ -51,7 +51,7 @@ const (
 	// to prevent degenerate transforms.
 	DefaultMinZoomRange float64 = 1e-12
 
-	// zoomDoubleClickFrames is the frame-count threshold for
-	// detecting a mouse double-click (~400ms at 60fps).
-	zoomDoubleClickFrames uint64 = 24
+	// zoomDoubleClickMs is the wall-clock threshold in
+	// milliseconds for detecting a mouse double-click.
+	zoomDoubleClickMs int64 = 400
 )

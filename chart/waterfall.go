@@ -345,27 +345,26 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 			color = dimColor(color, HoverDimAlpha)
 		}
 
-		if cfg.Radius > 0 {
-			ctx.FilledRoundedRect(cx-barW/2, barTop, barW, bh,
-				cfg.Radius, color)
-		} else {
-			ctx.FilledRect(cx-barW/2, barTop, barW, bh, color)
-		}
+		drawClampedBar(ctx, cx-barW/2, barTop, barW, bh,
+			cfg.Radius, color, left, right, top, bottom)
 
-		// Connector line from previous bar.
+		// Connector line from previous bar (skip if outside plot Y).
 		if showConn && i > 0 {
 			prevBB := wv.bars[i-1]
 			if !wv.hidden[prevBB.Kind] {
 				connY := wv.yAxis.Transform(
 					prevBB.RunningTotal, bottom, top)
-				prevCx := wv.xAxis.Transform(
-					float64(i-1), left, right)
-				connColor := th.GridColor
-				if hovI >= 0 {
-					connColor = dimColor(connColor, HoverDimAlpha)
+				if connY >= top && connY <= bottom {
+					prevCx := wv.xAxis.Transform(
+						float64(i-1), left, right)
+					connColor := th.GridColor
+					if hovI >= 0 {
+						connColor = dimColor(connColor, HoverDimAlpha)
+					}
+					ctx.DashedLine(prevCx+barW/2, connY,
+						cx-barW/2, connY,
+						connColor, DefaultConnectorWidth, 4, 3)
 				}
-				ctx.DashedLine(prevCx+barW/2, connY, cx-barW/2, connY,
-					connColor, DefaultConnectorWidth, 4, 3)
 			}
 		}
 	}
@@ -398,7 +397,7 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, wv.hidden)
 	saveLegendBounds(wv.win, cfg.ID, wv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	if wv.hovering {
 		drawCrosshair(ctx, th, wv.hoverPx, wv.hoverPy, pr)

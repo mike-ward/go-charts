@@ -373,7 +373,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, lv.hidden)
 	saveLegendBounds(lv.win, cfg.ID, lv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	// Crosshair and tooltip.
 	if lv.hovering && lv.xAxis != nil {

@@ -2,9 +2,11 @@ package chart
 
 import (
 	"math"
+	"time"
 
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
 
@@ -20,7 +22,7 @@ type zoomState struct {
 	DragStartPx, DragStartPy   float32
 	DragSelect                 bool // true = range-select, false = pan
 	SelX0, SelY0, SelX1, SelY1 float32
-	LastClickFrame             uint64
+	LastClickTime              int64
 	Version                    uint64
 }
 
@@ -123,28 +125,13 @@ func clampZoomRange(
 		dMin = mid - half
 		dMax = mid + half
 	}
+	// Re-clamp: min-span expansion may overshoot bounds.
+	dMin = math.Max(dMin, origMin)
+	dMax = math.Min(dMax, origMax)
 	return dMin, dMax
 }
 
 // --- Axis helpers ---
-
-// storeOrigBounds captures the data-derived axis domain on
-// first zoom so it can be restored on reset.
-func storeOrigBounds(
-	zs *zoomState, xAxis, yAxis *axis.Linear,
-	zoomX, zoomY bool,
-) {
-	if zs.OrigStored {
-		return
-	}
-	if zoomX && xAxis != nil {
-		zs.OrigXMin, zs.OrigXMax = xAxis.Domain()
-	}
-	if zoomY && yAxis != nil {
-		zs.OrigYMin, zs.OrigYMax = yAxis.Domain()
-	}
-	zs.OrigStored = true
-}
 
 // applyZoomToAxes sets the zoomed domain on the given axes
 // and enables overrideDomain to prevent Ticks() expansion.
@@ -179,7 +166,7 @@ func handleZoomScroll(
 	e.IsHandled = true
 
 	zs, _ := loadZoomState(w, id)
-	ensureOrigBounds(&zs, pa, zoomX, zoomY)
+	ensureOrigBounds(&zs, pa.XAxis, pa.YAxis, zoomX, zoomY)
 
 	factor := math.Pow(DefaultZoomFactor, float64(dy))
 
@@ -220,7 +207,7 @@ func handleZoomGesture(
 		if e.GesturePhase == gui.GesturePhaseChanged {
 			e.IsHandled = true
 			zs, _ := loadZoomState(w, id)
-			ensureOrigBounds(&zs, pa, zoomX, zoomY)
+			ensureOrigBounds(&zs, pa.XAxis, pa.YAxis, zoomX, zoomY)
 
 			factor := float64(e.PinchScale)
 			if factor <= 0 {
@@ -314,7 +301,7 @@ func handleDragHover(
 			zs.Dragging = false
 			return false
 		}
-		ensureOrigBounds(&zs, pa, zoomX, zoomY)
+		ensureOrigBounds(&zs, pa.XAxis, pa.YAxis, zoomX, zoomY)
 		if zs.DragSelect {
 			zs.SelX0 = mx
 			zs.SelY0 = my
@@ -411,17 +398,18 @@ func finishRangeSelect(
 }
 
 // handleDoubleClickCheck detects mouse double-clicks via
-// frame counting and resets zoom. Returns true if a
+// wall-clock time and resets zoom. Returns true if a
 // double-click was detected.
 func handleDoubleClickCheck(
 	w *gui.Window, l *gui.Layout, e *gui.Event, id string,
 ) bool {
 	zs, _ := loadZoomState(w, id)
-	prev := zs.LastClickFrame
-	zs.LastClickFrame = e.FrameCount
+	now := time.Now().UnixMilli()
+	prev := zs.LastClickTime
+	zs.LastClickTime = now
 
-	if prev > 0 && e.FrameCount-prev <= zoomDoubleClickFrames {
-		zs.LastClickFrame = 0 // prevent triple-click
+	if prev > 0 && now-prev <= zoomDoubleClickMs {
+		zs.LastClickTime = 0 // prevent triple-click
 		if zs.Zoomed {
 			zs.Zoomed = false
 			zs.OrigStored = false
@@ -450,17 +438,34 @@ func handleZoomReset(w *gui.Window, l *gui.Layout, id string) {
 // rectangle if a drag-select is active. No-op otherwise.
 func drawSelectionRectIf(
 	ctx *render.Context, zs zoomState, pr plotRect,
+	th *theme.Theme,
 ) {
 	if !zs.Dragging || !zs.DragSelect {
 		return
 	}
-	drawSelectionRect(ctx, zs, pr)
+	drawSelectionRect(ctx, zs, pr, th)
+}
+
+// selectionColors returns the fill and border colors for the
+// selection rectangle, falling back to defaults when the theme
+// fields are zero-valued.
+func selectionColors(th *theme.Theme) (gui.Color, gui.Color) {
+	fill := th.SelectionFill
+	if fill == (gui.Color{}) {
+		fill = gui.RGBA(70, 130, 220, 30)
+	}
+	border := th.SelectionBorder
+	if border == (gui.Color{}) {
+		border = gui.RGBA(70, 130, 220, 180)
+	}
+	return fill, border
 }
 
 // drawSelectionRect renders the brush-to-zoom selection
 // rectangle during a drag-select operation.
 func drawSelectionRect(
 	ctx *render.Context, zs zoomState, pr plotRect,
+	th *theme.Theme,
 ) {
 	x0, x1 := zs.SelX0, zs.SelX1
 	y0, y1 := zs.SelY0, zs.SelY1
@@ -481,8 +486,7 @@ func drawSelectionRect(
 	if w <= 0 || h <= 0 {
 		return
 	}
-	fill := gui.RGBA(70, 130, 220, 30)
-	border := gui.RGBA(70, 130, 220, 180)
+	fill, border := selectionColors(th)
 	ctx.FilledRect(x0, y0, w, h, fill)
 	ctx.Rect(x0, y0, w, h, border, 1)
 }
@@ -498,8 +502,9 @@ func loadAndApplyZoom(
 	if !zs.Zoomed {
 		return zs
 	}
-	storeOrigBounds(&zs, xAxis, yAxis, zoomX, zoomY)
+	ensureOrigBounds(&zs, xAxis, yAxis, zoomX, zoomY)
 	applyZoomToAxes(zs, xAxis, yAxis, zoomX, zoomY)
+	// nil layout: draw-time save, version tracked via GenerateLayout
 	saveZoomState(w, nil, id, zs)
 	return zs
 }
@@ -603,22 +608,64 @@ func clipSegment(
 // --- Internal helpers ---
 
 // ensureOrigBounds stores the original axis domain if not
-// already captured.
+// already captured and initializes the zoom domain.
 func ensureOrigBounds(
-	zs *zoomState, pa plotArea, zoomX, zoomY bool,
+	zs *zoomState, xAxis, yAxis *axis.Linear,
+	zoomX, zoomY bool,
 ) {
 	if zs.OrigStored {
 		return
 	}
-	if zoomX && pa.XAxis != nil {
-		zs.OrigXMin, zs.OrigXMax = pa.XAxis.Domain()
+	if zoomX && xAxis != nil {
+		zs.OrigXMin, zs.OrigXMax = xAxis.Domain()
 	}
-	if zoomY && pa.YAxis != nil {
-		zs.OrigYMin, zs.OrigYMax = pa.YAxis.Domain()
+	if zoomY && yAxis != nil {
+		zs.OrigYMin, zs.OrigYMax = yAxis.Domain()
 	}
 	zs.OrigStored = true
 	if !zs.Zoomed {
 		zs.XMin, zs.XMax = zs.OrigXMin, zs.OrigXMax
 		zs.YMin, zs.YMax = zs.OrigYMin, zs.OrigYMax
 	}
+}
+
+// clampRectToPlot clamps a filled rectangle to the plot area.
+// Returns the adjusted (x, y, w, h) and whether any visible
+// area remains.
+func clampRectToPlot(
+	x, y, w, h, pLeft, pRight, pTop, pBottom float32,
+) (float32, float32, float32, float32, bool) {
+	x1 := x + w
+	y1 := y + h
+	x = max(x, pLeft)
+	y = max(y, pTop)
+	x1 = min(x1, pRight)
+	y1 = min(y1, pBottom)
+	w = x1 - x
+	h = y1 - y
+	if w <= 0 || h <= 0 {
+		return 0, 0, 0, 0, false
+	}
+	return x, y, w, h, true
+}
+
+// clampVerticalLine clamps a vertical line segment to the plot
+// area Y bounds. Returns the clamped (y0, y1) and whether any
+// visible portion remains.
+func clampVerticalLine(
+	y0, y1, pTop, pBottom float32,
+) (float32, float32, bool) {
+	if y0 > y1 {
+		y0, y1 = y1, y0
+	}
+	y0 = max(y0, pTop)
+	y1 = min(y1, pBottom)
+	return y0, y1, y0 < y1
+}
+
+// insidePlot returns whether a point is inside the plot area.
+func insidePlot(
+	x, y, pLeft, pRight, pTop, pBottom float32,
+) bool {
+	return x >= pLeft && x <= pRight && y >= pTop && y <= pBottom
 }

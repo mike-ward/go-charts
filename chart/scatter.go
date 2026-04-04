@@ -353,7 +353,7 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, sv.hidden)
 	saveLegendBounds(sv.win, cfg.ID, sv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	// Crosshair and tooltip.
 	if sv.hovering && sv.xAxis != nil {

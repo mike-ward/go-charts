@@ -82,6 +82,11 @@ type Theme struct {
 	// Crosshair
 	Crosshair CrosshairStyle
 
+	// Selection rectangle for brush-to-zoom.
+	// Zero values fall back to RGBA(70,130,220,30/180).
+	SelectionFill   gui.Color
+	SelectionBorder gui.Color
+
 	// Series palette
 	Palette []gui.Color
 

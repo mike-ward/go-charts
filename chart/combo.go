@@ -356,7 +356,7 @@ func (cv *comboView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, cv.hidden)
 	saveLegendBounds(cv.win, cfg.ID, cv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	// --- Crosshair and tooltip ---
 	if cv.hovering {
@@ -416,12 +416,9 @@ func (cv *comboView) drawBars(
 			barTop := min(by, baseline)
 			bh := float32(math.Abs(float64(by - baseline)))
 
-			if cfg.Radius > 0 {
-				ctx.FilledRoundedRect(bx, barTop, barWidth, bh,
-					cfg.Radius, color)
-			} else {
-				ctx.FilledRect(bx, barTop, barWidth, bh, color)
-			}
+			drawClampedBar(ctx, bx, barTop, barWidth, bh,
+				cfg.Radius, color,
+				left, cv.lastRight, top, bottom)
 			barIdx++
 		}
 	}

@@ -295,41 +295,8 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 			}
 			candleW = max(candleW, 1)
 
-			for si, s := range cfg.Series {
-				upHidden := cv.hidden[2*si]
-				downHidden := cv.hidden[2*si+1]
-				if upHidden && downHidden {
-					continue
-				}
-				for i, p := range s.Points {
-					if !finite(p.High) || !finite(p.Low) || !finite(p.Open) || !finite(p.Close) {
-						continue
-					}
-					isUp := p.Close >= p.Open
-					if isUp && upHidden {
-						continue
-					}
-					if !isUp && downHidden {
-						continue
-					}
-					cx := cv.xAxis.Transform(float64(i), left, right)
-					highPx := cv.yAxis.Transform(p.High, bottom, top)
-					lowPx := cv.yAxis.Transform(p.Low, bottom, top)
-					openPx := cv.yAxis.Transform(p.Open, bottom, top)
-					closePx := cv.yAxis.Transform(p.Close, bottom, top)
-
-					color := candleColor(s, isUp)
-
-					// Wick: high to low.
-					ctx.Line(cx, highPx, cx, lowPx, color, 1.5)
-
-					// Body.
-					bodyTop := min(openPx, closePx)
-					bodyH := float32(math.Abs(float64(closePx - openPx)))
-					bodyH = max(bodyH, 1)
-					ctx.FilledRect(cx-candleW/2, bodyTop, candleW, bodyH, color)
-				}
-			}
+			cv.drawCandles(ctx, cfg, candleW,
+				left, right, top, bottom)
 		}
 	}
 
@@ -352,7 +319,7 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, cv.hidden)
 	saveLegendBounds(cv.win, cfg.ID, cv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	if cv.hovering {
 		drawCrosshair(ctx, th, cv.hoverPx, cv.hoverPy, pr)
@@ -494,4 +461,53 @@ func candleColor(s series.OHLCSeries, isUp bool) gui.Color {
 		return c
 	}
 	return defaultCandleDown
+}
+
+// drawCandles renders all candle bodies and wicks, clamped to
+// the plot area.
+func (cv *candlestickView) drawCandles(
+	ctx *render.Context, cfg *CandlestickCfg,
+	candleW, left, right, top, bottom float32,
+) {
+	for si, s := range cfg.Series {
+		upHidden := cv.hidden[2*si]
+		downHidden := cv.hidden[2*si+1]
+		if upHidden && downHidden {
+			continue
+		}
+		for i, p := range s.Points {
+			if !finite(p.High) || !finite(p.Low) ||
+				!finite(p.Open) || !finite(p.Close) {
+				continue
+			}
+			isUp := p.Close >= p.Open
+			if isUp && upHidden {
+				continue
+			}
+			if !isUp && downHidden {
+				continue
+			}
+			cx := cv.xAxis.Transform(float64(i), left, right)
+			highPx := cv.yAxis.Transform(p.High, bottom, top)
+			lowPx := cv.yAxis.Transform(p.Low, bottom, top)
+			openPx := cv.yAxis.Transform(p.Open, bottom, top)
+			closePx := cv.yAxis.Transform(p.Close, bottom, top)
+
+			color := candleColor(s, isUp)
+
+			// Wick: high to low (clamped to plot Y).
+			if wy0, wy1, vis := clampVerticalLine(
+				highPx, lowPx, top, bottom); vis {
+				ctx.Line(cx, wy0, cx, wy1, color, 1.5)
+			}
+
+			// Body.
+			bodyTop := min(openPx, closePx)
+			bodyH := float32(math.Abs(float64(closePx - openPx)))
+			bodyH = max(bodyH, 1)
+			drawClampedBar(ctx, cx-candleW/2, bodyTop,
+				candleW, bodyH, 0, color,
+				left, right, top, bottom)
+		}
+	}
 }

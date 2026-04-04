@@ -315,30 +315,17 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 		bodyTop := min(q1Px, q3Px)
 		bodyH := float32(math.Abs(float64(q1Px - q3Px)))
 		bodyH = max(bodyH, 1)
-		ctx.FilledRect(cx-boxW/2, bodyTop, boxW, bodyH, color)
-		ctx.Rect(cx-boxW/2, bodyTop, boxW, bodyH,
-			th.AxisColor, th.AxisWidth)
-
-		// Median line.
-		ctx.Line(cx-boxW/2, medPx, cx+boxW/2, medPx,
-			th.AxisColor, 2.5)
-
-		// Whiskers: vertical lines.
-		ctx.Line(cx, q3Px, cx, maxPx, color, 1.5)
-		ctx.Line(cx, q1Px, cx, minPx, color, 1.5)
-
-		// Whisker caps.
-		capW := boxW / 4
-		ctx.Line(cx-capW, maxPx, cx+capW, maxPx, color, 1.5)
-		ctx.Line(cx-capW, minPx, cx+capW, minPx, color, 1.5)
-
-		// Outliers.
-		if showOutliers {
-			for _, v := range st.Outliers {
-				oy := bv.yAxis.Transform(v, bottom, top)
-				ctx.FilledCircle(cx, oy, outlierR, color)
-			}
+		bx, by, bw, bh, vis := clampRectToPlot(
+			cx-boxW/2, bodyTop, boxW, bodyH, left, right, top, bottom)
+		if vis {
+			ctx.FilledRect(bx, by, bw, bh, color)
+			ctx.Rect(bx, by, bw, bh, th.AxisColor, th.AxisWidth)
 		}
+
+		bv.drawWhiskers(ctx, th, st, cx, boxW, color,
+			q1Px, q3Px, medPx, minPx, maxPx,
+			showOutliers, outlierR,
+			left, right, top, bottom)
 	}
 
 	// X tick marks and labels.
@@ -372,7 +359,7 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, bv.hidden)
 	saveLegendBounds(bv.win, cfg.ID, bv.lastLB)
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	if bv.hovering {
 		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy, pr)
@@ -594,4 +581,47 @@ func median(sorted []float64) float64 {
 		return sorted[n/2]
 	}
 	return (sorted[n/2-1] + sorted[n/2]) / 2
+}
+
+// drawWhiskers draws the median line, whiskers, caps, and
+// outliers for a single box, clamped to the plot area.
+func (bv *boxplotView) drawWhiskers(
+	ctx *render.Context, th *theme.Theme,
+	st boxStats, cx, boxW float32, color gui.Color,
+	q1Px, q3Px, medPx, minPx, maxPx float32,
+	showOutliers bool, outlierR float32,
+	left, right, top, bottom float32,
+) {
+	// Median line.
+	if medPx >= top && medPx <= bottom {
+		ctx.Line(cx-boxW/2, medPx, cx+boxW/2, medPx,
+			th.AxisColor, 2.5)
+	}
+
+	// Whiskers and caps.
+	capW := boxW / 4
+	if wy0, wy1, vis := clampVerticalLine(
+		q3Px, maxPx, top, bottom); vis {
+		ctx.Line(cx, wy0, cx, wy1, color, 1.5)
+		if insidePlot(cx, maxPx, left, right, top, bottom) {
+			ctx.Line(cx-capW, maxPx, cx+capW, maxPx, color, 1.5)
+		}
+	}
+	if wy0, wy1, vis := clampVerticalLine(
+		q1Px, minPx, top, bottom); vis {
+		ctx.Line(cx, wy0, cx, wy1, color, 1.5)
+		if insidePlot(cx, minPx, left, right, top, bottom) {
+			ctx.Line(cx-capW, minPx, cx+capW, minPx, color, 1.5)
+		}
+	}
+
+	// Outliers.
+	if showOutliers {
+		for _, v := range st.Outliers {
+			oy := bv.yAxis.Transform(v, bottom, top)
+			if insidePlot(cx, oy, left, right, top, bottom) {
+				ctx.FilledCircle(cx, oy, outlierR, color)
+			}
+		}
+	}
 }

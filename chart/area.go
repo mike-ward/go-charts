@@ -394,13 +394,15 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 		cfg.LegendPosition, av.hidden)
 	saveLegendBounds(av.win, cfg.ID, av.lastLB)
 
-	// Enlarged point marker on hovered series.
-	if hovSI >= 0 && !av.hidden[hovSI] {
+	// Enlarged point marker on hovered series (only if inside plot).
+	if hovSI >= 0 && !av.hidden[hovSI] &&
+		hovPx >= left && hovPx <= right &&
+		hovPy >= top && hovPy <= bottom {
 		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
 		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
 
-	drawSelectionRectIf(ctx, zs, pr)
+	drawSelectionRectIf(ctx, zs, pr, th)
 
 	// Crosshair and tooltip.
 	if av.hovering && av.xAxis != nil {
