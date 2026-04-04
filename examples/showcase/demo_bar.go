@@ -9,10 +9,11 @@ import (
 func demoBarBasic(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-basic", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-basic",
-			Title:  "Sales by Region",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-basic",
+			Title:          "Sales by Region",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Series: []series.Category{
 			series.NewCategory(series.CategoryCfg{
@@ -63,10 +64,11 @@ func demoBarBasic(w *gui.Window) gui.View {
 func demoBarSingle(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-single", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-single",
-			Title:  "Monthly Rainfall (mm)",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-single",
+			Title:          "Monthly Rainfall (mm)",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Series: []series.Category{
 			series.NewCategory(series.CategoryCfg{
@@ -106,10 +108,11 @@ func demoBarSingle(w *gui.Window) gui.View {
 func demoBarWide(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-wide", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-wide",
-			Title:  "Department Headcount",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-wide",
+			Title:          "Department Headcount",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		BarWidth: 40,
 		Series: []series.Category{
@@ -149,10 +152,11 @@ func demoBarWide(w *gui.Window) gui.View {
 func demoBarHorizontal(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-horizontal", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-horizontal",
-			Title:  "Survey Results",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-horizontal",
+			Title:          "Survey Results",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Horizontal: true,
 		Series: []series.Category{
@@ -205,10 +209,11 @@ func demoBarHorizontal(w *gui.Window) gui.View {
 func demoBarStacked(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-stacked", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-stacked",
-			Title:  "Traffic by Channel",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-stacked",
+			Title:          "Traffic by Channel",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Stacked: true,
 		Series: []series.Category{
@@ -276,10 +281,11 @@ func demoBarStacked(w *gui.Window) gui.View {
 func demoBarRounded(w *gui.Window) gui.View {
 	return demoWithCode(w, "bar-rounded", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "bar-rounded",
-			Title:  "Product Revenue",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "bar-rounded",
+			Title:          "Product Revenue",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Radius: 4,
 		Series: []series.Category{

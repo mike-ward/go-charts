@@ -119,7 +119,7 @@ var demoEntries = []DemoEntry{
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},
 	{ID: "style_tick_marks", Label: "Tick Marks", Group: groupStyles, Summary: "Custom tick mark length, color, and width.", Tags: []string{"style", "tick", "marks", "axis"}},
-	{ID: "style_legend_pos", Label: "Legend Positions", Group: groupStyles, Summary: "Legend placed in each of the four corners.", Tags: []string{"style", "legend", "position", "corner"}},
+	{ID: "style_legend_pos", Label: "Legend Positions", Group: groupStyles, Summary: "Legend placed in corners, outside top/bottom/right, or hidden.", Tags: []string{"style", "legend", "position", "corner", "top", "bottom", "right", "none", "hidden"}},
 	{ID: "style_legend_cfg", Label: "Legend Styling", Group: groupStyles, Summary: "Custom swatch size, padding, gaps, and background.", Tags: []string{"style", "legend", "swatch", "padding", "gap"}},
 	{ID: "style_rotation", Label: "Rotated Labels", Group: groupStyles, Summary: "X-axis tick labels rotated for long category names.", Tags: []string{"style", "rotation", "labels", "tick", "angle"}},
 	{ID: "style_padding", Label: "Custom Padding", Group: groupStyles, Summary: "Tight versus spacious chart padding.", Tags: []string{"style", "padding", "spacing", "inset"}},

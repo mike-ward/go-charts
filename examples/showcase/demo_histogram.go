@@ -18,10 +18,11 @@ var histData = []float64{
 func demoHistogramBasic(w *gui.Window) gui.View {
 	return demoWithCode(w, "histogram-basic", chart.Histogram(chart.HistogramCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "histogram-basic",
-			Title:  "Score Distribution",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "histogram-basic",
+			Title:          "Score Distribution",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Data: histData,
 	}), `chart.Histogram(chart.HistogramCfg{
@@ -35,10 +36,11 @@ func demoHistogramBasic(w *gui.Window) gui.View {
 func demoHistogramDensity(w *gui.Window) gui.View {
 	return demoWithCode(w, "histogram-density", chart.Histogram(chart.HistogramCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "histogram-density",
-			Title:  "Score Density (20 bins)",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "histogram-density",
+			Title:          "Score Density (20 bins)",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Data:       histData,
 		Bins:       20,

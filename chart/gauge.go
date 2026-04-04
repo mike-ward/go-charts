@@ -214,6 +214,14 @@ func (gv *gaugeView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
+	names := make([]string, len(cfg.Zones))
+	for i, z := range cfg.Zones {
+		names[i] = z.Label
+	}
+	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
+	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
+	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
+
 	if right <= left || bottom <= top {
 		slog.Warn("plot area too small", "chart", cfg.ID)
 		return

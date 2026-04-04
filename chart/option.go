@@ -50,6 +50,10 @@ const (
 	LegendTopLeft     = theme.LegendTopLeft
 	LegendBottomRight = theme.LegendBottomRight
 	LegendBottomLeft  = theme.LegendBottomLeft
+	LegendNone        = theme.LegendNone
+	LegendBottom      = theme.LegendBottom
+	LegendRight       = theme.LegendRight
+	LegendTop         = theme.LegendTop
 )
 
 // Apply applies options to a BaseCfg. Chart constructors can

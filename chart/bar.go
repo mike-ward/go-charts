@@ -153,6 +153,13 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
+	names := make([]string, len(cfg.Series))
+	for i, s := range cfg.Series {
+		names[i] = s.Name()
+	}
+	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
+	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
+
 	if right <= left || bottom <= top {
 		slog.Warn("plot area too small", "chart", cfg.ID)
 		return
@@ -169,6 +176,15 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		return
 	}
 	nSeries := len(cfg.Series)
+
+	// Resolve bottom from actual category label widths.
+	maxTickW := float32(0)
+	for _, v := range labels {
+		maxTickW = max(maxTickW, ctx.TextWidth(v.Label, th.TickStyle))
+	}
+	bottom = ctx.Height() - resolveBottom(
+		ctx, th, maxTickW, cfg.XTickRotation, "")
+	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
 
 	// Recompute value axis only when version changes.
 	if bv.yAxis == nil || cfg.Version != bv.lastVersion {

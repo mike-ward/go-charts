@@ -9,10 +9,11 @@ import (
 func demoScatter(w *gui.Window) gui.View {
 	return demoWithCode(w, "scatter-basic", chart.Scatter(chart.ScatterCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "scatter-basic",
-			Title:  "Height vs Weight",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "scatter-basic",
+			Title:          "Height vs Weight",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
@@ -50,10 +51,11 @@ func demoScatter(w *gui.Window) gui.View {
 func demoScatterMarkers(w *gui.Window) gui.View {
 	return demoWithCode(w, "scatter-markers", chart.Scatter(chart.ScatterCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "scatter-markers",
-			Title:  "Wind Speed vs Temperature",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "scatter-markers",
+			Title:          "Wind Speed vs Temperature",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Marker: chart.MarkerSquare,
 		Series: []series.XY{

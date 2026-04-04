@@ -9,10 +9,11 @@ import (
 func demoArea(w *gui.Window) gui.View {
 	return demoWithCode(w, "area-basic", chart.Area(chart.AreaCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "area-basic",
-			Title:  "User Signups",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "area-basic",
+			Title:          "User Signups",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
@@ -57,10 +58,11 @@ func demoArea(w *gui.Window) gui.View {
 func demoAreaStacked(w *gui.Window) gui.View {
 	return demoWithCode(w, "area-stacked", chart.Area(chart.AreaCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "area-stacked",
-			Title:  "Revenue by Product",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "area-stacked",
+			Title:          "Revenue by Product",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Stacked: true,
 		Series: []series.XY{

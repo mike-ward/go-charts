@@ -8,10 +8,11 @@ import (
 func demoPie(w *gui.Window) gui.View {
 	return demoWithCode(w, "pie-basic", chart.Pie(chart.PieCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "pie-basic",
-			Title:  "Browser Market Share",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "pie-basic",
+			Title:          "Browser Market Share",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		ShowLabels:  true,
 		ShowPercent: true,
@@ -41,10 +42,11 @@ func demoPie(w *gui.Window) gui.View {
 func demoDonut(w *gui.Window) gui.View {
 	return demoWithCode(w, "pie-donut", chart.Pie(chart.PieCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "pie-donut",
-			Title:  "Budget Allocation",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "pie-donut",
+			Title:          "Budget Allocation",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		InnerRadius: 60,
 		ShowLabels:  true,

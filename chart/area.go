@@ -248,6 +248,13 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
+	names := make([]string, len(cfg.Series))
+	for i, s := range cfg.Series {
+		names[i] = s.Name()
+	}
+	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
+	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
+
 	if right <= left || bottom <= top {
 		slog.Warn("plot area too small", "chart", cfg.ID)
 		return
@@ -265,6 +272,11 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	yAxis := av.yAxis
 
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
+
+	bottom = ctx.Height() - resolveBottom(ctx, th,
+		maxTickLabelWidth(ctx, xAxis.Ticks(left, right), th.TickStyle),
+		cfg.XTickRotation, xAxis.Label())
+	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
 
 	av.yTicks = yAxis.Ticks(bottom, top)
 	av.xTicks = xAxis.Ticks(left, right)

@@ -8,10 +8,11 @@ import (
 func demoGauge(w *gui.Window) gui.View {
 	return demoWithCode(w, "gauge-basic", chart.Gauge(chart.GaugeCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "gauge-basic",
-			Title:  "CPU Usage",
-			Sizing: gui.FillFixed,
-			Height: 300,
+			ID:             "gauge-basic",
+			Title:          "CPU Usage",
+			Sizing:         gui.FillFixed,
+			Height:         300,
+			LegendPosition: &posBottom,
 		},
 		Value:      72,
 		ShowValue:  true,
@@ -39,10 +40,11 @@ func demoGauge(w *gui.Window) gui.View {
 func demoGaugeSimple(w *gui.Window) gui.View {
 	return demoWithCode(w, "gauge-simple", chart.Gauge(chart.GaugeCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "gauge-simple",
-			Title:  "Completion",
-			Sizing: gui.FillFixed,
-			Height: 300,
+			ID:             "gauge-simple",
+			Title:          "Completion",
+			Sizing:         gui.FillFixed,
+			Height:         300,
+			LegendPosition: &posBottom,
 		},
 		Value:       65,
 		ShowValue:   true,

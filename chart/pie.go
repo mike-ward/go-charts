@@ -240,6 +240,14 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
+	names := make([]string, len(cfg.Slices))
+	for i, s := range cfg.Slices {
+		names[i] = s.Label
+	}
+	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
+	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
+	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
+
 	if right <= left || bottom <= top {
 		slog.Warn("plot area too small", "chart", cfg.ID)
 		return

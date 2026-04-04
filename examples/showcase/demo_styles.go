@@ -36,11 +36,12 @@ func demoPaletteSwap(w *gui.Window) gui.View {
 		t.Palette = palette
 		return chart.Line(chart.LineCfg{
 			BaseCfg: chart.BaseCfg{
-				ID:     id,
-				Title:  title,
-				Sizing: gui.FillFixed,
-				Height: 200,
-				Theme:  t,
+				ID:             id,
+				Title:          title,
+				Sizing:         gui.FillFixed,
+				Height:         200,
+				Theme:          t,
+				LegendPosition: &posBottom,
 			},
 			ShowMarkers: true,
 			Series:      styleSeries(),
@@ -79,11 +80,12 @@ func demoTickMarks(w *gui.Window) gui.View {
 
 	return demoWithCode(w, "style-tick-marks", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "tick-marks",
-			Title:  "Custom Tick Marks",
-			Sizing: gui.FillFixed,
-			Height: 350,
-			Theme:  t,
+			ID:             "tick-marks",
+			Title:          "Custom Tick Marks",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			Theme:          t,
+			LegendPosition: &posBottom,
 		},
 		ShowMarkers: true,
 		Series:      styleSeries(),
@@ -113,6 +115,10 @@ func demoLegendPositions(w *gui.Window) gui.View {
 		{"legend-tr", "TopRight", theme.LegendTopRight},
 		{"legend-bl", "BottomLeft", theme.LegendBottomLeft},
 		{"legend-br", "BottomRight", theme.LegendBottomRight},
+		{"legend-top", "Top (Outside)", theme.LegendTop},
+		{"legend-bottom", "Bottom (Outside)", theme.LegendBottom},
+		{"legend-right", "Right (Outside)", theme.LegendRight},
+		{"legend-none", "None (Hidden)", theme.LegendNone},
 	}
 
 	charts := make([]gui.View, len(positions))
@@ -135,11 +141,11 @@ func demoLegendPositions(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Spacing: gui.SomeF(16),
 		Content: charts,
-	}), `pos := theme.LegendBottomLeft
+	}), `pos := theme.LegendTop // or LegendBottom, LegendRight, LegendNone
 
 chart.Line(chart.LineCfg{
     BaseCfg: chart.BaseCfg{
-        Title:          "BottomLeft",
+        Title:          "Right (Outside)",
         LegendPosition: &pos,
     },
     Series: data,
@@ -149,7 +155,7 @@ chart.Line(chart.LineCfg{
 func demoLegendStyling(w *gui.Window) gui.View {
 	t := theme.Default()
 	t.Legend = theme.LegendStyle{
-		Position:   theme.LegendTopLeft,
+		Position:   theme.LegendBottom,
 		Background: gui.RGBA(40, 40, 80, 180),
 		SwatchSize: 16,
 		Padding:    10,
@@ -159,17 +165,18 @@ func demoLegendStyling(w *gui.Window) gui.View {
 
 	return demoWithCode(w, "style-legend-cfg", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "legend-styled",
-			Title:  "Custom Legend Style",
-			Sizing: gui.FillFixed,
-			Height: 350,
-			Theme:  t,
+			ID:             "legend-styled",
+			Title:          "Custom Legend Style",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			Theme:          t,
+			LegendPosition: &posBottom,
 		},
 		ShowMarkers: true,
 		Series:      styleSeries(),
 	}), `t := theme.Default()
 t.Legend = theme.LegendStyle{
-    Position:   theme.LegendTopLeft,
+    Position:   theme.LegendBottom,
     Background: gui.RGBA(40, 40, 80, 180),
     SwatchSize: 16,  // default 12
     Padding:    10,  // default 6
@@ -203,11 +210,12 @@ func demoRotatedLabels(w *gui.Window) gui.View {
 
 	return demoWithCode(w, "style-rotation", chart.Bar(chart.BarCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:            "rotated-labels",
-			Title:         "Revenue by Region",
-			Sizing:        gui.FillFixed,
-			Height:        380,
-			XTickRotation: -math.Pi / 6,
+			ID:             "rotated-labels",
+			Title:          "Revenue by Region",
+			Sizing:         gui.FillFixed,
+			Height:         380,
+			XTickRotation:  -math.Pi / 6,
+			LegendPosition: &posBottom,
 		},
 		Series: data,
 	}), `chart.Bar(chart.BarCfg{
@@ -249,21 +257,23 @@ func demoCustomPadding(w *gui.Window) gui.View {
 		Content: []gui.View{
 			chart.Line(chart.LineCfg{
 				BaseCfg: chart.BaseCfg{
-					ID:     "padding-tight",
-					Title:  "Tight Padding",
-					Sizing: gui.FillFixed,
-					Height: 250,
-					Theme:  spacious,
+					ID:             "padding-tight",
+					Title:          "Tight Padding",
+					Sizing:         gui.FillFixed,
+					Height:         250,
+					Theme:          spacious,
+					LegendPosition: &posBottom,
 				},
 				Series: styleSeries(),
 			}),
 			chart.Line(chart.LineCfg{
 				BaseCfg: chart.BaseCfg{
-					ID:     "padding-spacious",
-					Title:  "Spacious Padding",
-					Sizing: gui.FillFixed,
-					Height: 250,
-					Theme:  tight,
+					ID:             "padding-spacious",
+					Title:          "Spacious Padding",
+					Sizing:         gui.FillFixed,
+					Height:         250,
+					Theme:          tight,
+					LegendPosition: &posBottom,
 				},
 				Series: styleSeries(),
 			}),
@@ -303,7 +313,7 @@ func demoKitchenSink(w *gui.Window) gui.View {
 		Width:  1.5,
 	}
 	t.Legend = theme.LegendStyle{
-		Position:   theme.LegendBottomRight,
+		Position:   theme.LegendBottom,
 		Background: gui.RGBA(26, 26, 46, 200),
 		SwatchSize: 14,
 		Padding:    8,
@@ -325,7 +335,7 @@ func demoKitchenSink(w *gui.Window) gui.View {
 		AutoRange: true,
 	})
 
-	pos := theme.LegendBottomRight
+	pos := theme.LegendBottom
 
 	return demoWithCode(w, "style-kitchen", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
@@ -355,7 +365,7 @@ t.TickMark = theme.TickMarkStyle{
     Width:  1.5,
 }
 t.Legend = theme.LegendStyle{
-    Position:   theme.LegendBottomRight,
+    Position:   theme.LegendBottom,
     Background: gui.RGBA(26, 26, 46, 200),
     SwatchSize: 14,
     Padding:    8,
@@ -365,7 +375,7 @@ t.PaddingTop = 50
 t.PaddingBottom = 70
 t.PaddingLeft = 70
 
-pos := theme.LegendBottomRight
+pos := theme.LegendBottom
 
 chart.Line(chart.LineCfg{
     BaseCfg: chart.BaseCfg{

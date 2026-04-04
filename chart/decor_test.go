@@ -301,6 +301,177 @@ func TestDrawLegendCustomTextStyle(t *testing.T) {
 	}
 }
 
+// --- LegendNone ---
+
+func TestDrawLegendNone(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendNone
+	entries := []legendEntry{
+		{Name: "A", Color: gui.Hex(0xFF0000)},
+		{Name: "B", Color: gui.Hex(0x00FF00)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
+	if len(dc.Texts()) != 0 {
+		t.Errorf("LegendNone should produce no text, got %d",
+			len(dc.Texts()))
+	}
+	if len(dc.Batches()) != 0 {
+		t.Errorf("LegendNone should produce no batches, got %d",
+			len(dc.Batches()))
+	}
+}
+
+func TestDrawLegendNoneViaTheme(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	th.Legend.Position = theme.LegendNone
+	entries := []legendEntry{
+		{Name: "A", Color: gui.Hex(0xFF0000)},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, nil, nil)
+	if len(dc.Texts()) != 0 {
+		t.Errorf("LegendNone via theme should produce no text, got %d",
+			len(dc.Texts()))
+	}
+}
+
+// --- LegendBottom ---
+
+func TestDrawLegendBottom(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendBottom
+	entries := []legendEntry{
+		{Name: "Alpha", Color: gui.Hex(0xFF0000), Index: 0},
+		{Name: "Beta", Color: gui.Hex(0x00FF00), Index: 1},
+	}
+	lb := drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
+	// Should render 2 text labels.
+	if len(dc.Texts()) != 2 {
+		t.Fatalf("texts = %d, want 2", len(dc.Texts()))
+	}
+	// Should have background + 2 swatches.
+	if len(dc.Batches()) == 0 {
+		t.Error("expected batches for legend background/swatches")
+	}
+	// Hit-test bounds should have 2 entries.
+	if len(lb.EntryRects) != 2 {
+		t.Fatalf("entry rects = %d, want 2", len(lb.EntryRects))
+	}
+	// Legend should be near bottom of canvas.
+	for _, r := range lb.EntryRects {
+		if r.Y < 200 {
+			t.Errorf("legend entry Y=%v, expected near bottom", r.Y)
+		}
+	}
+}
+
+func TestDrawLegendBottomSingleEntry(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendBottom
+	entries := []legendEntry{
+		{Name: "Solo", Color: gui.Hex(0xFF0000), Index: 0},
+	}
+	drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
+	if len(dc.Texts()) != 1 {
+		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
+	}
+}
+
+// --- LegendRight ---
+
+func TestDrawLegendRight(t *testing.T) {
+	ctx, dc := testCtx(500, 300)
+	th := testTheme()
+	pos := theme.LegendRight
+	entries := []legendEntry{
+		{Name: "Alpha", Color: gui.Hex(0xFF0000), Index: 0},
+		{Name: "Beta", Color: gui.Hex(0x00FF00), Index: 1},
+	}
+	lb := drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
+	if len(dc.Texts()) != 2 {
+		t.Fatalf("texts = %d, want 2", len(dc.Texts()))
+	}
+	if len(dc.Batches()) == 0 {
+		t.Error("expected batches for legend background/swatches")
+	}
+	if len(lb.EntryRects) != 2 {
+		t.Fatalf("entry rects = %d, want 2", len(lb.EntryRects))
+	}
+	// Legend should be to the right of the plot area.
+	for _, r := range lb.EntryRects {
+		if r.X < 380 {
+			t.Errorf("legend entry X=%v, expected right of plot (380)",
+				r.X)
+		}
+	}
+}
+
+func TestDrawLegendRightTopAligned(t *testing.T) {
+	ctx, dc := testCtx(500, 300)
+	th := testTheme()
+	pos := theme.LegendRight
+	entries := []legendEntry{
+		{Name: "Solo", Color: gui.Hex(0xFF0000), Index: 0},
+	}
+	lb := drawLegend(ctx, entries, th, 60, 380, 40, 260, &pos, nil)
+	if len(dc.Texts()) != 1 {
+		t.Fatalf("texts = %d, want 1", len(dc.Texts()))
+	}
+	// Top of legend box should be at plot top (40).
+	if lb.EntryRects[0].Y < 40 || lb.EntryRects[0].Y > 60 {
+		t.Errorf("legend Y=%v, expected near top (40)",
+			lb.EntryRects[0].Y)
+	}
+}
+
+// --- LegendTop ---
+
+func TestDrawLegendTop(t *testing.T) {
+	ctx, dc := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendTop
+	entries := []legendEntry{
+		{Name: "Alpha", Color: gui.Hex(0xFF0000), Index: 0},
+		{Name: "Beta", Color: gui.Hex(0x00FF00), Index: 1},
+	}
+	// top=80 simulates reserve having pushed it down from 40.
+	lb := drawLegend(ctx, entries, th, 60, 380, 80, 260, &pos, nil)
+	if len(dc.Texts()) != 2 {
+		t.Fatalf("texts = %d, want 2", len(dc.Texts()))
+	}
+	if len(dc.Batches()) == 0 {
+		t.Error("expected batches for legend background/swatches")
+	}
+	if len(lb.EntryRects) != 2 {
+		t.Fatalf("entry rects = %d, want 2", len(lb.EntryRects))
+	}
+	// Legend should be above the plot top (80).
+	for _, r := range lb.EntryRects {
+		if r.Y >= 80 {
+			t.Errorf("legend entry Y=%v, expected above plot top (80)",
+				r.Y)
+		}
+	}
+}
+
+func TestLegendTopReserve(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	names := []string{"Alpha", "Beta"}
+	r := legendTopReserve(ctx, th, nil, names, 60, 380)
+	if r != 0 {
+		t.Errorf("default position should reserve 0, got %v", r)
+	}
+	pos := theme.LegendTop
+	r = legendTopReserve(ctx, th, &pos, names, 60, 380)
+	if r <= 0 {
+		t.Error("LegendTop should reserve positive space")
+	}
+}
+
 // --- Tick mark style ---
 
 func TestResolvedTickMarkDefaults(t *testing.T) {
@@ -362,5 +533,108 @@ func TestLineXTickRotation(t *testing.T) {
 	}
 	if !found {
 		t.Error("no X tick label with expected rotation")
+	}
+}
+
+// --- legendRightReserve ---
+
+func TestLegendRightReserveDefault(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	names := []string{"Alpha", "Beta"}
+	r := legendRightReserve(ctx, th, nil, names)
+	if r != 0 {
+		t.Errorf("default position should reserve 0, got %v", r)
+	}
+}
+
+func TestLegendRightReserveActive(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendRight
+	names := []string{"Alpha", "Beta"}
+	r := legendRightReserve(ctx, th, &pos, names)
+	if r <= 0 {
+		t.Error("LegendRight should reserve positive space")
+	}
+}
+
+func TestLegendRightReserveAllEmpty(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendRight
+	names := []string{"", ""}
+	r := legendRightReserve(ctx, th, &pos, names)
+	if r != 0 {
+		t.Errorf("all-empty names should reserve 0, got %v", r)
+	}
+}
+
+// --- legendBottomReserve ---
+
+func TestLegendBottomReserveDefault(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	names := []string{"Alpha", "Beta"}
+	r := legendBottomReserve(ctx, th, nil, names, 60, 380)
+	if r != 0 {
+		t.Errorf("default position should reserve 0, got %v", r)
+	}
+}
+
+func TestLegendBottomReserveActive(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendBottom
+	names := []string{"Alpha", "Beta"}
+	r := legendBottomReserve(ctx, th, &pos, names, 60, 380)
+	if r <= 0 {
+		t.Error("LegendBottom should reserve positive space")
+	}
+}
+
+func TestLegendBottomReserveAllEmpty(t *testing.T) {
+	ctx, _ := testCtx(400, 300)
+	th := testTheme()
+	pos := theme.LegendBottom
+	names := []string{"", ""}
+	r := legendBottomReserve(ctx, th, &pos, names, 60, 380)
+	if r != 0 {
+		t.Errorf("all-empty names should reserve 0, got %v", r)
+	}
+}
+
+// --- legendHitTest ---
+
+func TestLegendHitTestHit(t *testing.T) {
+	lb := legendBounds{
+		EntryRects: []legendEntryRect{
+			{Index: 0, X: 10, Y: 10, Width: 80, Height: 20},
+			{Index: 1, X: 10, Y: 35, Width: 80, Height: 20},
+		},
+	}
+	if idx := legendHitTest(lb, 50, 15); idx != 0 {
+		t.Errorf("expected 0, got %d", idx)
+	}
+	if idx := legendHitTest(lb, 50, 40); idx != 1 {
+		t.Errorf("expected 1, got %d", idx)
+	}
+}
+
+func TestLegendHitTestMiss(t *testing.T) {
+	lb := legendBounds{
+		EntryRects: []legendEntryRect{
+			{Index: 0, X: 10, Y: 10, Width: 80, Height: 20},
+		},
+	}
+	if idx := legendHitTest(lb, 200, 200); idx != -1 {
+		t.Errorf("expected -1, got %d", idx)
+	}
+}
+
+func TestLegendHitTestEmpty(t *testing.T) {
+	lb := legendBounds{}
+	if idx := legendHitTest(lb, 50, 50); idx != -1 {
+		t.Errorf("expected -1, got %d", idx)
 	}
 }

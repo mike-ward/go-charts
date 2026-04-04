@@ -127,6 +127,246 @@ func drawYAxisLabel(
 	ctx.Text(x, y, label, style)
 }
 
+// maxTickLabelWidth returns the widest tick label in pixels.
+func maxTickLabelWidth(
+	ctx *render.Context, ticks []axis.Tick, style gui.TextStyle,
+) float32 {
+	maxW := float32(0)
+	for _, t := range ticks {
+		maxW = max(maxW, ctx.TextWidth(t.Label, style))
+	}
+	return maxW
+}
+
+// resolveBottom computes the bottom padding needed for X-axis
+// decorations: tick marks, tick labels (accounting for rotation),
+// and the optional axis title. Returns the pixel distance from
+// the canvas bottom to the X-axis line.
+func resolveBottom(
+	ctx *render.Context, th *theme.Theme,
+	maxTickLabelWidth, xTickRotation float32,
+	xAxisLabel string,
+) float32 {
+	tickLen, _, _ := resolvedTickMark(th)
+	tickFH := ctx.FontHeight(th.TickStyle)
+
+	var tickLabelH float32
+	if xTickRotation != 0 {
+		sinA := float32(math.Abs(math.Sin(float64(xTickRotation))))
+		cosA := float32(math.Abs(math.Cos(float64(xTickRotation))))
+		tickLabelH = sinA*maxTickLabelWidth + cosA*tickFH
+	} else {
+		tickLabelH = tickFH
+	}
+
+	// tick marks + gap + labels + margin
+	needed := tickLen + 2 + tickLabelH + 6
+	if xAxisLabel != "" {
+		labelFH := ctx.FontHeight(th.LabelStyle)
+		needed += 6 + labelFH
+	}
+	return needed
+}
+
+// legendRightReserve returns the horizontal space to subtract
+// from the right edge of the plot area when LegendRight is
+// active. Returns 0 for all other positions.
+func legendRightReserve(
+	ctx *render.Context, th *theme.Theme,
+	posOverride *theme.LegendPosition,
+	names []string,
+) float32 {
+	pos := th.Legend.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+	if pos != theme.LegendRight {
+		return 0
+	}
+
+	ls := th.Legend
+	style := ls.TextStyle
+	if !style.Color.IsSet() && style.Size == 0 {
+		style = th.LabelStyle
+	}
+	swatchSize := ls.SwatchSize
+	if swatchSize == 0 {
+		swatchSize = 12
+	}
+	padding := ls.Padding
+	if padding == 0 {
+		padding = 6
+	}
+	itemGap := ls.ItemGap
+	if itemGap == 0 {
+		itemGap = 4
+	}
+
+	maxW := float32(0)
+	any := false
+	for _, n := range names {
+		if n == "" {
+			continue
+		}
+		any = true
+		w := ctx.TextWidth(n, style)
+		maxW = max(maxW, w)
+	}
+	if !any {
+		return 0
+	}
+	// box width + gap between plot edge and legend
+	return padding*2 + swatchSize + itemGap + maxW + 8
+}
+
+// legendTopReserve returns the vertical space to add to the top
+// edge of the plot area when LegendTop is active. Returns 0 for
+// all other positions.
+func legendTopReserve(
+	ctx *render.Context, th *theme.Theme,
+	posOverride *theme.LegendPosition,
+	names []string,
+	left, right float32,
+) float32 {
+	pos := th.Legend.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+	if pos != theme.LegendTop {
+		return 0
+	}
+
+	ls := th.Legend
+	style := ls.TextStyle
+	if !style.Color.IsSet() && style.Size == 0 {
+		style = th.LabelStyle
+	}
+	swatchSize := ls.SwatchSize
+	if swatchSize == 0 {
+		swatchSize = 12
+	}
+	padding := ls.Padding
+	if padding == 0 {
+		padding = 6
+	}
+	itemGap := ls.ItemGap
+	if itemGap == 0 {
+		itemGap = 4
+	}
+	rowGap := ls.RowGap
+	if rowGap == 0 {
+		rowGap = 2
+	}
+
+	fh := ctx.FontHeight(style)
+	rowH := max(fh, swatchSize)
+
+	// Count rows needed for the horizontal layout.
+	const interItemGap = float32(12)
+	availW := right - left
+	nRows := 1
+	rowW := float32(0)
+	any := false
+	for _, n := range names {
+		if n == "" {
+			continue
+		}
+		any = true
+		tw := ctx.TextWidth(n, style)
+		w := swatchSize + itemGap + tw
+		addition := w
+		if rowW > 0 {
+			addition += interItemGap
+		}
+		if rowW > 0 && rowW+addition > availW {
+			nRows++
+			rowW = w
+		} else {
+			rowW += addition
+		}
+	}
+	if !any {
+		return 0
+	}
+	// box height + gap below legend
+	return padding*2 +
+		float32(nRows)*rowH +
+		float32(max(nRows-1, 0))*rowGap + 8
+}
+
+// legendBottomReserve returns the vertical space to add to the
+// bottom edge of the plot area when LegendBottom is active.
+// Returns 0 for all other positions.
+func legendBottomReserve(
+	ctx *render.Context, th *theme.Theme,
+	posOverride *theme.LegendPosition,
+	names []string,
+	left, right float32,
+) float32 {
+	pos := th.Legend.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+	if pos != theme.LegendBottom {
+		return 0
+	}
+
+	ls := th.Legend
+	style := ls.TextStyle
+	if !style.Color.IsSet() && style.Size == 0 {
+		style = th.LabelStyle
+	}
+	swatchSize := ls.SwatchSize
+	if swatchSize == 0 {
+		swatchSize = 12
+	}
+	padding := ls.Padding
+	if padding == 0 {
+		padding = 6
+	}
+	itemGap := ls.ItemGap
+	if itemGap == 0 {
+		itemGap = 4
+	}
+	rowGap := ls.RowGap
+	if rowGap == 0 {
+		rowGap = 2
+	}
+
+	fh := ctx.FontHeight(style)
+	rowH := max(fh, swatchSize)
+
+	const interItemGap = float32(12)
+	availW := right - left
+	nRows := 1
+	rowW := float32(0)
+	any := false
+	for _, n := range names {
+		if n == "" {
+			continue
+		}
+		any = true
+		tw := ctx.TextWidth(n, style)
+		w := swatchSize + itemGap + tw
+		addition := w
+		if rowW > 0 {
+			addition += interItemGap
+		}
+		if rowW > 0 && rowW+addition > availW {
+			nRows++
+			rowW = w
+		} else {
+			rowW += addition
+		}
+	}
+	if !any {
+		return 0
+	}
+	return padding*2 +
+		float32(nRows)*rowH +
+		float32(max(nRows-1, 0))*rowGap
+}
+
 // drawLegend renders the legend in the plot area. Position is
 // determined by the theme LegendStyle with an optional per-chart
 // override. Hidden entries are drawn dimmed with a strikethrough.
@@ -178,8 +418,36 @@ func drawLegend(
 		rowGap = 2
 	}
 
+	// Determine position.
+	pos := ls.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+
+	if pos == theme.LegendNone {
+		return legendBounds{}
+	}
+
 	fh := ctx.FontHeight(style)
 	rowH := max(fh, swatchSize)
+
+	if pos == theme.LegendBottom {
+		return drawLegendBottom(ctx, named, hidden,
+			style, bgColor, swatchSize, padding,
+			itemGap, rowGap, fh, rowH, left, right)
+	}
+
+	if pos == theme.LegendRight {
+		return drawLegendRight(ctx, named, hidden,
+			style, bgColor, swatchSize, padding,
+			itemGap, rowGap, fh, rowH, right, top)
+	}
+
+	if pos == theme.LegendTop {
+		return drawLegendTop(ctx, named, hidden,
+			style, bgColor, swatchSize, padding,
+			itemGap, rowGap, fh, rowH, left, right, top)
+	}
 
 	// Measure widest entry.
 	maxW := float32(0)
@@ -193,11 +461,6 @@ func drawLegend(
 		float32(len(named))*rowH +
 		float32(len(named)-1)*rowGap
 
-	// Determine position.
-	pos := ls.Position
-	if posOverride != nil {
-		pos = *posOverride
-	}
 	var bx, by float32
 	switch pos {
 	case theme.LegendTopLeft:
@@ -260,6 +523,315 @@ func drawLegend(
 		tx := sx + swatchSize + itemGap
 		ty := ey + (rowH-fh)/2
 		ctx.Text(tx, ty, e.Name, textStyle)
+	}
+
+	return lb
+}
+
+// drawLegendBottom renders a horizontal legend centered below the
+// plot area. Items wrap to additional rows when they exceed the
+// available width.
+func drawLegendBottom(
+	ctx *render.Context,
+	entries []legendEntry,
+	hidden map[int]bool,
+	style gui.TextStyle,
+	bgColor gui.Color,
+	swatchSize, padding, itemGap, rowGap,
+	fh, rowH, left, right float32,
+) legendBounds {
+	const interItemGap = float32(12)
+
+	// Measure each item's width.
+	type itemInfo struct {
+		width float32
+	}
+	items := make([]itemInfo, len(entries))
+	for i, e := range entries {
+		tw := ctx.TextWidth(e.Name, style)
+		items[i] = itemInfo{width: swatchSize + itemGap + tw}
+	}
+
+	// Layout rows, wrapping when the row exceeds available width.
+	availW := right - left
+	type layoutRow struct {
+		start, end int // index range [start, end)
+		width      float32
+	}
+	var rows []layoutRow
+	rowStart := 0
+	rowW := float32(0)
+	for i, item := range items {
+		addition := item.width
+		if i > rowStart {
+			addition += interItemGap
+		}
+		if i > rowStart && rowW+addition > availW {
+			rows = append(rows, layoutRow{rowStart, i, rowW})
+			rowStart = i
+			rowW = item.width
+		} else {
+			rowW += addition
+		}
+	}
+	if rowStart < len(items) {
+		rows = append(rows, layoutRow{rowStart, len(items), rowW})
+	}
+
+	// Compute box dimensions.
+	maxRowW := float32(0)
+	for _, r := range rows {
+		maxRowW = max(maxRowW, r.width)
+	}
+	boxW := maxRowW + padding*2
+	boxH := padding*2 +
+		float32(len(rows))*rowH +
+		float32(max(len(rows)-1, 0))*rowGap
+
+	// Position centered horizontally, at the bottom of the canvas.
+	bx := (left + right - boxW) / 2
+	by := ctx.Height() - boxH
+
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+
+	// Draw entries row by row.
+	lb := legendBounds{
+		EntryRects: make([]legendEntryRect, len(entries)),
+	}
+	for ri, r := range rows {
+		ey := by + padding + float32(ri)*(rowH+rowGap)
+		// Center this row within the box.
+		x := bx + padding + (maxRowW-r.width)/2
+		for i := r.start; i < r.end; i++ {
+			if i > r.start {
+				x += interItemGap
+			}
+			e := entries[i]
+			lb.EntryRects[i] = legendEntryRect{
+				Index:  e.Index,
+				X:      x,
+				Y:      ey,
+				Width:  items[i].width,
+				Height: rowH,
+			}
+
+			isHidden := hidden[e.Index]
+			color := e.Color
+			ts := style
+			if isHidden {
+				color = dimColor(color, HoverDimAlpha)
+				ts.Color = gui.RGBA(
+					style.Color.R, style.Color.G,
+					style.Color.B, HoverDimAlpha)
+			}
+
+			// Color swatch.
+			sy := ey + (rowH-swatchSize)/2
+			ctx.FilledRoundedRect(x, sy,
+				swatchSize, swatchSize, 2, color)
+
+			if isHidden {
+				mid := sy + swatchSize/2
+				ctx.Line(x-1, mid, x+swatchSize+1, mid,
+					gui.RGBA(200, 200, 200, 180), 1.5)
+			}
+
+			// Label.
+			tx := x + swatchSize + itemGap
+			ty := ey + (rowH-fh)/2
+			ctx.Text(tx, ty, e.Name, ts)
+
+			x += items[i].width
+		}
+	}
+
+	return lb
+}
+
+// drawLegendTop renders a horizontal legend centered between the
+// title and the plot area. Items wrap to additional rows when
+// they exceed the available width. top is the adjusted plot-area
+// top (after legendTopReserve has been applied).
+func drawLegendTop(
+	ctx *render.Context,
+	entries []legendEntry,
+	hidden map[int]bool,
+	style gui.TextStyle,
+	bgColor gui.Color,
+	swatchSize, padding, itemGap, rowGap,
+	fh, rowH, left, right, top float32,
+) legendBounds {
+	const interItemGap = float32(12)
+
+	type itemInfo struct{ width float32 }
+	items := make([]itemInfo, len(entries))
+	for i, e := range entries {
+		tw := ctx.TextWidth(e.Name, style)
+		items[i] = itemInfo{width: swatchSize + itemGap + tw}
+	}
+
+	availW := right - left
+	type layoutRow struct {
+		start, end int
+		width      float32
+	}
+	var rows []layoutRow
+	rowStart := 0
+	rowW := float32(0)
+	for i, item := range items {
+		addition := item.width
+		if i > rowStart {
+			addition += interItemGap
+		}
+		if i > rowStart && rowW+addition > availW {
+			rows = append(rows, layoutRow{rowStart, i, rowW})
+			rowStart = i
+			rowW = item.width
+		} else {
+			rowW += addition
+		}
+	}
+	if rowStart < len(items) {
+		rows = append(rows, layoutRow{rowStart, len(items), rowW})
+	}
+
+	maxRowW := float32(0)
+	for _, r := range rows {
+		maxRowW = max(maxRowW, r.width)
+	}
+	boxW := maxRowW + padding*2
+	boxH := padding*2 +
+		float32(len(rows))*rowH +
+		float32(max(len(rows)-1, 0))*rowGap
+
+	// Position centered horizontally, just above the plot area.
+	bx := (left + right - boxW) / 2
+	by := top - boxH - 8
+
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+
+	lb := legendBounds{
+		EntryRects: make([]legendEntryRect, len(entries)),
+	}
+	for ri, r := range rows {
+		ey := by + padding + float32(ri)*(rowH+rowGap)
+		x := bx + padding + (maxRowW-r.width)/2
+		for i := r.start; i < r.end; i++ {
+			if i > r.start {
+				x += interItemGap
+			}
+			e := entries[i]
+			lb.EntryRects[i] = legendEntryRect{
+				Index:  e.Index,
+				X:      x,
+				Y:      ey,
+				Width:  items[i].width,
+				Height: rowH,
+			}
+
+			isHidden := hidden[e.Index]
+			color := e.Color
+			ts := style
+			if isHidden {
+				color = dimColor(color, HoverDimAlpha)
+				ts.Color = gui.RGBA(
+					style.Color.R, style.Color.G,
+					style.Color.B, HoverDimAlpha)
+			}
+
+			sy := ey + (rowH-swatchSize)/2
+			ctx.FilledRoundedRect(x, sy,
+				swatchSize, swatchSize, 2, color)
+
+			if isHidden {
+				mid := sy + swatchSize/2
+				ctx.Line(x-1, mid, x+swatchSize+1, mid,
+					gui.RGBA(200, 200, 200, 180), 1.5)
+			}
+
+			tx := x + swatchSize + itemGap
+			ty := ey + (rowH-fh)/2
+			ctx.Text(tx, ty, e.Name, ts)
+
+			x += items[i].width
+		}
+	}
+
+	return lb
+}
+
+// drawLegendRight renders a vertical legend outside the plot area,
+// to the right and top-aligned.
+func drawLegendRight(
+	ctx *render.Context,
+	entries []legendEntry,
+	hidden map[int]bool,
+	style gui.TextStyle,
+	bgColor gui.Color,
+	swatchSize, padding, itemGap, rowGap,
+	fh, rowH, right, top float32,
+) legendBounds {
+	// Measure widest entry.
+	maxW := float32(0)
+	for _, e := range entries {
+		w := ctx.TextWidth(e.Name, style)
+		maxW = max(maxW, w)
+	}
+
+	boxW := padding*2 + swatchSize + itemGap + maxW
+	boxH := padding*2 +
+		float32(len(entries))*rowH +
+		float32(len(entries)-1)*rowGap
+
+	// Position to the right of the plot area, top-aligned.
+	bx := right + 8
+	by := top
+
+	// Clamp to canvas width.
+	if bx+boxW > ctx.Width() {
+		bx = ctx.Width() - boxW
+	}
+
+	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4, bgColor)
+
+	lb := legendBounds{
+		EntryRects: make([]legendEntryRect, len(entries)),
+	}
+	for i, e := range entries {
+		ey := by + padding + float32(i)*(rowH+rowGap)
+
+		lb.EntryRects[i] = legendEntryRect{
+			Index:  e.Index,
+			X:      bx,
+			Y:      ey,
+			Width:  boxW,
+			Height: rowH,
+		}
+
+		isHidden := hidden[e.Index]
+		color := e.Color
+		ts := style
+		if isHidden {
+			color = dimColor(color, HoverDimAlpha)
+			ts.Color = gui.RGBA(
+				style.Color.R, style.Color.G,
+				style.Color.B, HoverDimAlpha)
+		}
+
+		sx := bx + padding
+		sy := ey + (rowH-swatchSize)/2
+		ctx.FilledRoundedRect(sx, sy,
+			swatchSize, swatchSize, 2, color)
+
+		if isHidden {
+			mid := sy + swatchSize/2
+			ctx.Line(sx-1, mid, sx+swatchSize+1, mid,
+				gui.RGBA(200, 200, 200, 180), 1.5)
+		}
+
+		tx := sx + swatchSize + itemGap
+		ty := ey + (rowH-fh)/2
+		ctx.Text(tx, ty, e.Name, ts)
 	}
 
 	return lb

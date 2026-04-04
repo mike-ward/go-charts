@@ -8,10 +8,11 @@ import (
 func demoBoxPlotBasic(w *gui.Window) gui.View {
 	return demoWithCode(w, "boxplot-basic", chart.BoxPlot(chart.BoxPlotCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "boxplot-basic",
-			Title:  "Quarterly Scores",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "boxplot-basic",
+			Title:          "Quarterly Scores",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Data: []chart.BoxData{
 			{Label: "Q1", Values: []float64{
@@ -46,10 +47,11 @@ func demoBoxPlotBasic(w *gui.Window) gui.View {
 func demoBoxPlotStyled(w *gui.Window) gui.View {
 	return demoWithCode(w, "boxplot-styled", chart.BoxPlot(chart.BoxPlotCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "boxplot-styled",
-			Title:  "Response Times by Service",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "boxplot-styled",
+			Title:          "Response Times by Service",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Data: []chart.BoxData{
 			{Label: "Auth", Color: gui.Hex(0x4e79a7), Values: []float64{

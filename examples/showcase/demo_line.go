@@ -9,10 +9,11 @@ import (
 func demoLineBasic(w *gui.Window) gui.View {
 	return demoWithCode(w, "line-basic", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "line-basic",
-			Title:  "Monthly Revenue",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "line-basic",
+			Title:          "Monthly Revenue",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		Series: []series.XY{
 			series.NewXY(series.XYCfg{
@@ -62,10 +63,11 @@ func demoLineBasic(w *gui.Window) gui.View {
 func demoLineMarkers(w *gui.Window) gui.View {
 	return demoWithCode(w, "line-markers", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "line-markers",
-			Title:  "Daily Temperature (C)",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "line-markers",
+			Title:          "Daily Temperature (C)",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		ShowMarkers: true,
 		Series: []series.XY{
@@ -101,10 +103,11 @@ func demoLineMarkers(w *gui.Window) gui.View {
 func demoLineArea(w *gui.Window) gui.View {
 	return demoWithCode(w, "line-area", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "line-area",
-			Title:  "Website Traffic (thousands)",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "line-area",
+			Title:          "Website Traffic (thousands)",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		ShowArea: true,
 		Series: []series.XY{
@@ -138,10 +141,11 @@ func demoLineArea(w *gui.Window) gui.View {
 func demoLineMulti(w *gui.Window) gui.View {
 	return demoWithCode(w, "line-multi", chart.Line(chart.LineCfg{
 		BaseCfg: chart.BaseCfg{
-			ID:     "line-multi",
-			Title:  "Stock Index Comparison",
-			Sizing: gui.FillFixed,
-			Height: 350,
+			ID:             "line-multi",
+			Title:          "Stock Index Comparison",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
 		},
 		LineWidth: 1.5,
 		Series: []series.XY{

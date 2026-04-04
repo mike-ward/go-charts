@@ -40,11 +40,12 @@ func demoCandlestickBasic(w *gui.Window) gui.View {
 	return demoWithCode(w, "candlestick-basic",
 		chart.Candlestick(chart.CandlestickCfg{
 			BaseCfg: chart.BaseCfg{
-				ID:            "candlestick-basic",
-				Title:         "AAPL — January 2024",
-				Sizing:        gui.FillFixed,
-				Height:        350,
-				XTickRotation: math.Pi / 4,
+				ID:             "candlestick-basic",
+				Title:          "AAPL — January 2024",
+				Sizing:         gui.FillFixed,
+				Height:         350,
+				XTickRotation:  math.Pi / 4,
+				LegendPosition: &posBottom,
 			},
 			XTimeFormat: "01/02",
 			Series: []series.OHLCSeries{

@@ -201,6 +201,10 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 
 	left = resolveLeft(ctx, th, left, bottom, top, hv.yAxis)
 
+	bottom = ctx.Height() - resolveBottom(ctx, th,
+		maxTickLabelWidth(ctx, hv.xAxis.Ticks(left, right), th.TickStyle),
+		cfg.XTickRotation, hv.xAxis.Label())
+
 	// Cache plot bounds for hover hit-testing.
 	hv.lastLeft = left
 	hv.lastRight = right

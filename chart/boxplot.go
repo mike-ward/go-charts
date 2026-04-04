@@ -169,6 +169,13 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
+	names := make([]string, len(cfg.Data))
+	for i, d := range cfg.Data {
+		names[i] = d.Label
+	}
+	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
+	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
+
 	if right <= left || bottom <= top {
 		slog.Warn("plot area too small", "chart", cfg.ID)
 		return
@@ -183,6 +190,11 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 	}
 
 	left = resolveLeft(ctx, th, left, bottom, top, bv.yAxis)
+
+	bottom = ctx.Height() - resolveBottom(ctx, th,
+		maxTickLabelWidth(ctx, bv.xAxis.Ticks(left, right), th.TickStyle),
+		cfg.XTickRotation, bv.xAxis.Label())
+	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
 
 	bv.lastLeft = left
 	bv.lastRight = right

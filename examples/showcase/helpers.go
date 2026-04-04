@@ -3,8 +3,12 @@ package main
 import (
 	"strings"
 
+	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
+
+// posBottom is the default legend position for all showcase charts.
+var posBottom = theme.LegendBottom
 
 // chartTypeDescriptions maps the chart-group prefix (derived from
 // the demo ID) to a short educational summary of the chart type.

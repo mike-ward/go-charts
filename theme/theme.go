@@ -21,8 +21,7 @@ type TickMarkStyle struct {
 	Width  float32   // 0 → AxisWidth
 }
 
-// LegendPosition selects where the legend box is placed within
-// the plot area.
+// LegendPosition selects where the legend box is placed.
 type LegendPosition uint8
 
 // Legend position constants.
@@ -31,6 +30,10 @@ const (
 	LegendTopLeft
 	LegendBottomRight
 	LegendBottomLeft
+	LegendNone   // hides the legend entirely
+	LegendBottom // horizontal legend below the plot area
+	LegendRight  // vertical legend outside the plot area, top-right
+	LegendTop    // horizontal legend between title and plot area
 )
 
 // CrosshairStyle controls the hover crosshair appearance.
