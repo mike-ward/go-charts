@@ -225,6 +225,10 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 	}
 	drawYAxisLabel(ctx, bv.yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, bv.xAxis, bv.yAxis)
+
 	// Determine hovered box index.
 	hovI := -1
 	if bv.hovering {

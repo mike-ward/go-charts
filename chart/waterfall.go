@@ -255,6 +255,10 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 	}
 	drawYAxisLabel(ctx, wv.yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, wv.xAxis, wv.yAxis)
+
 	// Determine hovered bar index.
 	hovI := -1
 	if wv.hovering {

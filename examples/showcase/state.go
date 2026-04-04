@@ -84,6 +84,7 @@ var demoEntries = []DemoEntry{
 	{ID: "line_markers", Label: "Line with Markers", Group: groupLine, Summary: "Temperature readings with visible data points.", Tags: []string{"line", "markers", "temperature"}},
 	{ID: "line_area", Label: "Line with Area Fill", Group: groupLine, Summary: "Website traffic with shaded area under the curve.", Tags: []string{"line", "area", "fill", "traffic"}},
 	{ID: "line_multi", Label: "Multi-Series Line", Group: groupLine, Summary: "Three series with custom line width.", Tags: []string{"line", "multi", "series"}},
+	{ID: "line_annotations", Label: "Line with Annotations", Group: groupLine, Summary: "Reference lines, shaded regions, and text labels.", Tags: []string{"line", "annotation", "region", "reference", "label"}},
 
 	// Bar
 	{ID: "bar_basic", Label: "Basic Bar", Group: groupBar, Summary: "Regional sales comparison across quarters.", Tags: []string{"bar", "grouped", "sales"}},

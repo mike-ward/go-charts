@@ -31,6 +31,10 @@ type BaseCfg struct {
 	// this chart. nil = use theme default.
 	LegendPosition *theme.LegendPosition
 
+	// Annotations adds reference lines, text labels, and shaded
+	// regions to the chart. Ignored by pie and gauge charts.
+	Annotations Annotations
+
 	Version uint64
 }
 

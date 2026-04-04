@@ -312,6 +312,10 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, xAxis, yAxis)
+
 	alpha := uint8(cfg.Opacity * 255)
 
 	// Cache plot area for cursor hit-testing in hover callback.

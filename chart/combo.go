@@ -61,6 +61,7 @@ type ComboCfg struct {
 type comboView struct {
 	cfg         ComboCfg
 	lastVersion uint64
+	xAxis       *axis.Category
 	yAxis       *axis.Linear
 	yTicks      []axis.Tick
 	ptsBuf      []float32
@@ -255,6 +256,10 @@ func (cv *comboView) draw(dc *gui.DrawContext) {
 		ctx.Text(left-tickLen-tw-2, t.Position-fh/2, t.Label, tickStyle)
 	}
 	drawYAxisLabel(ctx, cv.yAxis.Label(), th, top, bottom)
+
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, cv.xAxis, cv.yAxis)
 
 	// Determine hovered element.
 	hovCI, hovSI, hovOK := -1, -1, false
@@ -461,6 +466,15 @@ func (cv *comboView) updateYAxis(cfg *ComboCfg, nCategories int) {
 	}
 	cv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
 	cv.yAxis.SetRange(min(0, lo), max(0, hi))
+
+	// X axis: category labels.
+	catLabels := make([]string, nCategories)
+	for i, v := range cfg.Series[0].Values {
+		catLabels[i] = v.Label
+	}
+	cv.xAxis = axis.NewCategory(axis.CategoryCfg{
+		Categories: catLabels,
+	})
 }
 
 // hoveredElement returns the (categoryIdx, seriesIdx) of the

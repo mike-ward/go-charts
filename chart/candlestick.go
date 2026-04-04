@@ -224,6 +224,10 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 
 	drawYAxisLabel(ctx, cv.yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, cv.xAxis, cv.yAxis)
+
 	// X ticks and candles — only when at least one series is visible.
 	firstSI := cv.firstVisibleSeries()
 	if firstSI >= 0 {

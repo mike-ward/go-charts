@@ -286,6 +286,10 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	drawXAxisLabel(ctx, xAxis.Label(), th, left, right, bottom)
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, xAxis, yAxis)
+
 	// Cache plot area for cursor hit-testing in hover callback.
 	sv.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 

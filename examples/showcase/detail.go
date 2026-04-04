@@ -82,6 +82,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"line_markers":      demoLineMarkers,
 	"line_area":         demoLineArea,
 	"line_multi":        demoLineMulti,
+	"line_annotations":  demoLineAnnotations,
 	"bar_basic":         demoBarBasic,
 	"bar_single":        demoBarSingle,
 	"bar_wide":          demoBarWide,

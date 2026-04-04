@@ -33,6 +33,7 @@ type BarCfg struct {
 type barView struct {
 	cfg         BarCfg
 	lastVersion uint64
+	xAxis       *axis.Category
 	yAxis       *axis.Linear
 	yTicks      []axis.Tick
 	hoverPx     float32
@@ -241,6 +242,14 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 			bv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
 			bv.yAxis.SetRange(min(0, lo), max(0, hi))
 		}
+		// X axis: category labels.
+		catLabels := make([]string, nCategories)
+		for i, v := range labels {
+			catLabels[i] = v.Label
+		}
+		bv.xAxis = axis.NewCategory(axis.CategoryCfg{
+			Categories: catLabels,
+		})
 		bv.lastVersion = cfg.Version
 	}
 
@@ -253,6 +262,10 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	bv.lastRight = right
 	bv.lastTop = top
 	bv.lastBottom = bottom
+
+	// Annotations.
+	drawAnnotations(ctx, &cfg.Annotations, th,
+		plotRect{left, right, top, bottom}, bv.xAxis, bv.yAxis)
 
 	if cfg.Horizontal {
 		bv.drawHorizontal(ctx, cfg, th, nCategories, nSeries, labels,

@@ -253,6 +253,9 @@ func (hv *histogramView) drawBars(
 	}
 	drawYAxisLabel(ctx, yAxis.Label(), th, top, bottom)
 
+	// Annotations.
+	drawAnnotations(ctx, &hv.cfg.Annotations, th, pr, xAxis, yAxis)
+
 	// Resolve bar color.
 	color := cfg.Color
 	if !color.IsSet() {

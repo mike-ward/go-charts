@@ -34,4 +34,8 @@ const (
 	// DefaultConnectorWidth is the line width for waterfall
 	// connector lines between bars.
 	DefaultConnectorWidth float32 = 1
+
+	// DefaultAnnotationLineWidth is the line width for
+	// annotation reference lines when Width is 0.
+	DefaultAnnotationLineWidth float32 = 1.5
 )

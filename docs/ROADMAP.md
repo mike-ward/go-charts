@@ -65,9 +65,9 @@ First renderable chart types.
 - [ ] Drag pan
 - [ ] Zoom reset (double-click or button)
 - [ ] Range selection (brush/drag to select region)
-- [ ] Text annotations (positioned labels)
-- [ ] Line annotations (horizontal/vertical reference lines)
-- [ ] Region annotations (shaded areas)
+- [x] Text annotations (positioned labels)
+- [x] Line annotations (horizontal/vertical reference lines)
+- [x] Region annotations (shaded areas)
 
 ## Phase 7 — Statistical & Specialized Charts
 
