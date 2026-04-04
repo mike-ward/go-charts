@@ -101,6 +101,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"histogram_density": demoHistogramDensity,
 	"boxplot_basic":     demoBoxPlotBasic,
 	"boxplot_styled":    demoBoxPlotStyled,
+	"waterfall_basic":   demoWaterfallBasic,
+	"waterfall_styled":  demoWaterfallStyled,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,
 	"style_legend_pos":  demoLegendPositions,

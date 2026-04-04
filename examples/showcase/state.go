@@ -18,6 +18,7 @@ const (
 	groupStyles      = "styles"
 	groupHistogram   = "histogram"
 	groupBoxPlot     = "boxplot"
+	groupWaterfall   = "waterfall"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -64,6 +65,7 @@ var demoGroups = []DemoGroup{
 	{groupCandlestick, "Candlestick"},
 	{groupHistogram, "Histogram"},
 	{groupBoxPlot, "Box Plot"},
+	{groupWaterfall, "Waterfall"},
 	{groupStyles, "Styles"},
 }
 
@@ -115,6 +117,10 @@ var demoEntries = []DemoEntry{
 	// Box Plot
 	{ID: "boxplot_basic", Label: "Basic Box Plot", Group: groupBoxPlot, Summary: "Quarterly scores with quartiles, whiskers, and outliers.", Tags: []string{"boxplot", "quartile", "whisker", "outlier", "median", "statistics"}},
 	{ID: "boxplot_styled", Label: "Styled Box Plot", Group: groupBoxPlot, Summary: "Response times with custom colors and fixed box width.", Tags: []string{"boxplot", "color", "style", "custom", "width"}},
+
+	// Waterfall
+	{ID: "waterfall_basic", Label: "Basic Waterfall", Group: groupWaterfall, Summary: "Profit & Loss breakdown from revenue to net income.", Tags: []string{"waterfall", "pnl", "profit", "loss", "running", "total"}},
+	{ID: "waterfall_styled", Label: "Styled Waterfall", Group: groupWaterfall, Summary: "Monthly cash flow with custom colors and rounded bars.", Tags: []string{"waterfall", "cashflow", "custom", "color", "rounded"}},
 
 	// Styles
 	{ID: "style_palette", Label: "Palette Swap", Group: groupStyles, Summary: "Same data rendered with Tableau 10, Pastel, and Vivid palettes.", Tags: []string{"style", "palette", "theme", "color", "tableau", "pastel", "vivid"}},

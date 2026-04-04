@@ -123,6 +123,25 @@ func (c *HistogramCfg) Validate() error {
 	return buildError("chart.Histogram", errs)
 }
 
+// Validate checks WaterfallCfg for invalid settings.
+// Returns nil when valid.
+func (c *WaterfallCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Values) == 0 {
+		errs = append(errs, "no values")
+	}
+	if c.BarWidth < 0 {
+		errs = append(errs, "negative BarWidth")
+	}
+	if c.Radius < 0 {
+		errs = append(errs, "negative Radius")
+	}
+	return buildError("chart.Waterfall", errs)
+}
+
 // Validate checks BoxPlotCfg for invalid settings.
 // Returns nil when valid.
 func (c *BoxPlotCfg) Validate() error {

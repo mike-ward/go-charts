@@ -26,4 +26,12 @@ const (
 	// DefaultOutlierRadius is the radius of outlier dots when
 	// OutlierRadius is 0.
 	DefaultOutlierRadius float32 = 3
+
+	// DefaultWaterfallWidthRatio is the fraction of the slot
+	// width used for bars when BarWidth is 0.
+	DefaultWaterfallWidthRatio float32 = 0.6
+
+	// DefaultConnectorWidth is the line width for waterfall
+	// connector lines between bars.
+	DefaultConnectorWidth float32 = 1
 )

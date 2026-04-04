@@ -61,6 +61,12 @@ var chartTypeDescriptions = map[string]string{
 		" such as the minimum, first quartile, median, third" +
 		" quartile, and maximum, allowing for a quick visual" +
 		" summary of the data's spread and skewness.",
+
+	"waterfall": "Waterfall charts show how an initial value is" +
+		" affected by a series of intermediate positive or negative" +
+		" values. Each bar floats, starting where the previous bar" +
+		" ended. They are widely used for financial statements," +
+		" variance analysis, and bridge charts.",
 }
 
 // demoWithCode wraps a chart view with its source code shown
