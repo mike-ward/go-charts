@@ -90,4 +90,20 @@ const (
 	// zoomDoubleClickMs is the wall-clock threshold in
 	// milliseconds for detecting a mouse double-click.
 	zoomDoubleClickMs int64 = 400
+
+	// DefaultSparklineHeight is the default height in pixels
+	// for sparkline charts.
+	DefaultSparklineHeight float32 = 20
+
+	// DefaultSparklineLineWidth is the default stroke width
+	// for sparkline line/area variants.
+	DefaultSparklineLineWidth float32 = 1.5
+
+	// DefaultSparklineMarkerRadius is the default radius for
+	// min/max/last marker dots on sparklines.
+	DefaultSparklineMarkerRadius float32 = 2.5
+
+	// DefaultSparklineBarGap is the gap in pixels between
+	// sparkline bars.
+	DefaultSparklineBarGap float32 = 1
 )

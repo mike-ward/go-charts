@@ -339,6 +339,28 @@ func (c *SankeyCfg) Validate() error {
 	return buildError("chart.Sankey", errs)
 }
 
+// Validate checks SparklineCfg for invalid settings.
+// Returns nil when valid.
+func (c *SparklineCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Values) == 0 && c.Series.Len() == 0 {
+		errs = append(errs, "no data (provide Values or Series)")
+	}
+	if c.LineWidth < 0 {
+		errs = append(errs, "negative LineWidth")
+	}
+	if c.MarkerRadius < 0 {
+		errs = append(errs, "negative MarkerRadius")
+	}
+	if c.Type < SparklineLine || c.Type > SparklineArea {
+		errs = append(errs, "invalid Type")
+	}
+	return buildError("chart.Sparkline", errs)
+}
+
 // hasNegativeLeaf reports whether any leaf in the subtree has
 // a negative value.
 func hasNegativeLeaf(n *series.TreeNode) bool {

@@ -26,6 +26,7 @@ const (
 	groupTreemap     = "treemap"
 	groupFunnel      = "funnel"
 	groupSankey      = "sankey"
+	groupSparkline   = "sparkline"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -80,6 +81,7 @@ var demoGroups = []DemoGroup{
 	{groupTreemap, "Treemap"},
 	{groupFunnel, "Funnel"},
 	{groupSankey, "Sankey"},
+	{groupSparkline, "Sparkline"},
 	{groupStyles, "Styles"},
 }
 
@@ -161,6 +163,12 @@ var demoEntries = []DemoEntry{
 	// Sankey
 	{ID: "sankey_basic", Label: "Basic Sankey", Group: groupSankey, Summary: "Energy flow from sources through intermediates to end uses.", Tags: []string{"sankey", "flow", "energy", "ribbon", "node", "link"}},
 	{ID: "sankey_styled", Label: "Styled Sankey", Group: groupSankey, Summary: "Website traffic flow with custom colors and node sizing.", Tags: []string{"sankey", "flow", "traffic", "styled", "custom", "color"}},
+
+	// Sparkline
+	{ID: "sparkline_basic", Label: "Basic Sparkline", Group: groupSparkline, Summary: "Compact inline line sparkline showing trend.", Tags: []string{"sparkline", "inline", "trend", "mini"}},
+	{ID: "sparkline_area", Label: "Area Sparkline", Group: groupSparkline, Summary: "Filled area sparkline with min/max markers.", Tags: []string{"sparkline", "area", "fill", "markers"}},
+	{ID: "sparkline_bar", Label: "Bar Sparkline", Group: groupSparkline, Summary: "Bar-style sparkline showing distribution.", Tags: []string{"sparkline", "bar", "distribution"}},
+	{ID: "sparkline_band", Label: "Band Sparkline", Group: groupSparkline, Summary: "Sparkline with positive/negative color bands and reference line.", Tags: []string{"sparkline", "band", "reference", "positive", "negative"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

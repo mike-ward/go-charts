@@ -77,7 +77,7 @@ First renderable chart types.
 - [x] Treemap (nested rectangles, squarified layout)
 - [x] Funnel chart
 - [x] Sankey diagram
-- [ ] Sparklines (inline mini-charts)
+- [x] Sparklines (inline mini-charts)
 
 ## Phase 8 — Data Transforms
 

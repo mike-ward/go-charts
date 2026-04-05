@@ -78,6 +78,12 @@ var chartTypeDescriptions = map[string]string{
 		" values. Each bar floats, starting where the previous bar" +
 		" ended. They are widely used for financial statements," +
 		" variance analysis, and bridge charts.",
+
+	"sparkline": "Sparklines are compact inline mini-charts that" +
+		" show trend at a glance without axes, labels, or legends." +
+		" They are designed to be embedded in text, tables, or" +
+		" dashboards where space is limited. Variants include line," +
+		" area, and bar styles with optional markers and color bands.",
 }
 
 // demoWithCode wraps a chart view with its source code shown
