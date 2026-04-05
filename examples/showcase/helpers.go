@@ -67,6 +67,12 @@ var chartTypeDescriptions = map[string]string{
 		" (bars) with trends or rates (lines) in a single view." +
 		" Bars render underneath and lines draw on top.",
 
+	"treemap": "Treemap charts display hierarchical data as nested" +
+		" rectangles whose areas are proportional to their values." +
+		" A squarified layout algorithm arranges rectangles to" +
+		" minimize aspect ratios, making it easy to compare sizes" +
+		" across categories and subcategories at a glance.",
+
 	"waterfall": "Waterfall charts show how an initial value is" +
 		" affected by a series of intermediate positive or negative" +
 		" values. Each bar floats, starting where the previous bar" +

@@ -74,7 +74,7 @@ First renderable chart types.
 - [x] Radar/spider chart
 - [x] Bubble chart (scatter with sized markers)
 - [x] Heatmap (color-coded grid)
-- [ ] Treemap (nested rectangles, squarified layout)
+- [x] Treemap (nested rectangles, squarified layout)
 - [ ] Funnel chart
 - [ ] Sankey diagram
 - [ ] Sparklines (inline mini-charts)

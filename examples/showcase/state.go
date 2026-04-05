@@ -23,6 +23,7 @@ const (
 	groupRadar       = "radar"
 	groupBubble      = "bubble"
 	groupHeatmap     = "heatmap"
+	groupTreemap     = "treemap"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -74,6 +75,7 @@ var demoGroups = []DemoGroup{
 	{groupRadar, "Radar"},
 	{groupBubble, "Bubble"},
 	{groupHeatmap, "Heatmap"},
+	{groupTreemap, "Treemap"},
 	{groupStyles, "Styles"},
 }
 
@@ -143,6 +145,10 @@ var demoEntries = []DemoEntry{
 	// Heatmap
 	{ID: "heatmap_basic", Label: "Basic Heatmap", Group: groupHeatmap, Summary: "Correlation matrix with values displayed in cells.", Tags: []string{"heatmap", "grid", "correlation", "matrix", "color"}},
 	{ID: "heatmap_activity", Label: "Activity Heatmap", Group: groupHeatmap, Summary: "Weekly activity by month with green gradient.", Tags: []string{"heatmap", "grid", "activity", "calendar", "gradient"}},
+
+	// Treemap
+	{ID: "treemap_basic", Label: "Basic Treemap", Group: groupTreemap, Summary: "Disk usage by category with nested rectangles.", Tags: []string{"treemap", "nested", "hierarchy", "squarified", "rectangles"}},
+	{ID: "treemap_styled", Label: "Styled Treemap", Group: groupTreemap, Summary: "Market cap by sector with group headers and custom gap.", Tags: []string{"treemap", "headers", "market", "sector", "styled"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

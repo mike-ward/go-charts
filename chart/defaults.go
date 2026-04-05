@@ -51,6 +51,14 @@ const (
 	// heatmap cells.
 	DefaultHeatmapCellGap float32 = 1
 
+	// DefaultTreemapCellGap is the gap in pixels between
+	// treemap cells.
+	DefaultTreemapCellGap float32 = 2
+
+	// DefaultTreemapHeaderHeight is the height in pixels of
+	// group header bars in treemap charts.
+	DefaultTreemapHeaderHeight float32 = 18
+
 	// DefaultZoomFactor is the scale factor per scroll tick.
 	// >1 zooms in; 1/factor zooms out.
 	DefaultZoomFactor float64 = 1.15

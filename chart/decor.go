@@ -795,10 +795,13 @@ func legendHitTest(lb legendBounds, mx, my float32) int {
 	return -1
 }
 
-// drawTooltip draws a tooltip directly on the canvas near (tx, ty).
-// label may contain '\n'-separated lines.
+// drawTooltip draws a tooltip directly on the canvas near (tx, ty),
+// clamped to the plot-area bounds so it does not overlap elements
+// in the padding area (e.g. the title). label may contain
+// '\n'-separated lines.
 func drawTooltip(
-	ctx *render.Context, tx, ty float32, label string, th *theme.Theme,
+	ctx *render.Context, tx, ty float32, label string,
+	th *theme.Theme, pr plotRect,
 ) {
 	lines := strings.Split(label, "\n")
 	textStyle := th.TickStyle
@@ -818,20 +821,20 @@ func drawTooltip(
 	boxH := float32(len(lines))*fh +
 		float32(len(lines)-1)*lineGap + padding*2
 
-	// Position above-right of (tx, ty), clamped to canvas.
+	// Position above-right of (tx, ty), clamped to plot area.
 	bx := tx + 8
 	by := ty - 8 - boxH
-	if bx+boxW > ctx.Width() {
-		bx = ctx.Width() - boxW
+	if bx+boxW > pr.Right {
+		bx = pr.Right - boxW
 	}
-	if bx < 0 {
-		bx = 0
+	if bx < pr.Left {
+		bx = pr.Left
 	}
-	if by < 0 {
-		by = 0
+	if by < pr.Top {
+		by = pr.Top
 	}
-	if by+boxH > ctx.Height() {
-		by = ctx.Height() - boxH
+	if by+boxH > pr.Bottom {
+		by = pr.Bottom - boxH
 	}
 
 	ctx.FilledRoundedRect(bx, by, boxW, boxH, 4,

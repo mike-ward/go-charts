@@ -1,6 +1,10 @@
 package chart
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/mike-ward/go-charts/series"
+)
 
 // Validate checks LineCfg for invalid or contradictory settings.
 // Returns nil when valid.
@@ -235,4 +239,46 @@ func (c *ComboCfg) Validate() error {
 		}
 	}
 	return buildError("chart.Combo", errs)
+}
+
+// Validate checks TreemapCfg for invalid settings.
+// Returns nil when valid.
+func (c *TreemapCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Data) == 0 {
+		errs = append(errs, "no tree data")
+	}
+	if c.CellGap < 0 {
+		errs = append(errs, "negative CellGap")
+	}
+	if c.MaxDepth < 0 {
+		errs = append(errs, "negative MaxDepth")
+	}
+	if c.HeaderHeight < 0 {
+		errs = append(errs, "negative HeaderHeight")
+	}
+	for i := range c.Data {
+		if hasNegativeLeaf(&c.Data[i]) {
+			errs = append(errs, "negative leaf value")
+			break
+		}
+	}
+	return buildError("chart.Treemap", errs)
+}
+
+// hasNegativeLeaf reports whether any leaf in the subtree has
+// a negative value.
+func hasNegativeLeaf(n *series.TreeNode) bool {
+	if n.IsLeaf() {
+		return n.Value < 0
+	}
+	for i := range n.Children {
+		if hasNegativeLeaf(&n.Children[i]) {
+			return true
+		}
+	}
+	return false
 }

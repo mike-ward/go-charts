@@ -453,7 +453,8 @@ func (cv *candlestickView) tooltipCandlestick(
 		label := fmt.Sprintf("%s\nO: %g\nH: %g\nL: %g\nC: %g",
 			p.Time.Format(cfg.XTimeFormat),
 			p.Open, p.High, p.Low, p.Close)
-		drawTooltip(ctx, cx, highPx, label, th)
+		drawTooltip(ctx, cx, highPx, label, th,
+			plotRect{left, right, top, bottom})
 		return
 	}
 }

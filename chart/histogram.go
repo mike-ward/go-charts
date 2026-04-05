@@ -420,7 +420,8 @@ func (hv *histogramView) tooltipHistogram(
 	} else {
 		label = fmt.Sprintf("[%s, %s): count %.0f", lo, hi, v)
 	}
-	drawTooltip(ctx, mx, my, label, th)
+	drawTooltip(ctx, mx, my, label, th,
+		plotRect{left, right, top, bottom})
 }
 
 // formatEdge formats a bin-edge value using cfg.TickFormat,

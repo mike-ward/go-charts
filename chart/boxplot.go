@@ -508,7 +508,8 @@ func (bv *boxplotView) tooltipBoxPlot(
 		text += fmt.Sprintf("\nOutliers: %d", nOut)
 	}
 
-	drawTooltip(ctx, cx, q3Px, text, th)
+	drawTooltip(ctx, cx, q3Px, text, th,
+		plotRect{left, right, top, bottom})
 }
 
 // computeBoxStats calculates quartiles, whiskers, and outliers

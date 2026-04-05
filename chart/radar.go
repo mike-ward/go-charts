@@ -459,7 +459,8 @@ func (rv *radarView) draw(dc *gui.DrawContext) {
 
 	// Tooltip.
 	if rv.hovering && hovIdx >= 0 {
-		rv.tooltipRadar(ctx, th, hovIdx)
+		rv.tooltipRadar(ctx, th, hovIdx,
+			plotRect{left, right, top, bottom})
 	}
 }
 
@@ -503,6 +504,7 @@ func (rv *radarView) drawAxisLabels(
 // value at the nearest axis.
 func (rv *radarView) tooltipRadar(
 	ctx *render.Context, th *theme.Theme, seriesIdx int,
+	pr plotRect,
 ) {
 	cfg := &rv.cfg
 	s := cfg.Series[seriesIdx]
@@ -519,5 +521,5 @@ func (rv *radarView) tooltipRadar(
 	} else {
 		label = fmt.Sprintf("%s: %g", axis.Label, s.Values[ai])
 	}
-	drawTooltip(ctx, rv.hoverPx, rv.hoverPy, label, th)
+	drawTooltip(ctx, rv.hoverPx, rv.hoverPy, label, th, pr)
 }

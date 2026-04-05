@@ -350,6 +350,7 @@ func (gv *gaugeView) draw(dc *gui.DrawContext) {
 		if zone != "" {
 			label = zone + ": " + label
 		}
-		drawTooltip(ctx, gv.hoverPx, gv.hoverPy, label, th)
+		drawTooltip(ctx, gv.hoverPx, gv.hoverPy, label, th,
+			plotRect{left, right, top, bottom})
 	}
 }

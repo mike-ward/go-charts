@@ -671,5 +671,5 @@ func (cv *comboView) tooltipCombo(
 	} else {
 		label = fmt.Sprintf("%s: %g", v.Label, v.Value)
 	}
-	drawTooltip(ctx, cx, py, label, th)
+	drawTooltip(ctx, cx, py, label, th, pr)
 }

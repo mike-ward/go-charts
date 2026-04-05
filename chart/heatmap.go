@@ -326,6 +326,7 @@ func (hv *heatmapView) draw(dc *gui.DrawContext) {
 			fmt.Sprintf(cfg.ValueFormat, v))
 		cx := left + float32(hovCol)*cellW + cellW/2
 		cy := top + float32(hovRow)*cellH + cellH/2
-		drawTooltip(ctx, cx, cy, label, th)
+		drawTooltip(ctx, cx, cy, label, th,
+			plotRect{left, right, top, bottom})
 	}
 }

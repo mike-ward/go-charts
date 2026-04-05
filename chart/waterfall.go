@@ -574,5 +574,6 @@ func (wv *waterfallView) tooltipWaterfall(
 			v.Label, sign, v.Value, bb.RunningTotal)
 	}
 
-	drawTooltip(ctx, cx, barTopPx, text, th)
+	drawTooltip(ctx, cx, barTopPx, text, th,
+		plotRect{left, right, top, bottom})
 }

@@ -120,7 +120,7 @@ func drawStackedXYTooltip(
 	} else {
 		label = fmt.Sprintf("X: %g\nY: %g", p.X, p.Y)
 	}
-	drawTooltip(ctx, px, py, label, th)
+	drawTooltip(ctx, px, py, label, th, pa.plotRect)
 }
 
 // nearestXYZPoint finds the series/point index and pixel position
@@ -175,7 +175,7 @@ func drawXYZTooltip(
 		label = fmt.Sprintf(
 			"X: %g\nY: %g\nSize: %g", p.X, p.Y, p.Z)
 	}
-	drawTooltip(ctx, px, py, label, th)
+	drawTooltip(ctx, px, py, label, th, pa.plotRect)
 }
 
 // drawXYTooltip draws a tooltip for the nearest XY data point.
@@ -199,5 +199,5 @@ func drawXYTooltip(
 	} else {
 		label = fmt.Sprintf("X: %g\nY: %g", p.X, p.Y)
 	}
-	drawTooltip(ctx, px, py, label, th)
+	drawTooltip(ctx, px, py, label, th, pa.plotRect)
 }

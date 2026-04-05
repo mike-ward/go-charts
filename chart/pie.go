@@ -220,7 +220,7 @@ func (pv *pieView) tooltipPie(
 	} else {
 		label = fmt.Sprintf("%g (%.1f%%)", s.Value, pct)
 	}
-	drawTooltip(ctx, pv.hoverPx, pv.hoverPy, label, th)
+	drawTooltip(ctx, pv.hoverPx, pv.hoverPy, label, th, pr)
 }
 
 func (pv *pieView) draw(dc *gui.DrawContext) {

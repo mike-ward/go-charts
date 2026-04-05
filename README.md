@@ -66,23 +66,32 @@ func view(w *gui.Window) gui.View {
 
 | Package  | Description                                    |
 |----------|------------------------------------------------|
-| `chart`  | Chart widgets: Line, Bar, Area, Scatter, Bubble, Pie |
+| `chart`  | Chart widgets: Line, Bar, Area, Scatter, Bubble, Pie, Treemap, … |
 | `axis`   | Axis types: Linear, Log, Time, Category        |
-| `series` | Data series: XY, XYZ, Category, OHLC           |
+| `series` | Data series: XY, XYZ, Category, OHLC, Grid, TreeNode |
 | `scale`  | Data-to-pixel mapping: Linear, Log             |
 | `render` | DrawContext adapter for chart rendering         |
 | `theme`  | Theming and color palettes                     |
 
 ## Chart Types
 
-| Type    | Function         | Status |
-|---------|------------------|--------|
-| Line    | `chart.Line()`   | Done   |
-| Bar     | `chart.Bar()`    | Done   |
-| Area    | `chart.Area()`   | Stub   |
-| Scatter | `chart.Scatter()`| Stub   |
-| Bubble  | `chart.Bubble()` | Done   |
-| Pie     | `chart.Pie()`    | Stub   |
+| Type        | Function              | Status |
+|-------------|-----------------------|--------|
+| Line        | `chart.Line()`        | Done   |
+| Bar         | `chart.Bar()`         | Done   |
+| Area        | `chart.Area()`        | Done   |
+| Scatter     | `chart.Scatter()`     | Done   |
+| Bubble      | `chart.Bubble()`      | Done   |
+| Pie/Donut   | `chart.Pie()`         | Done   |
+| Gauge       | `chart.Gauge()`       | Done   |
+| Candlestick | `chart.Candlestick()` | Done   |
+| Histogram   | `chart.Histogram()`   | Done   |
+| Box Plot    | `chart.BoxPlot()`     | Done   |
+| Waterfall   | `chart.Waterfall()`   | Done   |
+| Combo       | `chart.Combo()`       | Done   |
+| Radar       | `chart.Radar()`       | Done   |
+| Heatmap     | `chart.Heatmap()`     | Done   |
+| Treemap     | `chart.Treemap()`     | Done   |
 
 See [doc/ROADMAP.md](doc/ROADMAP.md) for planned chart types and features.
 

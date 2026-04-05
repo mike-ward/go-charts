@@ -756,7 +756,7 @@ func (bv *barView) tooltipVertical(
 				by := min(segTop, segBot)
 				bh := float32(math.Abs(float64(segBot - segTop)))
 				if my >= by && my <= by+bh {
-					emitBarTooltip(ctx, mx, my, th,
+					emitBarTooltip(ctx, mx, my, th, pr,
 						s.Name(), labels[ci].Label, v)
 					return
 				}
@@ -793,7 +793,7 @@ func (bv *barView) tooltipVertical(
 				barTop := min(by, baseline)
 				bh := float32(math.Abs(float64(by - baseline)))
 				if my >= barTop && my <= barTop+bh {
-					emitBarTooltip(ctx, mx, my, th,
+					emitBarTooltip(ctx, mx, my, th, pr,
 						s.Name(), labels[ci].Label, v)
 					return
 				}
@@ -844,7 +844,7 @@ func (bv *barView) tooltipHorizontal(
 				bx := min(segL, segR)
 				bw := float32(math.Abs(float64(segR - segL)))
 				if mx >= bx && mx <= bx+bw {
-					emitBarTooltip(ctx, mx, my, th,
+					emitBarTooltip(ctx, mx, my, th, pr,
 						s.Name(), labels[ci].Label, v)
 					return
 				}
@@ -881,7 +881,7 @@ func (bv *barView) tooltipHorizontal(
 				barLeft := min(bx, baseline)
 				bw := float32(math.Abs(float64(bx - baseline)))
 				if mx >= barLeft && mx <= barLeft+bw {
-					emitBarTooltip(ctx, mx, my, th,
+					emitBarTooltip(ctx, mx, my, th, pr,
 						s.Name(), labels[ci].Label, v)
 					return
 				}
@@ -893,7 +893,7 @@ func (bv *barView) tooltipHorizontal(
 // emitBarTooltip formats and draws a single bar's tooltip.
 func emitBarTooltip(
 	ctx *render.Context, mx, my float32,
-	th *theme.Theme,
+	th *theme.Theme, pr plotRect,
 	serName, catLabel string, v float64,
 ) {
 	var label string
@@ -902,7 +902,7 @@ func emitBarTooltip(
 	} else {
 		label = fmt.Sprintf("%s: %g", catLabel, v)
 	}
-	drawTooltip(ctx, mx, my, label, th)
+	drawTooltip(ctx, mx, my, label, th, pr)
 }
 
 func (bv *barView) drawHorizontal(

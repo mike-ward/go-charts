@@ -112,6 +112,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"bubble_markers":    demoBubbleMarkers,
 	"heatmap_basic":     demoHeatmapBasic,
 	"heatmap_activity":  demoHeatmapActivity,
+	"treemap_basic":     demoTreemapBasic,
+	"treemap_styled":    demoTreemapStyled,
 	"type_series_xyz":   demoSeriesXYZ,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,
