@@ -450,22 +450,34 @@ func (av *areaView) drawOverlapping(
 		}
 		av.ptsBuf = pts
 
-		clipped := clipPolylineToRect(pts, left, right, top, bottom)
-		if len(clipped) >= 4 {
+		// Area fill: clip each quad (line segment + baseline) to
+		// the plot rect using Sutherland-Hodgman so the fill stays
+		// correct when the line extends outside the visible area.
+		if len(pts) >= 4 {
 			fill := gui.RGBA(color.R, color.G, color.B, fillAlpha)
 			var quad [8]float32
-			for k := 0; k < len(clipped)-2; k += 2 {
-				quad[0] = clipped[k]
-				quad[1] = clipped[k+1]
-				quad[2] = clipped[k+2]
-				quad[3] = clipped[k+3]
-				quad[4] = clipped[k+2]
+			for k := 0; k < len(pts)-2; k += 2 {
+				// Clamp line Y to baseline so the quad stays
+				// convex. Points below bottom contribute no
+				// visible area and would create a reflex vertex.
+				quad[0] = pts[k]
+				quad[1] = min(pts[k+1], bottom)
+				quad[2] = pts[k+2]
+				quad[3] = min(pts[k+3], bottom)
+				quad[4] = pts[k+2]
 				quad[5] = bottom
-				quad[6] = clipped[k]
+				quad[6] = pts[k]
 				quad[7] = bottom
-				ctx.FilledPolygon(quad[:], fill)
+				clippedQ := clipConvexToRect(quad[:],
+					left, right, top, bottom)
+				if clippedQ != nil {
+					ctx.FilledPolygon(clippedQ, fill)
+				}
 			}
 		}
+
+		// Line stroke: full clip to plot rect.
+		clipped := clipPolylineToRect(pts, left, right, top, bottom)
 		ctx.Polyline(clipped, color, cfg.LineWidth)
 	}
 }
@@ -541,22 +553,32 @@ func (av *areaView) drawStacked(
 			cur[j*2+1] = yAxis.Transform(cumY[j], bottom, top)
 		}
 
-		// Fill quad between cur top edge and prev top edge (or baseline).
+		// Fill quad between cur top edge and prev top edge (or
+		// baseline). Clip to plot rect using Sutherland-Hodgman
+		// so fill stays correct when lines extend outside.
 		if len(cur) >= 4 {
 			var quad [8]float32
 			for k := 0; k < len(cur)-2; k += 2 {
+				// Clamp Y values to baseline so quads stay
+				// convex when zoomed beyond data range.
 				quad[0] = cur[k]
-				quad[1] = cur[k+1]
+				quad[1] = min(cur[k+1], bottom)
 				quad[2] = cur[k+2]
-				quad[3] = cur[k+3]
+				quad[3] = min(cur[k+3], bottom)
 				quad[4] = prev[k+2]
-				quad[5] = prev[k+3]
+				quad[5] = min(prev[k+3], bottom)
 				quad[6] = prev[k]
-				quad[7] = prev[k+1]
-				ctx.FilledPolygon(quad[:], fill)
+				quad[7] = min(prev[k+1], bottom)
+				clippedQ := clipConvexToRect(quad[:],
+					left, right, top, bottom)
+				if clippedQ != nil {
+					ctx.FilledPolygon(clippedQ, fill)
+				}
 			}
 		}
-		ctx.Polyline(cur, color, cfg.LineWidth)
+
+		clipped := clipPolylineToRect(cur, left, right, top, bottom)
+		ctx.Polyline(clipped, color, cfg.LineWidth)
 		copy(prev[:n*2], cur)
 	}
 }

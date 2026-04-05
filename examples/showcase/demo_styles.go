@@ -399,25 +399,24 @@ chart.Line(chart.LineCfg{
 
 func demoZoomPan(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
+	zoomBase := func(id, title string) chart.BaseCfg {
+		return chart.BaseCfg{
+			ID:                id,
+			Title:             title,
+			Sizing:            gui.FillFixed,
+			Height:            300,
+			LegendPosition:    &posBottom,
+			EnableZoom:        true,
+			EnablePan:         true,
+			EnableRangeSelect: true,
+		}
+	}
+
 	return demoWithCode(w, "style-zoom", gui.Column(gui.ContainerCfg{
 		Sizing:  gui.FillFit,
 		Padding: gui.NoPadding,
 		Spacing: gui.SomeF(16),
 		Content: []gui.View{
-			chart.Line(chart.LineCfg{
-				BaseCfg: chart.BaseCfg{
-					ID:                "zoom-all",
-					Title:             "Zoom & Pan",
-					Sizing:            gui.FillFixed,
-					Height:            300,
-					LegendPosition:    &posBottom,
-					EnableZoom:        true,
-					EnablePan:         true,
-					EnableRangeSelect: true,
-				},
-				ShowMarkers: true,
-				Series:      styleSeries(),
-			}),
 			gui.Text(gui.TextCfg{
 				Text: "Scroll wheel to zoom toward cursor. " +
 					"Click and drag to pan. " +
@@ -426,13 +425,70 @@ func demoZoomPan(w *gui.Window) gui.View {
 				TextStyle: t.N4,
 				Mode:      gui.TextModeWrap,
 			}),
+			chart.Line(chart.LineCfg{
+				BaseCfg:     zoomBase("zoom-line", "Line — Zoom & Pan"),
+				ShowMarkers: true,
+				Series:      styleSeries(),
+			}),
+			chart.Area(chart.AreaCfg{
+				BaseCfg: zoomBase("zoom-area", "Area — Zoom & Pan"),
+				Series:  styleSeries(),
+			}),
+			chart.Bar(chart.BarCfg{
+				BaseCfg: zoomBase("zoom-bar", "Bar — Zoom & Pan"),
+				Series: []series.Category{
+					series.NewCategory(series.CategoryCfg{
+						Name: "Q1",
+						Values: []series.CategoryValue{
+							{Label: "North", Value: 45},
+							{Label: "South", Value: 32},
+							{Label: "East", Value: 58},
+							{Label: "West", Value: 41},
+						},
+					}),
+					series.NewCategory(series.CategoryCfg{
+						Name: "Q2",
+						Values: []series.CategoryValue{
+							{Label: "North", Value: 52},
+							{Label: "South", Value: 38},
+							{Label: "East", Value: 49},
+							{Label: "West", Value: 55},
+						},
+					}),
+				},
+			}),
+			chart.Scatter(chart.ScatterCfg{
+				BaseCfg: zoomBase("zoom-scatter", "Scatter — Zoom & Pan"),
+				Series: []series.XY{
+					series.NewXY(series.XYCfg{
+						Name: "Subjects",
+						Points: []series.Point{
+							{X: 155, Y: 52}, {X: 160, Y: 58},
+							{X: 162, Y: 55}, {X: 165, Y: 62},
+							{X: 167, Y: 60}, {X: 168, Y: 65},
+							{X: 170, Y: 68}, {X: 172, Y: 70},
+							{X: 173, Y: 66}, {X: 175, Y: 75},
+							{X: 176, Y: 72}, {X: 178, Y: 78},
+							{X: 180, Y: 80}, {X: 181, Y: 76},
+							{X: 183, Y: 85}, {X: 185, Y: 82},
+							{X: 187, Y: 88}, {X: 190, Y: 92},
+						},
+					}),
+				},
+			}),
+			chart.Histogram(chart.HistogramCfg{
+				BaseCfg: zoomBase("zoom-hist", "Histogram — Zoom & Pan"),
+				Data:    histData,
+			}),
 		},
-	}), `chart.Line(chart.LineCfg{
+	}), `// All XY chart types support zoom, pan, and range-select.
+// Set EnableZoom, EnablePan, EnableRangeSelect in BaseCfg.
+
+chart.Line(chart.LineCfg{
     BaseCfg: chart.BaseCfg{
-        Title:             "Zoom & Pan",
-        EnableZoom:        true, // scroll-wheel zoom
-        EnablePan:         true, // click+drag to pan
-        EnableRangeSelect: true, // shift+drag brush-to-zoom
+        EnableZoom:        true,
+        EnablePan:         true,
+        EnableRangeSelect: true,
     },
     Series: data,
 })

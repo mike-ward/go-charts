@@ -605,6 +605,90 @@ func clipSegment(
 	}
 }
 
+// clipConvexToRect clips a convex polygon to the rectangle
+// [left,right] x [top,bottom] using Sutherland-Hodgman.
+// Returns the clipped polygon as flat [x0,y0,x1,y1,...] pairs,
+// or nil if fully outside. The result is convex and safe for
+// fan-triangulation (FilledPolygon).
+func clipConvexToRect(
+	pts []float32, left, right, top, bottom float32,
+) []float32 {
+	if len(pts) < 6 {
+		return nil
+	}
+	a := make([]float32, len(pts))
+	copy(a, pts)
+	b := make([]float32, 0, 20)
+
+	for edge := range 4 {
+		na := len(a) / 2
+		if na < 3 {
+			return nil
+		}
+		b = b[:0]
+		px, py := a[(na-1)*2], a[(na-1)*2+1]
+		pIn := rectEdgeInside(edge, px, py, left, right, top, bottom)
+
+		for i := range na {
+			cx, cy := a[i*2], a[i*2+1]
+			cIn := rectEdgeInside(edge, cx, cy, left, right, top, bottom)
+			if cIn {
+				if !pIn {
+					ix, iy := edgeIsect(edge, px, py, cx, cy,
+						left, right, top, bottom)
+					b = append(b, ix, iy)
+				}
+				b = append(b, cx, cy)
+			} else if pIn {
+				ix, iy := edgeIsect(edge, px, py, cx, cy,
+					left, right, top, bottom)
+				b = append(b, ix, iy)
+			}
+			px, py = cx, cy
+			pIn = cIn
+		}
+		a, b = b, a
+	}
+	if len(a) < 6 {
+		return nil
+	}
+	return a
+}
+
+func rectEdgeInside(
+	edge int, x, y, left, right, top, bottom float32,
+) bool {
+	switch edge {
+	case 0:
+		return x >= left
+	case 1:
+		return x <= right
+	case 2:
+		return y >= top
+	default:
+		return y <= bottom
+	}
+}
+
+func edgeIsect(
+	edge int, ax, ay, bx, by, left, right, top, bottom float32,
+) (float32, float32) {
+	switch edge {
+	case 0:
+		t := (left - ax) / (bx - ax)
+		return left, ay + t*(by-ay)
+	case 1:
+		t := (right - ax) / (bx - ax)
+		return right, ay + t*(by-ay)
+	case 2:
+		t := (top - ay) / (by - ay)
+		return ax + t*(bx-ax), top
+	default:
+		t := (bottom - ay) / (by - ay)
+		return ax + t*(bx-ax), bottom
+	}
+}
+
 // --- Internal helpers ---
 
 // ensureOrigBounds stores the original axis domain if not
