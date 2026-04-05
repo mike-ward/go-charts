@@ -71,7 +71,7 @@ First renderable chart types.
 
 ## Phase 7 — Statistical & Specialized Charts
 
-- [ ] Radar/spider chart
+- [x] Radar/spider chart
 - [ ] Bubble chart (scatter with sized markers)
 - [ ] Heatmap (color-coded grid)
 - [ ] Treemap (nested rectangles, squarified layout)

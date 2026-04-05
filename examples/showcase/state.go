@@ -20,6 +20,7 @@ const (
 	groupBoxPlot     = "boxplot"
 	groupWaterfall   = "waterfall"
 	groupCombo       = "combo"
+	groupRadar       = "radar"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -68,6 +69,7 @@ var demoGroups = []DemoGroup{
 	{groupBoxPlot, "Box Plot"},
 	{groupWaterfall, "Waterfall"},
 	{groupCombo, "Combo"},
+	{groupRadar, "Radar"},
 	{groupStyles, "Styles"},
 }
 
@@ -124,6 +126,10 @@ var demoEntries = []DemoEntry{
 	// Waterfall
 	{ID: "waterfall_basic", Label: "Basic Waterfall", Group: groupWaterfall, Summary: "Profit & Loss breakdown from revenue to net income.", Tags: []string{"waterfall", "pnl", "profit", "loss", "running", "total"}},
 	{ID: "waterfall_styled", Label: "Styled Waterfall", Group: groupWaterfall, Summary: "Monthly cash flow with custom colors and rounded bars.", Tags: []string{"waterfall", "cashflow", "custom", "color", "rounded"}},
+
+	// Radar
+	{ID: "radar_basic", Label: "Basic Radar", Group: groupRadar, Summary: "Character stat comparison with circular grid.", Tags: []string{"radar", "spider", "polygon", "stats"}},
+	{ID: "radar_polygon", Label: "Polygon Grid", Group: groupRadar, Summary: "Radar chart with polygon grid lines.", Tags: []string{"radar", "spider", "polygon", "grid"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

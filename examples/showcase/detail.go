@@ -106,6 +106,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"waterfall_styled":  demoWaterfallStyled,
 	"combo_basic":       demoComboBasic,
 	"combo_multi":       demoComboMulti,
+	"radar_basic":       demoRadar,
+	"radar_polygon":     demoRadarPolygon,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,
 	"style_legend_pos":  demoLegendPositions,
