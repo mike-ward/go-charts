@@ -38,6 +38,8 @@ type areaView struct {
 	ptsBuf      []float32
 	prevPtsBuf  []float32
 	curPtsBuf   []float32
+	clipA       []float32 // scratch for clipConvexToRect
+	clipB       []float32
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
@@ -460,16 +462,23 @@ func (av *areaView) drawOverlapping(
 				// Clamp line Y to baseline so the quad stays
 				// convex. Points below bottom contribute no
 				// visible area and would create a reflex vertex.
+				qy0 := min(pts[k+1], bottom)
+				qy1 := min(pts[k+3], bottom)
+				if qy0 == bottom && qy1 == bottom {
+					continue // degenerate zero-height quad
+				}
 				quad[0] = pts[k]
-				quad[1] = min(pts[k+1], bottom)
+				quad[1] = qy0
 				quad[2] = pts[k+2]
-				quad[3] = min(pts[k+3], bottom)
+				quad[3] = qy1
 				quad[4] = pts[k+2]
 				quad[5] = bottom
 				quad[6] = pts[k]
 				quad[7] = bottom
-				clippedQ := clipConvexToRect(quad[:],
-					left, right, top, bottom)
+				var clippedQ []float32
+				clippedQ, av.clipA, av.clipB = clipConvexToRect(
+					quad[:], left, right, top, bottom,
+					av.clipA, av.clipB)
 				if clippedQ != nil {
 					ctx.FilledPolygon(clippedQ, fill)
 				}
@@ -561,16 +570,25 @@ func (av *areaView) drawStacked(
 			for k := 0; k < len(cur)-2; k += 2 {
 				// Clamp Y values to baseline so quads stay
 				// convex when zoomed beyond data range.
+				cy0 := min(cur[k+1], bottom)
+				cy1 := min(cur[k+3], bottom)
+				py0 := min(prev[k+1], bottom)
+				py1 := min(prev[k+3], bottom)
+				if cy0 == py0 && cy1 == py1 {
+					continue // degenerate zero-height band
+				}
 				quad[0] = cur[k]
-				quad[1] = min(cur[k+1], bottom)
+				quad[1] = cy0
 				quad[2] = cur[k+2]
-				quad[3] = min(cur[k+3], bottom)
+				quad[3] = cy1
 				quad[4] = prev[k+2]
-				quad[5] = min(prev[k+3], bottom)
+				quad[5] = py1
 				quad[6] = prev[k]
-				quad[7] = min(prev[k+1], bottom)
-				clippedQ := clipConvexToRect(quad[:],
-					left, right, top, bottom)
+				quad[7] = py0
+				var clippedQ []float32
+				clippedQ, av.clipA, av.clipB = clipConvexToRect(
+					quad[:], left, right, top, bottom,
+					av.clipA, av.clipB)
 				if clippedQ != nil {
 					ctx.FilledPolygon(clippedQ, fill)
 				}

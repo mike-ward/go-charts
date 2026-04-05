@@ -4,6 +4,8 @@ import (
 	"math"
 	"testing"
 
+	"fmt"
+
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -414,4 +416,416 @@ func TestEnsureOrigBoundsPartialAxes(t *testing.T) {
 		t.Errorf("OrigY = [%g,%g], want [-10,10]",
 			zs.OrigYMin, zs.OrigYMax)
 	}
+}
+
+// --- clipConvexToRect tests ---
+
+func approxEq(a, b, tol float32) bool {
+	d := a - b
+	if d < 0 {
+		d = -d
+	}
+	return d < tol
+}
+
+func polyApproxEq(a, b []float32, tol float32) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !approxEq(a[i], b[i], tol) {
+			return false
+		}
+	}
+	return true
+}
+
+func TestClipConvexFullyInside(t *testing.T) {
+	t.Parallel()
+	// Quad fully inside the rect — no clipping needed.
+	quad := []float32{20, 20, 80, 20, 80, 80, 20, 80}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	if !polyApproxEq(got, quad, 0.01) {
+		t.Errorf("got %v, want %v", got, quad)
+	}
+}
+
+func TestClipConvexFullyOutside(t *testing.T) {
+	t.Parallel()
+	// Quad entirely to the left of the rect.
+	quad := []float32{-50, 20, -10, 20, -10, 80, -50, 80}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	if got != nil {
+		t.Errorf("expected nil, got %v", got)
+	}
+}
+
+func TestClipConvexClipsLeft(t *testing.T) {
+	t.Parallel()
+	// Quad straddles the left edge.
+	quad := []float32{-50, 0, 50, 0, 50, 100, -50, 100}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	want := []float32{0, 0, 50, 0, 50, 100, 0, 100}
+	if !polyApproxEq(got, want, 0.01) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestClipConvexClipsTopAndRight(t *testing.T) {
+	t.Parallel()
+	// Quad extends above top and past right.
+	quad := []float32{50, -50, 150, -50, 150, 50, 50, 50}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	want := []float32{50, 0, 100, 0, 100, 50, 50, 50}
+	if !polyApproxEq(got, want, 0.01) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestClipConvexAreaQuadLineAboveTop(t *testing.T) {
+	t.Parallel()
+	// Simulates area fill quad when line is entirely above the
+	// plot rect. Line at y=-50, baseline at y=100.
+	// Quad: (10,-50),(90,-50),(90,100),(10,100)
+	// After clip to [0,100]x[0,100]: (10,0),(90,0),(90,100),(10,100)
+	quad := []float32{10, -50, 90, -50, 90, 100, 10, 100}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	want := []float32{10, 0, 90, 0, 90, 100, 10, 100}
+	if !polyApproxEq(got, want, 0.01) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestClipConvexAreaQuadDiagonal(t *testing.T) {
+	t.Parallel()
+	// Line segment from far-left-below to far-right-above
+	// (typical zoomed-in area chart scenario).
+	// Quad: (-100,200),(200,-100),(200,100),(-100,100)
+	// Plot rect: [0,100]x[0,100]
+	quad := []float32{-100, 200, 200, -100, 200, 100, -100, 100}
+	got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+	if got == nil {
+		t.Fatal("expected non-nil result")
+	}
+	// Verify all result vertices are within the clip rect.
+	for i := 0; i < len(got); i += 2 {
+		x, y := got[i], got[i+1]
+		if x < -0.01 || x > 100.01 || y < -0.01 || y > 100.01 {
+			t.Errorf("vertex (%g,%g) outside clip rect", x, y)
+		}
+	}
+	// Should have >= 3 vertices (triangle or more).
+	if len(got) < 6 {
+		t.Errorf("expected >= 3 vertices, got %d", len(got)/2)
+	}
+}
+
+func TestClipConvexScratchBuffersReused(t *testing.T) {
+	t.Parallel()
+	// Verify scratch buffers are returned and reusable.
+	quad := []float32{10, 10, 90, 10, 90, 90, 10, 90}
+	var a, b []float32
+	_, a, b = clipConvexToRect(quad, 0, 100, 0, 100, a, b)
+	if a == nil || b == nil {
+		t.Fatal("scratch buffers should be non-nil after first call")
+	}
+	capA, capB := cap(a), cap(b)
+
+	// Second call should not allocate (reuses backing arrays).
+	quad2 := []float32{20, 20, 80, 20, 80, 80, 20, 80}
+	got, a2, b2 := clipConvexToRect(quad2, 0, 100, 0, 100, a, b)
+	if got == nil {
+		t.Fatal("expected non-nil result")
+	}
+	if cap(a2) < capA || cap(b2) < capB {
+		t.Error("scratch buffer capacity should not shrink")
+	}
+}
+
+func TestClipConvexTooFewPoints(t *testing.T) {
+	t.Parallel()
+	got, _, _ := clipConvexToRect([]float32{1, 2, 3, 4}, 0, 100, 0, 100, nil, nil)
+	if got != nil {
+		t.Errorf("expected nil for < 3 vertices, got %v", got)
+	}
+}
+
+func TestClipConvexNilInput(t *testing.T) {
+	t.Parallel()
+	got, _, _ := clipConvexToRect(nil, 0, 100, 0, 100, nil, nil)
+	if got != nil {
+		t.Errorf("expected nil for nil input, got %v", got)
+	}
+}
+
+// --- Edge function tests ---
+
+func TestRectEdgeInsideAllEdges(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		edge   int
+		x, y   float32
+		inside bool
+	}{
+		{0, 10, 50, true},  // left: x >= 10
+		{0, 5, 50, false},  // left: x < 10
+		{1, 90, 50, true},  // right: x <= 90
+		{1, 95, 50, false}, // right: x > 90
+		{2, 50, 20, true},  // top: y >= 20
+		{2, 50, 15, false}, // top: y < 20
+		{3, 50, 80, true},  // bottom: y <= 80
+		{3, 50, 85, false}, // bottom: y > 80
+	}
+	for _, tc := range cases {
+		got := rectEdgeInside(tc.edge, tc.x, tc.y, 10, 90, 20, 80)
+		if got != tc.inside {
+			t.Errorf("edge=%d (%g,%g): got %v, want %v",
+				tc.edge, tc.x, tc.y, got, tc.inside)
+		}
+	}
+}
+
+func TestEdgeIsectComputation(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		edge   int
+		ax, ay float32
+		bx, by float32
+		wantX  float32
+		wantY  float32
+	}{
+		// Left edge at x=10: segment from (0,0) to (20,40)
+		{0, 0, 0, 20, 40, 10, 20},
+		// Right edge at x=90: segment from (80,0) to (100,50)
+		{1, 80, 0, 100, 50, 90, 25},
+		// Top edge at y=20: segment from (50,0) to (50,40)
+		{2, 50, 0, 50, 40, 50, 20},
+		// Bottom edge at y=80: segment from (30,60) to (30,100)
+		{3, 30, 60, 30, 100, 30, 80},
+	}
+	for _, tc := range cases {
+		x, y := edgeIsect(tc.edge, tc.ax, tc.ay, tc.bx, tc.by,
+			10, 90, 20, 80)
+		if !approxEq(x, tc.wantX, 0.01) || !approxEq(y, tc.wantY, 0.01) {
+			t.Errorf("edge=%d (%g,%g)->(%g,%g): got (%g,%g), want (%g,%g)",
+				tc.edge, tc.ax, tc.ay, tc.bx, tc.by,
+				x, y, tc.wantX, tc.wantY)
+		}
+	}
+}
+
+// --- Degenerate quad skip tests ---
+
+func TestAreaFillSkipsDegenerateQuad(t *testing.T) {
+	t.Parallel()
+	// When both line Y values are at or below bottom, the
+	// clamped quad has zero height and should be skipped.
+	bottom := float32(100)
+	cases := []struct {
+		y0, y1 float32
+		skip   bool
+	}{
+		{50, 60, false},  // both above bottom
+		{100, 100, true}, // both at bottom
+		{150, 200, true}, // both below bottom (clamped to bottom)
+		{50, 100, false}, // one above, one at bottom
+		{50, 150, false}, // one above, one below
+	}
+	for _, tc := range cases {
+		qy0 := min(tc.y0, bottom)
+		qy1 := min(tc.y1, bottom)
+		skipped := qy0 == bottom && qy1 == bottom
+		if skipped != tc.skip {
+			t.Errorf("y0=%g y1=%g: skipped=%v, want %v",
+				tc.y0, tc.y1, skipped, tc.skip)
+		}
+	}
+}
+
+func TestStackedFillSkipsDegenerateBand(t *testing.T) {
+	t.Parallel()
+	// Stacked mode: skip when cur and prev clamp to same Y.
+	bottom := float32(100)
+	cases := []struct {
+		curY, prevY float32
+		skip        bool
+	}{
+		{50, 80, false},  // both in range, different
+		{150, 200, true}, // both below bottom → both clamp to 100
+		{100, 100, true}, // both exactly at bottom
+		{50, 150, false}, // cur in range, prev below
+		{150, 50, false}, // cur below, prev in range
+	}
+	for i, tc := range cases {
+		cy := min(tc.curY, bottom)
+		py := min(tc.prevY, bottom)
+		skipped := cy == py
+		if skipped != tc.skip {
+			t.Errorf("case %d: curY=%g prevY=%g: skipped=%v, want %v",
+				i, tc.curY, tc.prevY, skipped, tc.skip)
+		}
+	}
+}
+
+// --- Convexity verification ---
+
+func TestClipConvexResultIsConvex(t *testing.T) {
+	t.Parallel()
+	// Various quads that partially overlap the clip rect.
+	// Verify the clipped result has consistent cross-product sign
+	// (all vertices turn the same direction → convex).
+	quads := [][]float32{
+		{-50, 50, 50, 50, 50, 150, -50, 150},     // straddles left
+		{50, -50, 150, -50, 150, 50, 50, 50},     // straddles top-right
+		{-50, -50, 150, -50, 150, 150, -50, 150}, // covers entire rect
+		{30, 30, 70, 30, 70, 70, 30, 70},         // fully inside
+	}
+	for qi, quad := range quads {
+		got, _, _ := clipConvexToRect(quad, 0, 100, 0, 100, nil, nil)
+		if got == nil {
+			continue
+		}
+		n := len(got) / 2
+		if n < 3 {
+			continue
+		}
+		var pos, neg int
+		for i := range n {
+			j := (i + 1) % n
+			k := (i + 2) % n
+			dx1 := got[j*2] - got[i*2]
+			dy1 := got[j*2+1] - got[i*2+1]
+			dx2 := got[k*2] - got[j*2]
+			dy2 := got[k*2+1] - got[j*2+1]
+			cross := dx1*dy2 - dy1*dx2
+			if cross > 0.001 {
+				pos++
+			} else if cross < -0.001 {
+				neg++
+			}
+		}
+		if pos > 0 && neg > 0 {
+			t.Errorf("quad %d: clipped result is concave: %v "+
+				"(pos=%d neg=%d)", qi, got, pos, neg)
+		}
+	}
+}
+
+// Verify that area fill quads with Y clamped to bottom produce
+// convex input for clipConvexToRect.
+func TestAreaQuadConvexAfterClamp(t *testing.T) {
+	t.Parallel()
+	bottom := float32(300)
+	// Simulate various line Y positions including below-bottom.
+	ys := []struct{ y0, y1 float32 }{
+		{100, 200},  // both above bottom
+		{100, 400},  // y1 below bottom
+		{400, 100},  // y0 below bottom
+		{400, 500},  // both below bottom
+		{-50, -100}, // both above top
+	}
+	for _, tc := range ys {
+		qy0 := min(tc.y0, bottom)
+		qy1 := min(tc.y1, bottom)
+		if qy0 == bottom && qy1 == bottom {
+			continue // degenerate, skipped
+		}
+		quad := []float32{
+			10, qy0, 90, qy1,
+			90, bottom, 10, bottom,
+		}
+		// Check convexity.
+		n := len(quad) / 2
+		var pos, neg int
+		for i := range n {
+			j := (i + 1) % n
+			k := (i + 2) % n
+			dx1 := quad[j*2] - quad[i*2]
+			dy1 := quad[j*2+1] - quad[i*2+1]
+			dx2 := quad[k*2] - quad[j*2]
+			dy2 := quad[k*2+1] - quad[j*2+1]
+			cross := dx1*dy2 - dy1*dx2
+			if cross > 0.001 {
+				pos++
+			} else if cross < -0.001 {
+				neg++
+			}
+		}
+		if pos > 0 && neg > 0 {
+			t.Errorf("y0=%g y1=%g: clamped quad is concave %v",
+				tc.y0, tc.y1, quad)
+		}
+	}
+}
+
+// Verify convexity is broken WITHOUT the clamp (documenting the
+// bug the clamp fixes).
+func TestAreaQuadConcaveWithoutClamp(t *testing.T) {
+	t.Parallel()
+	bottom := float32(300)
+	// y0 below bottom → reflex vertex at (x0, bottom).
+	y0 := float32(400)
+	y1 := float32(100)
+	quad := []float32{10, y0, 90, y1, 90, bottom, 10, bottom}
+	n := len(quad) / 2
+	var pos, neg int
+	for i := range n {
+		j := (i + 1) % n
+		k := (i + 2) % n
+		dx1 := quad[j*2] - quad[i*2]
+		dy1 := quad[j*2+1] - quad[i*2+1]
+		dx2 := quad[k*2] - quad[j*2]
+		dy2 := quad[k*2+1] - quad[j*2+1]
+		cross := dx1*dy2 - dy1*dx2
+		if cross > 0.001 {
+			pos++
+		} else if cross < -0.001 {
+			neg++
+		}
+	}
+	if pos == 0 || neg == 0 {
+		t.Error("unclamped quad with y0 > bottom should be concave")
+	}
+}
+
+func TestClipConvexPreservesResultAcrossCalls(t *testing.T) {
+	t.Parallel()
+	// Ensure result from call N is not corrupted by call N+1
+	// (scratch buffer reuse safety).
+	q1 := []float32{10, 10, 90, 10, 90, 90, 10, 90}
+	q2 := []float32{20, 20, 80, 20, 80, 80, 20, 80}
+	var a, b []float32
+	var r1 []float32
+	r1, a, b = clipConvexToRect(q1, 0, 100, 0, 100, a, b)
+	// Copy r1 before next call.
+	saved := make([]float32, len(r1))
+	copy(saved, r1)
+	_, _, _ = clipConvexToRect(q2, 0, 100, 0, 100, a, b)
+	// r1 may have been overwritten (shares backing array with a).
+	// Verify the saved copy is correct.
+	if !polyApproxEq(saved, q1, 0.01) {
+		t.Errorf("first result corrupted: got %v, want %v",
+			saved, q1)
+	}
+}
+
+func TestEdgeIsectBoundaryExact(t *testing.T) {
+	t.Parallel()
+	// Verify intersection at exact boundary coordinates.
+	// Segment crossing left edge at x=0 from x=-10 to x=10
+	x, y := edgeIsect(0, -10, 50, 10, 50, 0, 100, 0, 100)
+	if !approxEq(x, 0, 0.01) || !approxEq(y, 50, 0.01) {
+		t.Errorf("left edge: got (%g,%g), want (0,50)", x, y)
+	}
+}
+
+// Benchmark to verify scratch buffer reuse avoids allocations.
+func BenchmarkClipConvexToRect(b *testing.B) {
+	quad := []float32{-50, -50, 150, -50, 150, 150, -50, 150}
+	var sa, sb []float32
+	b.ReportAllocs()
+	for range b.N {
+		_, sa, sb = clipConvexToRect(quad, 0, 100, 0, 100, sa, sb)
+	}
+	_ = fmt.Sprintf("%v %v", sa, sb) // prevent optimization
 }

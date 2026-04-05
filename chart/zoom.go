@@ -610,20 +610,25 @@ func clipSegment(
 // Returns the clipped polygon as flat [x0,y0,x1,y1,...] pairs,
 // or nil if fully outside. The result is convex and safe for
 // fan-triangulation (FilledPolygon).
+//
+// a and b are caller-owned scratch buffers reused across calls to
+// avoid per-call heap allocations in draw loops. Both are grown as
+// needed and returned so the caller can keep the larger backing
+// arrays for the next call.
 func clipConvexToRect(
 	pts []float32, left, right, top, bottom float32,
-) []float32 {
+	a, b []float32,
+) ([]float32, []float32, []float32) {
 	if len(pts) < 6 {
-		return nil
+		return nil, a, b
 	}
-	a := make([]float32, len(pts))
-	copy(a, pts)
-	b := make([]float32, 0, 20)
+	a = append(a[:0], pts...)
+	b = b[:0]
 
 	for edge := range 4 {
 		na := len(a) / 2
 		if na < 3 {
-			return nil
+			return nil, a, b
 		}
 		b = b[:0]
 		px, py := a[(na-1)*2], a[(na-1)*2+1]
@@ -650,9 +655,9 @@ func clipConvexToRect(
 		a, b = b, a
 	}
 	if len(a) < 6 {
-		return nil
+		return nil, a, b
 	}
-	return a
+	return a, a, b
 }
 
 func rectEdgeInside(

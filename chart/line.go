@@ -36,6 +36,8 @@ type lineView struct {
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	ptsBuf      []float32
+	clipA       []float32 // scratch for clipConvexToRect
+	clipB       []float32
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool
@@ -421,20 +423,33 @@ func (lv *lineView) drawSeries(
 		// intersections.
 		clipped := clipPolylineToRect(pts, left, right, top, bottom)
 
-		// Filled area under the line.
-		if cfg.ShowArea && len(clipped) >= 4 {
+		// Filled area under the line. Clip each quad to the plot
+		// rect using Sutherland-Hodgman so fill stays correct when
+		// zoomed beyond visible data range.
+		if cfg.ShowArea && len(pts) >= 4 {
 			fill := gui.RGBA(color.R, color.G, color.B, 40)
 			var quad [8]float32
-			for k := 0; k < len(clipped)-2; k += 2 {
-				quad[0] = clipped[k]
-				quad[1] = clipped[k+1]
-				quad[2] = clipped[k+2]
-				quad[3] = clipped[k+3]
-				quad[4] = clipped[k+2]
+			for k := 0; k < len(pts)-2; k += 2 {
+				qy0 := min(pts[k+1], bottom)
+				qy1 := min(pts[k+3], bottom)
+				if qy0 == bottom && qy1 == bottom {
+					continue
+				}
+				quad[0] = pts[k]
+				quad[1] = qy0
+				quad[2] = pts[k+2]
+				quad[3] = qy1
+				quad[4] = pts[k+2]
 				quad[5] = bottom
-				quad[6] = clipped[k]
+				quad[6] = pts[k]
 				quad[7] = bottom
-				ctx.FilledPolygon(quad[:], fill)
+				var clippedQ []float32
+				clippedQ, lv.clipA, lv.clipB = clipConvexToRect(
+					quad[:], left, right, top, bottom,
+					lv.clipA, lv.clipB)
+				if clippedQ != nil {
+					ctx.FilledPolygon(clippedQ, fill)
+				}
 			}
 		}
 
