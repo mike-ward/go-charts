@@ -27,6 +27,7 @@ const (
 	groupFunnel      = "funnel"
 	groupSankey      = "sankey"
 	groupSparkline   = "sparkline"
+	groupTransform   = "transform"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -82,6 +83,7 @@ var demoGroups = []DemoGroup{
 	{groupFunnel, "Funnel"},
 	{groupSankey, "Sankey"},
 	{groupSparkline, "Sparkline"},
+	{groupTransform, "Transform"},
 	{groupStyles, "Styles"},
 }
 
@@ -169,6 +171,12 @@ var demoEntries = []DemoEntry{
 	{ID: "sparkline_area", Label: "Area Sparkline", Group: groupSparkline, Summary: "Filled area sparkline with min/max markers.", Tags: []string{"sparkline", "area", "fill", "markers"}},
 	{ID: "sparkline_bar", Label: "Bar Sparkline", Group: groupSparkline, Summary: "Bar-style sparkline showing distribution.", Tags: []string{"sparkline", "bar", "distribution"}},
 	{ID: "sparkline_band", Label: "Band Sparkline", Group: groupSparkline, Summary: "Sparkline with positive/negative color bands and reference line.", Tags: []string{"sparkline", "band", "reference", "positive", "negative"}},
+
+	// Transform
+	{ID: "transform_ma", Label: "Moving Averages", Group: groupTransform, Summary: "Noisy signal smoothed with SMA, EMA, and WMA overlays.", Tags: []string{"transform", "sma", "ema", "wma", "moving", "average", "smooth"}},
+	{ID: "transform_regression", Label: "Regression", Group: groupTransform, Summary: "Linear trend and polynomial curve fit on scattered data.", Tags: []string{"transform", "regression", "linear", "polynomial", "trend", "fit"}},
+	{ID: "transform_bands", Label: "Bollinger Bands", Group: groupTransform, Summary: "Price series with upper/middle/lower Bollinger bands.", Tags: []string{"transform", "bollinger", "bands", "envelope", "stddev"}},
+	{ID: "transform_downsample", Label: "LTTB Downsampling", Group: groupTransform, Summary: "1000-point series downsampled to 50 points via LTTB.", Tags: []string{"transform", "lttb", "downsample", "large", "dataset"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

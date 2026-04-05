@@ -79,6 +79,13 @@ var chartTypeDescriptions = map[string]string{
 		" ended. They are widely used for financial statements," +
 		" variance analysis, and bridge charts.",
 
+	"transform": "Data transforms are pure functions that process" +
+		" series data before rendering. They include moving averages" +
+		" (SMA, EMA, WMA) for smoothing, linear and polynomial" +
+		" regression for trend fitting, Bollinger bands and min/max" +
+		" envelopes for range analysis, LTTB downsampling for large" +
+		" datasets, and binning for data grouping.",
+
 	"sparkline": "Sparklines are compact inline mini-charts that" +
 		" show trend at a glance without axes, labels, or legends." +
 		" They are designed to be embedded in text, tables, or" +

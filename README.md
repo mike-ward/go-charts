@@ -72,6 +72,7 @@ func view(w *gui.Window) gui.View {
 | `scale`  | Data-to-pixel mapping: Linear, Log             |
 | `render` | DrawContext adapter for chart rendering         |
 | `theme`  | Theming and color palettes                     |
+| `transform` | Data transforms: moving averages, regression, envelopes, LTTB, binning |
 
 ## Chart Types
 

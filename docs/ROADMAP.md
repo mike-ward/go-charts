@@ -81,13 +81,13 @@ First renderable chart types.
 
 ## Phase 8 — Data Transforms
 
-- [ ] Moving average (simple, exponential, weighted)
-- [ ] Linear regression trend line
-- [ ] Polynomial regression
-- [ ] Bollinger bands
-- [ ] Min/max envelope
-- [ ] Downsampling for large datasets (LTTB algorithm)
-- [ ] Data grouping/binning
+- [x] Moving average (simple, exponential, weighted)
+- [x] Linear regression trend line
+- [x] Polynomial regression
+- [x] Bollinger bands
+- [x] Min/max envelope
+- [x] Downsampling for large datasets (LTTB algorithm)
+- [x] Data grouping/binning
 
 ## Phase 9 — Animation & Real-time
 
