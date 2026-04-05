@@ -55,6 +55,18 @@ const (
 	// between funnel segments.
 	DefaultFunnelSegmentGap float32 = 4
 
+	// DefaultSankeyNodeWidth is the width in pixels of node
+	// rectangles in Sankey diagrams.
+	DefaultSankeyNodeWidth float32 = 20
+
+	// DefaultSankeyNodeGap is the vertical gap in pixels
+	// between nodes in the same column.
+	DefaultSankeyNodeGap float32 = 10
+
+	// DefaultSankeyLinkAlpha is the alpha channel value for
+	// link ribbons (semi-transparent).
+	DefaultSankeyLinkAlpha uint8 = 128
+
 	// DefaultTreemapCellGap is the gap in pixels between
 	// treemap cells.
 	DefaultTreemapCellGap float32 = 2

@@ -116,6 +116,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"treemap_styled":    demoTreemapStyled,
 	"funnel_basic":      demoFunnelBasic,
 	"funnel_styled":     demoFunnelStyled,
+	"sankey_basic":      demoSankeyBasic,
+	"sankey_styled":     demoSankeyStyled,
 	"type_series_xyz":   demoSeriesXYZ,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,

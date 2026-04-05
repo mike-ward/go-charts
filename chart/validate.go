@@ -294,6 +294,51 @@ func (c *TreemapCfg) Validate() error {
 	return buildError("chart.Treemap", errs)
 }
 
+// Validate checks SankeyCfg for invalid settings.
+// Returns nil when valid.
+func (c *SankeyCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Nodes) == 0 {
+		errs = append(errs, "no node data")
+	}
+	if len(c.Links) == 0 {
+		errs = append(errs, "no link data")
+	}
+	if c.NodeWidth < 0 {
+		errs = append(errs, "negative NodeWidth")
+	}
+	if c.NodeGap < 0 {
+		errs = append(errs, "negative NodeGap")
+	}
+	n := len(c.Nodes)
+	for _, lk := range c.Links {
+		if lk.Value < 0 {
+			errs = append(errs, "negative link value")
+			break
+		}
+	}
+	for _, lk := range c.Links {
+		if lk.Source < 0 || lk.Source >= n ||
+			lk.Target < 0 || lk.Target >= n {
+			errs = append(errs, "link index out of range")
+			break
+		}
+		if lk.Source == lk.Target {
+			errs = append(errs, "self-loop link")
+			break
+		}
+	}
+	if len(errs) == 0 && n > 0 && len(c.Links) > 0 {
+		if hasCycle(n, c.Links) {
+			errs = append(errs, "cycle detected in links")
+		}
+	}
+	return buildError("chart.Sankey", errs)
+}
+
 // hasNegativeLeaf reports whether any leaf in the subtree has
 // a negative value.
 func hasNegativeLeaf(n *series.TreeNode) bool {
