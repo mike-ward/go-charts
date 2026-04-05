@@ -188,7 +188,8 @@ func (cfg *RadarCfg) applyRadarDefaults() {
 		if a.Min == 0 && a.Max == 0 {
 			best := 0.0
 			for _, s := range cfg.Series {
-				if i < len(s.Values) && s.Values[i] > best {
+				if i < len(s.Values) && finite(s.Values[i]) &&
+					s.Values[i] > best {
 					best = s.Values[i]
 				}
 			}
@@ -237,6 +238,9 @@ func radarAxisAngle(startAngle float32, i, nAxes int) float32 {
 // radarNormalize returns the 0-1 fraction of value within
 // [axisMin, axisMax], clamped.
 func radarNormalize(value, axisMin, axisMax float64) float64 {
+	if !finite(value) || !finite(axisMin) || !finite(axisMax) {
+		return 0
+	}
 	if axisMax == axisMin {
 		return 0
 	}

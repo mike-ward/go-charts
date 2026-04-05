@@ -61,6 +61,23 @@ func TestBubbleRadius(t *testing.T) {
 	}
 }
 
+func TestBubbleRadiusNegativeZ(t *testing.T) {
+	// Z below zMin should clamp to minR, not produce NaN
+	// via math.Sqrt(negative).
+	got := bubbleRadius(-10, 0, 100, 4, 30)
+	if got != 4 {
+		t.Errorf("bubbleRadius(-10, 0, 100) = %g, want 4 (minR)", got)
+	}
+}
+
+func TestBubbleRadiusAboveMax(t *testing.T) {
+	// Z above zMax should clamp to maxR.
+	got := bubbleRadius(200, 0, 100, 4, 30)
+	if got != 30 {
+		t.Errorf("bubbleRadius(200, 0, 100) = %g, want 30 (maxR)", got)
+	}
+}
+
 func TestBubbleMarkerShape(t *testing.T) {
 	cfg := &BubbleCfg{
 		Marker:  MarkerCircle,

@@ -241,6 +241,31 @@ func (c *ComboCfg) Validate() error {
 	return buildError("chart.Combo", errs)
 }
 
+// Validate checks FunnelCfg for invalid settings.
+// Returns nil when valid.
+func (c *FunnelCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Slices) == 0 {
+		errs = append(errs, "no slice data")
+	}
+	if c.SegmentGap < 0 {
+		errs = append(errs, "negative SegmentGap")
+	}
+	if c.MinWidthRatio < 0 || c.MinWidthRatio > 1 {
+		errs = append(errs, "MinWidthRatio out of range [0,1]")
+	}
+	for _, s := range c.Slices {
+		if s.Value < 0 {
+			errs = append(errs, "negative slice value")
+			break
+		}
+	}
+	return buildError("chart.Funnel", errs)
+}
+
 // Validate checks TreemapCfg for invalid settings.
 // Returns nil when valid.
 func (c *TreemapCfg) Validate() error {

@@ -199,6 +199,47 @@ func TestTreemapHitTest(t *testing.T) {
 	}
 }
 
+func TestTreemapNaNNodeSkipped(t *testing.T) {
+	data := []series.TreeNode{
+		{Label: "Good", Value: 60},
+		{Label: "NaN", Value: math.NaN()},
+		{Label: "Inf", Value: math.Inf(1)},
+	}
+	tv := &treemapView{
+		cfg: TreemapCfg{
+			Data:     data,
+			MaxDepth: 2,
+			CellGap:  0,
+		},
+	}
+
+	roots := make([]nodeArea, 0, len(data))
+	for i := range data {
+		v := data[i].TotalValue()
+		if !finite(v) || v <= 0 {
+			continue
+		}
+		roots = append(roots, nodeArea{
+			node:     &tv.cfg.Data[i],
+			area:     v,
+			groupIdx: i,
+		})
+	}
+
+	// Only the "Good" node should survive filtering.
+	if len(roots) != 1 {
+		t.Fatalf("expected 1 root, got %d", len(roots))
+	}
+	if roots[0].node.Label != "Good" {
+		t.Errorf("expected Good node, got %s", roots[0].node.Label)
+	}
+
+	tv.squarify(roots, 0, 0, 100, 100, 0)
+	if len(tv.cells) != 1 {
+		t.Fatalf("expected 1 cell, got %d", len(tv.cells))
+	}
+}
+
 func TestTreemapValidate(t *testing.T) {
 	tests := []struct {
 		name    string

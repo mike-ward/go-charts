@@ -370,7 +370,7 @@ func (tv *treemapView) layoutNode(
 	children := make([]nodeArea, 0, len(node.Children))
 	for i := range node.Children {
 		v := node.Children[i].TotalValue()
-		if v <= 0 {
+		if !finite(v) || v <= 0 {
 			continue
 		}
 		children = append(children, nodeArea{
@@ -410,7 +410,7 @@ func (tv *treemapView) draw(dc *gui.DrawContext) {
 	roots := make([]nodeArea, 0, len(cfg.Data))
 	for i := range cfg.Data {
 		v := cfg.Data[i].TotalValue()
-		if v <= 0 {
+		if !finite(v) || v <= 0 {
 			continue
 		}
 		roots = append(roots, nodeArea{

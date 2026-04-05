@@ -24,6 +24,7 @@ const (
 	groupBubble      = "bubble"
 	groupHeatmap     = "heatmap"
 	groupTreemap     = "treemap"
+	groupFunnel      = "funnel"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -76,6 +77,7 @@ var demoGroups = []DemoGroup{
 	{groupBubble, "Bubble"},
 	{groupHeatmap, "Heatmap"},
 	{groupTreemap, "Treemap"},
+	{groupFunnel, "Funnel"},
 	{groupStyles, "Styles"},
 }
 
@@ -149,6 +151,10 @@ var demoEntries = []DemoEntry{
 	// Treemap
 	{ID: "treemap_basic", Label: "Basic Treemap", Group: groupTreemap, Summary: "Disk usage by category with nested rectangles.", Tags: []string{"treemap", "nested", "hierarchy", "squarified", "rectangles"}},
 	{ID: "treemap_styled", Label: "Styled Treemap", Group: groupTreemap, Summary: "Market cap by sector with group headers and custom gap.", Tags: []string{"treemap", "headers", "market", "sector", "styled"}},
+
+	// Funnel
+	{ID: "funnel_basic", Label: "Basic Funnel", Group: groupFunnel, Summary: "Sales funnel from prospects to closed deals.", Tags: []string{"funnel", "stages", "conversion", "sales"}},
+	{ID: "funnel_styled", Label: "Styled Funnel", Group: groupFunnel, Summary: "Hiring pipeline with custom colors and percentages.", Tags: []string{"funnel", "styled", "percent", "hiring", "pipeline"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

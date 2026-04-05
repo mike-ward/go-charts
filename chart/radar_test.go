@@ -234,6 +234,34 @@ func TestRadarAxisAngle(t *testing.T) {
 	}
 }
 
+func TestRadarAutoMaxInfIgnored(t *testing.T) {
+	v := Radar(RadarCfg{
+		BaseCfg: BaseCfg{ID: "rinf"},
+		Axes: []RadarAxis{
+			{Label: "A"},
+			{Label: "B"},
+			{Label: "C"},
+		},
+		Series: []RadarSeries{
+			{Name: "S1", Values: []float64{
+				30, math.Inf(1), 50,
+			}},
+			{Name: "S2", Values: []float64{
+				60, 40, math.NaN(),
+			}},
+		},
+	})
+	rv := v.(*radarView)
+	// Inf and NaN should be ignored in auto-max.
+	wantMax := []float64{60, 40, 50}
+	for i, want := range wantMax {
+		if rv.cfg.Axes[i].Max != want {
+			t.Errorf("axis %d Max = %g, want %g",
+				i, rv.cfg.Axes[i].Max, want)
+		}
+	}
+}
+
 func TestRadarNormalize(t *testing.T) {
 	tests := []struct {
 		value, axisMin, axisMax float64
@@ -242,10 +270,14 @@ func TestRadarNormalize(t *testing.T) {
 		{50, 0, 100, 0.5},
 		{0, 0, 100, 0},
 		{100, 0, 100, 1},
-		{-10, 0, 100, 0},   // clamped below
-		{200, 0, 100, 1},   // clamped above
-		{50, 50, 50, 0},    // degenerate
-		{75, 50, 100, 0.5}, // offset range
+		{-10, 0, 100, 0},          // clamped below
+		{200, 0, 100, 1},          // clamped above
+		{50, 50, 50, 0},           // degenerate
+		{75, 50, 100, 0.5},        // offset range
+		{math.NaN(), 0, 100, 0},   // NaN value
+		{50, math.NaN(), 100, 0},  // NaN axisMin
+		{50, 0, math.Inf(1), 0},   // Inf axisMax
+		{math.Inf(-1), 0, 100, 0}, // -Inf value
 	}
 	for _, tt := range tests {
 		got := radarNormalize(tt.value, tt.axisMin, tt.axisMax)

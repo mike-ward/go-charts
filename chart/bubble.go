@@ -200,8 +200,10 @@ func (bv *bubbleView) updateAxes() bool {
 		minY = min(minY, sy0)
 		maxY = max(maxY, sy1)
 		sz0, sz1 := s.ZBounds()
-		bv.zMin = min(bv.zMin, sz0)
-		bv.zMax = max(bv.zMax, sz1)
+		if finite(sz0) && finite(sz1) {
+			bv.zMin = min(bv.zMin, sz0)
+			bv.zMax = max(bv.zMax, sz1)
+		}
 	}
 
 	hasBounds := minX <= maxX
@@ -385,7 +387,9 @@ func bubbleRadius(z, zMin, zMax float64, minR, maxR float32) float32 {
 	if zMax <= zMin {
 		return (minR + maxR) / 2
 	}
-	t := math.Sqrt((z - zMin) / (zMax - zMin))
+	frac := (z - zMin) / (zMax - zMin)
+	frac = max(0, min(1, frac))
+	t := math.Sqrt(frac)
 	return minR + (maxR-minR)*float32(t)
 }
 

@@ -51,6 +51,10 @@ const (
 	// heatmap cells.
 	DefaultHeatmapCellGap float32 = 1
 
+	// DefaultFunnelSegmentGap is the vertical gap in pixels
+	// between funnel segments.
+	DefaultFunnelSegmentGap float32 = 4
+
 	// DefaultTreemapCellGap is the gap in pixels between
 	// treemap cells.
 	DefaultTreemapCellGap float32 = 2
