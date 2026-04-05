@@ -110,6 +110,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"radar_polygon":     demoRadarPolygon,
 	"bubble_basic":      demoBubble,
 	"bubble_markers":    demoBubbleMarkers,
+	"heatmap_basic":     demoHeatmapBasic,
+	"heatmap_activity":  demoHeatmapActivity,
 	"type_series_xyz":   demoSeriesXYZ,
 	"style_palette":     demoPaletteSwap,
 	"style_tick_marks":  demoTickMarks,

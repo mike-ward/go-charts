@@ -47,6 +47,10 @@ const (
 	// radius in pixels.
 	DefaultBubbleMaxRadius float32 = 30
 
+	// DefaultHeatmapCellGap is the gap in pixels between
+	// heatmap cells.
+	DefaultHeatmapCellGap float32 = 1
+
 	// DefaultZoomFactor is the scale factor per scroll tick.
 	// >1 zooms in; 1/factor zooms out.
 	DefaultZoomFactor float64 = 1.15

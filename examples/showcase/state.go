@@ -22,6 +22,7 @@ const (
 	groupCombo       = "combo"
 	groupRadar       = "radar"
 	groupBubble      = "bubble"
+	groupHeatmap     = "heatmap"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -72,6 +73,7 @@ var demoGroups = []DemoGroup{
 	{groupCombo, "Combo"},
 	{groupRadar, "Radar"},
 	{groupBubble, "Bubble"},
+	{groupHeatmap, "Heatmap"},
 	{groupStyles, "Styles"},
 }
 
@@ -137,6 +139,10 @@ var demoEntries = []DemoEntry{
 	// Bubble
 	{ID: "bubble_basic", Label: "Basic Bubble", Group: groupBubble, Summary: "GDP vs life expectancy with population as bubble size.", Tags: []string{"bubble", "scatter", "size", "xyz", "population"}},
 	{ID: "bubble_markers", Label: "Marker Shapes", Group: groupBubble, Summary: "Sensor readings with different marker shapes per series.", Tags: []string{"bubble", "markers", "shapes", "per-series"}},
+
+	// Heatmap
+	{ID: "heatmap_basic", Label: "Basic Heatmap", Group: groupHeatmap, Summary: "Correlation matrix with values displayed in cells.", Tags: []string{"heatmap", "grid", "correlation", "matrix", "color"}},
+	{ID: "heatmap_activity", Label: "Activity Heatmap", Group: groupHeatmap, Summary: "Weekly activity by month with green gradient.", Tags: []string{"heatmap", "grid", "activity", "calendar", "gradient"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

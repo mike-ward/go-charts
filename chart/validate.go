@@ -183,6 +183,22 @@ func (c *BoxPlotCfg) Validate() error {
 	return buildError("chart.BoxPlot", errs)
 }
 
+// Validate checks HeatmapCfg for invalid settings.
+// Returns nil when valid.
+func (c *HeatmapCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if c.Data.NumRows() == 0 || c.Data.NumCols() == 0 {
+		errs = append(errs, "empty grid data")
+	}
+	if c.CellGap < 0 {
+		errs = append(errs, "negative CellGap")
+	}
+	return buildError("chart.Heatmap", errs)
+}
+
 // Validate checks ComboCfg for invalid settings.
 // Returns nil when valid.
 func (c *ComboCfg) Validate() error {

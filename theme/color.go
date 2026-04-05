@@ -28,3 +28,22 @@ func Darken(c gui.Color, amount float64) gui.Color {
 	b := uint8(float64(c.B) * f)
 	return gui.RGBA(r, g, b, c.A)
 }
+
+// Lerp linearly interpolates between two colors. t is clamped
+// to [0, 1] where 0 returns c1 and 1 returns c2.
+func Lerp(c1, c2 gui.Color, t float64) gui.Color {
+	t = max(0, min(1, t))
+	r := uint8(float64(c1.R) + t*float64(int(c2.R)-int(c1.R)))
+	g := uint8(float64(c1.G) + t*float64(int(c2.G)-int(c1.G)))
+	b := uint8(float64(c1.B) + t*float64(int(c2.B)-int(c1.B)))
+	a := uint8(float64(c1.A) + t*float64(int(c2.A)-int(c1.A)))
+	return gui.RGBA(r, g, b, a)
+}
+
+// Luminance returns the relative luminance of a color using
+// the sRGB approximation (0.299R + 0.587G + 0.114B). Result
+// is in [0, 1].
+func Luminance(c gui.Color) float64 {
+	return (0.299*float64(c.R) + 0.587*float64(c.G) +
+		0.114*float64(c.B)) / 255
+}
