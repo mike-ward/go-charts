@@ -95,6 +95,7 @@ func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       sv.internalClick,
 		OnHover:       sv.internalHover,
 		OnMouseMove:   sv.internalMouseMove,
+		OnMouseUp:     sv.internalMouseUp,
 		OnMouseLeave:  sv.internalMouseLeave,
 		OnMouseScroll: sv.internalScroll,
 		OnGesture:     sv.internalGesture,
@@ -140,7 +141,16 @@ func (sv *scatterView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Win
 	}
 }
 
+func (sv *scatterView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if sv.cfg.EnablePan || sv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
+	}
+}
+
 func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, sv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	sv.hoverPx = e.MouseX - l.Shape.X
 	sv.hoverPy = e.MouseY - l.Shape.Y

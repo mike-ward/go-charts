@@ -92,6 +92,7 @@ func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       av.internalClick,
 		OnHover:       av.internalHover,
 		OnMouseMove:   av.internalMouseMove,
+		OnMouseUp:     av.internalMouseUp,
 		OnMouseLeave:  av.internalMouseLeave,
 		OnMouseScroll: av.internalScroll,
 		OnGesture:     av.internalGesture,
@@ -137,7 +138,16 @@ func (av *areaView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window
 	}
 }
 
+func (av *areaView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if av.cfg.EnablePan || av.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, av.cfg.ID, av.lastPA, true, true)
+	}
+}
+
 func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, av.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	av.hoverPx = e.MouseX - l.Shape.X
 	av.hoverPy = e.MouseY - l.Shape.Y

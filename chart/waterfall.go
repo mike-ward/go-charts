@@ -134,6 +134,7 @@ func (wv *waterfallView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       wv.internalClick,
 		OnHover:       wv.internalHover,
 		OnMouseMove:   wv.internalMouseMove,
+		OnMouseUp:     wv.internalMouseUp,
 		OnMouseLeave:  wv.internalMouseLeave,
 		OnMouseScroll: wv.internalScroll,
 		OnGesture:     wv.internalGesture,
@@ -190,9 +191,18 @@ func (wv *waterfallView) internalMouseMove(
 	}
 }
 
+func (wv *waterfallView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if wv.cfg.EnablePan || wv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
+	}
+}
+
 func (wv *waterfallView) internalHover(
 	l *gui.Layout, e *gui.Event, w *gui.Window,
 ) {
+	if isDragging(w, wv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	wv.hoverPx = e.MouseX - l.Shape.X
 	wv.hoverPy = e.MouseY - l.Shape.Y

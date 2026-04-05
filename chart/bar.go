@@ -86,6 +86,7 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       bv.internalClick,
 		OnHover:       bv.internalHover,
 		OnMouseMove:   bv.internalMouseMove,
+		OnMouseUp:     bv.internalMouseUp,
 		OnMouseLeave:  bv.internalMouseLeave,
 		OnMouseScroll: bv.internalScroll,
 		OnGesture:     bv.internalGesture,
@@ -139,7 +140,16 @@ func (bv *barView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window)
 	}
 }
 
+func (bv *barView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if bv.cfg.EnablePan || bv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
+	}
+}
+
 func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, bv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	bv.hoverPx = e.MouseX - l.Shape.X
 	bv.hoverPy = e.MouseY - l.Shape.Y

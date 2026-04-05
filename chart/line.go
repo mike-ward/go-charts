@@ -87,6 +87,7 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       lv.internalClick,
 		OnHover:       lv.internalHover,
 		OnMouseMove:   lv.internalMouseMove,
+		OnMouseUp:     lv.internalMouseUp,
 		OnMouseLeave:  lv.internalMouseLeave,
 		OnMouseScroll: lv.internalScroll,
 		OnGesture:     lv.internalGesture,
@@ -132,7 +133,16 @@ func (lv *lineView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window
 	}
 }
 
+func (lv *lineView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if lv.cfg.EnablePan || lv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
+	}
+}
+
 func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, lv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	lv.hoverPx = e.MouseX - l.Shape.X
 	lv.hoverPy = e.MouseY - l.Shape.Y

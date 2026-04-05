@@ -21,6 +21,7 @@ type zoomState struct {
 	Dragging                   bool
 	DragStartPx, DragStartPy   float32
 	DragSelect                 bool // true = range-select, false = pan
+	ShiftOnDown                bool // Shift held at MouseDown
 	SelX0, SelY0, SelX1, SelY1 float32
 	LastClickTime              int64
 	Version                    uint64
@@ -30,6 +31,15 @@ const (
 	nsChartZoom  = "chart-zoom"
 	capChartZoom = 64
 )
+
+// isDragging returns true when a drag operation (pan or
+// range-select) is active. Used to suppress hover effects.
+// Callers return without setting e.IsHandled; layoutHover
+// returns true regardless so event propagation is unaffected.
+func isDragging(w *gui.Window, id string) bool {
+	zs, _ := loadZoomState(w, id)
+	return zs.Dragging
+}
 
 // loadZoomState reads persisted zoom state for a chart.
 func loadZoomState(w *gui.Window, id string) (zoomState, uint64) {
@@ -287,15 +297,18 @@ func handleDragHover(
 		return false
 	}
 
-	mx := e.MouseX - l.Shape.X
-	my := e.MouseY - l.Shape.Y
+	// OnMouseMove delivers canvas-local coordinates
+	// (executeMouseCallback subtracts l.Shape.X/Y). Using raw
+	// e.MouseX/Y avoids double subtraction.
+	mx := e.MouseX
+	my := e.MouseY
 
 	// Start drag.
 	if !zs.Dragging {
 		zs.Dragging = true
 		zs.DragStartPx = mx
 		zs.DragStartPy = my
-		shift := e.Modifiers&gui.ModShift != 0
+		shift := zs.ShiftOnDown || e.Modifiers&gui.ModShift != 0
 		zs.DragSelect = shift && selectOk
 		if !zs.DragSelect && !panOk {
 			zs.Dragging = false
@@ -355,6 +368,26 @@ func handleDragHover(
 	return true
 }
 
+// handleDragEnd completes a drag operation on mouse-up. Called
+// from OnMouseUp so the zoom applies immediately on button
+// release without waiting for the next mouse move.
+func handleDragEnd(
+	w *gui.Window, l *gui.Layout, e *gui.Event,
+	id string, pa plotArea, zoomX, zoomY bool,
+) {
+	zs, _ := loadZoomState(w, id)
+	if !zs.Dragging {
+		return
+	}
+	if zs.DragSelect {
+		finishRangeSelect(&zs, pa, zoomX, zoomY)
+	}
+	zs.Dragging = false
+	zs.DragSelect = false
+	e.IsHandled = true
+	saveZoomState(w, l, id, zs)
+}
+
 // finishRangeSelect converts the pixel selection rectangle to
 // a data-space domain and sets it as the zoomed view.
 func finishRangeSelect(
@@ -404,6 +437,7 @@ func handleDoubleClickCheck(
 	w *gui.Window, l *gui.Layout, e *gui.Event, id string,
 ) bool {
 	zs, _ := loadZoomState(w, id)
+	zs.ShiftOnDown = e.Modifiers&gui.ModShift != 0
 	now := time.Now().UnixMilli()
 	prev := zs.LastClickTime
 	zs.LastClickTime = now

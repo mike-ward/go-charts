@@ -109,6 +109,7 @@ func (cv *candlestickView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       cv.internalClick,
 		OnHover:       cv.internalHover,
 		OnMouseMove:   cv.internalMouseMove,
+		OnMouseUp:     cv.internalMouseUp,
 		OnMouseLeave:  cv.internalMouseLeave,
 		OnMouseScroll: cv.internalScroll,
 		OnGesture:     cv.internalGesture,
@@ -161,7 +162,16 @@ func (cv *candlestickView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui
 	}
 }
 
+func (cv *candlestickView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if cv.cfg.EnablePan || cv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
+	}
+}
+
 func (cv *candlestickView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, cv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	cv.hoverPx = e.MouseX - l.Shape.X
 	cv.hoverPy = e.MouseY - l.Shape.Y

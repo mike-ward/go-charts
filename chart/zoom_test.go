@@ -418,6 +418,182 @@ func TestEnsureOrigBoundsPartialAxes(t *testing.T) {
 	}
 }
 
+// --- handleDragHover / handleDragEnd / isDragging ---
+
+// testPA builds a plotArea with axes spanning [0,100] and a
+// 400x200 pixel plot region (left=50, right=450, top=20,
+// bottom=220).
+func testPA() plotArea {
+	xa := axis.NewLinear(axis.LinearCfg{Min: 0, Max: 100})
+	ya := axis.NewLinear(axis.LinearCfg{Min: 0, Max: 100})
+	return plotArea{
+		plotRect{50, 450, 20, 220},
+		xa, ya,
+	}
+}
+
+func TestHandleDragHoverStartsRangeSelect(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+
+	e := &gui.Event{
+		MouseX: 200, MouseY: 100,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	ok := handleDragHover(w, l, e, "dh1", pa,
+		true, true, true, true)
+	if !ok {
+		t.Fatal("expected handled")
+	}
+	zs, _ := loadZoomState(w, "dh1")
+	if !zs.Dragging || !zs.DragSelect {
+		t.Fatalf("Dragging=%v DragSelect=%v", zs.Dragging, zs.DragSelect)
+	}
+	if zs.SelX0 != 200 || zs.SelY0 != 100 {
+		t.Errorf("SelX0=%g SelY0=%g, want 200,100",
+			zs.SelX0, zs.SelY0)
+	}
+}
+
+func TestHandleDragHoverUsesCanvasLocalCoords(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{X: 150, Y: 75}}
+	pa := testPA()
+
+	// Start drag.
+	e := &gui.Event{
+		MouseX: 200, MouseY: 100,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	handleDragHover(w, l, e, "dh2", pa, true, true, true, true)
+
+	// Move past threshold — coords should be e.MouseX/Y
+	// directly, NOT e.MouseX - l.Shape.X.
+	e2 := &gui.Event{
+		MouseX: 250, MouseY: 130,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	handleDragHover(w, l, e2, "dh2", pa, true, true, true, true)
+
+	zs, _ := loadZoomState(w, "dh2")
+	if zs.SelX1 != 250 || zs.SelY1 != 130 {
+		t.Errorf("SelX1=%g SelY1=%g, want 250,130",
+			zs.SelX1, zs.SelY1)
+	}
+}
+
+func TestHandleDragHoverShiftOnDownStartsSelect(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+
+	// Simulate MouseDown with Shift via handleDoubleClickCheck.
+	eDown := &gui.Event{Modifiers: gui.ModShift}
+	handleDoubleClickCheck(w, l, eDown, "dh3")
+
+	// First MouseMove: LMB held, Shift NOT held.
+	e := &gui.Event{
+		MouseX: 200, MouseY: 100,
+		Modifiers: gui.ModLMB, // no ModShift
+	}
+	ok := handleDragHover(w, l, e, "dh3", pa,
+		true, true, true, true)
+	if !ok {
+		t.Fatal("expected handled")
+	}
+	zs, _ := loadZoomState(w, "dh3")
+	if !zs.DragSelect {
+		t.Error("DragSelect should be true via ShiftOnDown")
+	}
+}
+
+func TestHandleDragEndFinalizesZoom(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+
+	// Start shift+drag.
+	e1 := &gui.Event{
+		MouseX: 100, MouseY: 60,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	handleDragHover(w, l, e1, "de1", pa, true, true, true, true)
+
+	// Move to build selection rect.
+	e2 := &gui.Event{
+		MouseX: 300, MouseY: 150,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	handleDragHover(w, l, e2, "de1", pa, true, true, true, true)
+
+	// Mouse up.
+	eUp := &gui.Event{}
+	handleDragEnd(w, l, eUp, "de1", pa, true, true)
+
+	zs, _ := loadZoomState(w, "de1")
+	if zs.Dragging {
+		t.Error("Dragging should be false after mouse-up")
+	}
+	if zs.DragSelect {
+		t.Error("DragSelect should be false after mouse-up")
+	}
+	if !zs.Zoomed {
+		t.Error("Zoomed should be true after range select")
+	}
+	if !eUp.IsHandled {
+		t.Error("event should be marked handled")
+	}
+}
+
+func TestHandleDragEndNopWhenNotDragging(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+
+	e := &gui.Event{}
+	handleDragEnd(w, l, e, "de2", pa, true, true)
+
+	if e.IsHandled {
+		t.Error("should not handle when not dragging")
+	}
+}
+
+func TestIsDragging(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+
+	if isDragging(w, "id1") {
+		t.Error("should be false before any drag")
+	}
+
+	// Start a drag.
+	pa := testPA()
+	e := &gui.Event{
+		MouseX: 200, MouseY: 100,
+		Modifiers: gui.ModLMB | gui.ModShift,
+	}
+	handleDragHover(w, l, e, "id1", pa, true, true, true, true)
+
+	if !isDragging(w, "id1") {
+		t.Error("should be true during drag")
+	}
+
+	// End drag.
+	eUp := &gui.Event{}
+	handleDragEnd(w, l, eUp, "id1", pa, true, true)
+
+	if isDragging(w, "id1") {
+		t.Error("should be false after drag end")
+	}
+}
+
 // --- clipConvexToRect tests ---
 
 func approxEq(a, b, tol float32) bool {

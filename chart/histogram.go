@@ -94,6 +94,7 @@ func (hv *histogramView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnClick:       hv.internalClick,
 		OnHover:       hv.internalHover,
 		OnMouseMove:   hv.internalMouseMove,
+		OnMouseUp:     hv.internalMouseUp,
 		OnMouseLeave:  hv.internalMouseLeave,
 		OnMouseScroll: hv.internalScroll,
 		OnGesture:     hv.internalGesture,
@@ -137,7 +138,16 @@ func (hv *histogramView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.W
 	}
 }
 
+func (hv *histogramView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if hv.cfg.EnablePan || hv.cfg.EnableRangeSelect {
+		handleDragEnd(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
+	}
+}
+
 func (hv *histogramView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
+	if isDragging(w, hv.cfg.ID) {
+		return
+	}
 	e.IsHandled = true
 	hv.hoverPx = e.MouseX - l.Shape.X
 	hv.hoverPy = e.MouseY - l.Shape.Y
