@@ -21,6 +21,7 @@ const (
 	groupWaterfall   = "waterfall"
 	groupCombo       = "combo"
 	groupRadar       = "radar"
+	groupBubble      = "bubble"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -70,6 +71,7 @@ var demoGroups = []DemoGroup{
 	{groupWaterfall, "Waterfall"},
 	{groupCombo, "Combo"},
 	{groupRadar, "Radar"},
+	{groupBubble, "Bubble"},
 	{groupStyles, "Styles"},
 }
 
@@ -79,6 +81,7 @@ var demoEntries = []DemoEntry{
 	{ID: "type_series_xy", Label: "series.XY", Group: groupTypes, Summary: "XY data series for Line, Area, and Scatter charts.", Tags: []string{"series", "xy", "point", "data", "slices"}},
 	{ID: "type_series_cat", Label: "series.Category", Group: groupTypes, Summary: "Categorical data series for Bar charts.", Tags: []string{"series", "category", "label", "value", "map"}},
 	{ID: "type_theme", Label: "theme.Theme", Group: groupTypes, Summary: "Visual style: colors, fonts, padding, palette.", Tags: []string{"theme", "palette", "color", "style", "tableau", "pastel", "vivid"}},
+	{ID: "type_series_xyz", Label: "series.XYZ", Group: groupTypes, Summary: "XYZ data series for Bubble charts.", Tags: []string{"series", "xyz", "point", "data", "bubble", "size"}},
 	{ID: "type_axis", Label: "axis.Linear", Group: groupTypes, Summary: "Linear numeric axis with auto-tick generation.", Tags: []string{"axis", "linear", "tick", "range", "format", "auto"}},
 
 	// Line
@@ -130,6 +133,10 @@ var demoEntries = []DemoEntry{
 	// Radar
 	{ID: "radar_basic", Label: "Basic Radar", Group: groupRadar, Summary: "Character stat comparison with circular grid.", Tags: []string{"radar", "spider", "polygon", "stats"}},
 	{ID: "radar_polygon", Label: "Polygon Grid", Group: groupRadar, Summary: "Radar chart with polygon grid lines.", Tags: []string{"radar", "spider", "polygon", "grid"}},
+
+	// Bubble
+	{ID: "bubble_basic", Label: "Basic Bubble", Group: groupBubble, Summary: "GDP vs life expectancy with population as bubble size.", Tags: []string{"bubble", "scatter", "size", "xyz", "population"}},
+	{ID: "bubble_markers", Label: "Marker Shapes", Group: groupBubble, Summary: "Sensor readings with different marker shapes per series.", Tags: []string{"bubble", "markers", "shapes", "per-series"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

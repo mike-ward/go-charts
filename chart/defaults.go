@@ -39,6 +39,14 @@ const (
 	// annotation reference lines when Width is 0.
 	DefaultAnnotationLineWidth float32 = 1.5
 
+	// DefaultBubbleMinRadius is the minimum bubble marker
+	// radius in pixels.
+	DefaultBubbleMinRadius float32 = 4
+
+	// DefaultBubbleMaxRadius is the maximum bubble marker
+	// radius in pixels.
+	DefaultBubbleMaxRadius float32 = 30
+
 	// DefaultZoomFactor is the scale factor per scroll tick.
 	// >1 zooms in; 1/factor zooms out.
 	DefaultZoomFactor float64 = 1.15

@@ -66,9 +66,9 @@ func view(w *gui.Window) gui.View {
 
 | Package  | Description                                    |
 |----------|------------------------------------------------|
-| `chart`  | Chart widgets: Line, Bar, Area, Scatter, Pie   |
+| `chart`  | Chart widgets: Line, Bar, Area, Scatter, Bubble, Pie |
 | `axis`   | Axis types: Linear, Log, Time, Category        |
-| `series` | Data series: XY, Category, OHLC                |
+| `series` | Data series: XY, XYZ, Category, OHLC           |
 | `scale`  | Data-to-pixel mapping: Linear, Log             |
 | `render` | DrawContext adapter for chart rendering         |
 | `theme`  | Theming and color palettes                     |
@@ -81,6 +81,7 @@ func view(w *gui.Window) gui.View {
 | Bar     | `chart.Bar()`    | Done   |
 | Area    | `chart.Area()`   | Stub   |
 | Scatter | `chart.Scatter()`| Stub   |
+| Bubble  | `chart.Bubble()` | Done   |
 | Pie     | `chart.Pie()`    | Stub   |
 
 See [doc/ROADMAP.md](doc/ROADMAP.md) for planned chart types and features.

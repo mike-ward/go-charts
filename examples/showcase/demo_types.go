@@ -360,6 +360,62 @@ chart.Line(chart.LineCfg{
 	return typesDoc(w, "axis-linear", source)
 }
 
+func demoSeriesXYZ(w *gui.Window) gui.View {
+	source := `**series.XYZ** holds a named sequence of (X, Y, Z) data points.
+Used by Bubble charts where Z controls marker size.
+
+` + "```go" + `
+type XYZPoint struct {
+    X, Y, Z float64
+}
+
+type XYZ struct {
+    Points []XYZPoint  // exported; name and color via accessor
+}
+` + "```" + `
+
+### Constructors
+
+` + "```go" + `
+// From explicit config
+s := series.NewXYZ(series.XYZCfg{
+    Name:  "Cities",
+    Color: gui.Hex(0x4E79A7),
+    Points: []series.XYZPoint{
+        {X: 12, Y: 75, Z: 331},
+        {X: 42, Y: 83, Z: 83},
+    },
+})
+
+// From parallel slices
+s, err := series.XYZFromSlices("Cities",
+    []float64{12, 42},   // X values
+    []float64{75, 83},   // Y values
+    []float64{331, 83},  // Z values (size)
+)
+` + "```" + `
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| Name() | string | Series name for legends |
+| Len() | int | Number of data points |
+| Color() | gui.Color | Series color; zero = use palette |
+| Bounds() | minX, maxX, minY, maxY | Min/max X,Y across finite points |
+| ZBounds() | minZ, maxZ | Min/max Z across finite points |
+
+### Notes
+
+- Z controls bubble marker size via sqrt scaling (area proportional to Z).
+- Bounds() excludes Z since it maps to size, not position.
+- Non-finite points (NaN, +/-Inf) are skipped in Bounds(),
+  ZBounds(), and rendering.
+`
+
+	return typesDoc(w, "series-xyz", source)
+}
+
 func typesDoc(w *gui.Window, id, source string) gui.View {
 	return w.Markdown(gui.MarkdownCfg{
 		ID:      "doc-" + id,

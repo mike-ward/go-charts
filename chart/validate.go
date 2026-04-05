@@ -88,6 +88,28 @@ func (c *ScatterCfg) Validate() error {
 	return buildError("chart.Scatter", errs)
 }
 
+// Validate checks BubbleCfg for invalid or contradictory
+// settings. Returns nil when valid.
+func (c *BubbleCfg) Validate() error {
+	if err := c.BaseCfg.Validate(); err != nil {
+		return err
+	}
+	var errs []string
+	if len(c.Series) == 0 {
+		errs = append(errs, "no series data")
+	}
+	if c.MinRadius < 0 {
+		errs = append(errs, "negative MinRadius")
+	}
+	if c.MaxRadius < 0 {
+		errs = append(errs, "negative MaxRadius")
+	}
+	if c.MinRadius > 0 && c.MaxRadius > 0 && c.MinRadius > c.MaxRadius {
+		errs = append(errs, "MinRadius exceeds MaxRadius")
+	}
+	return buildError("chart.Bubble", errs)
+}
+
 // Validate checks PieCfg for invalid or contradictory settings.
 // Returns nil when valid.
 func (c *PieCfg) Validate() error {

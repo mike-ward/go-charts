@@ -168,6 +168,52 @@ func TestScatterCfgValidateNegativeMarkerSize(t *testing.T) {
 	}
 }
 
+func TestBubbleCfgValidateOK(t *testing.T) {
+	cfg := BubbleCfg{
+		Series: []series.XYZ{series.NewXYZ(series.XYZCfg{
+			Name:   "s",
+			Points: []series.XYZPoint{{X: 1, Y: 2, Z: 3}},
+		})},
+	}
+	if err := cfg.Validate(); err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestBubbleCfgValidateEmpty(t *testing.T) {
+	cfg := BubbleCfg{}
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for empty series")
+	}
+}
+
+func TestBubbleCfgValidateNegativeMinRadius(t *testing.T) {
+	cfg := BubbleCfg{
+		Series: []series.XYZ{series.NewXYZ(series.XYZCfg{
+			Name:   "s",
+			Points: []series.XYZPoint{{X: 1, Y: 2, Z: 3}},
+		})},
+		MinRadius: -1,
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for negative MinRadius")
+	}
+}
+
+func TestBubbleCfgValidateMinExceedsMax(t *testing.T) {
+	cfg := BubbleCfg{
+		Series: []series.XYZ{series.NewXYZ(series.XYZCfg{
+			Name:   "s",
+			Points: []series.XYZPoint{{X: 1, Y: 2, Z: 3}},
+		})},
+		MinRadius: 30,
+		MaxRadius: 10,
+	}
+	if err := cfg.Validate(); err == nil {
+		t.Error("expected error for MinRadius > MaxRadius")
+	}
+}
+
 func TestPieCfgValidateNegativeInnerRadius(t *testing.T) {
 	cfg := PieCfg{
 		Slices:      []PieSlice{{Label: "a", Value: 1}},

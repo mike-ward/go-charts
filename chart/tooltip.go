@@ -123,6 +123,61 @@ func drawStackedXYTooltip(
 	drawTooltip(ctx, px, py, label, th)
 }
 
+// nearestXYZPoint finds the series/point index and pixel position
+// of the XYZ data point closest to (mx, my) within snapPx pixels.
+// Returns ok=false when no point is within the threshold.
+func nearestXYZPoint(
+	serieses []series.XYZ, pa plotArea,
+	mx, my, snapPx float32,
+) (si, pi int, px, py float32, ok bool) {
+	best := snapPx * snapPx
+	for i, s := range serieses {
+		for j, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
+			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
+			ppy := pa.YAxis.Transform(p.Y, pa.Bottom, pa.Top)
+			dx := ppx - mx
+			dy := ppy - my
+			d2 := dx*dx + dy*dy
+			if d2 < best {
+				best = d2
+				si, pi, px, py = i, j, ppx, ppy
+				ok = true
+			}
+		}
+	}
+	return
+}
+
+// drawXYZTooltip draws a tooltip for the nearest XYZ data point
+// showing X, Y, and Size values. snapPx is the maximum pixel
+// distance from a point center to trigger the tooltip.
+func drawXYZTooltip(
+	ctx *render.Context, th *theme.Theme,
+	serieses []series.XYZ, pa plotArea,
+	mx, my, snapPx float32,
+) {
+	si, pi, px, py, ok := nearestXYZPoint(
+		serieses, pa, mx, my, snapPx)
+	if !ok {
+		return
+	}
+	s := serieses[si]
+	p := s.Points[pi]
+	var label string
+	if s.Name() != "" {
+		label = fmt.Sprintf(
+			"%s\nX: %g\nY: %g\nSize: %g",
+			s.Name(), p.X, p.Y, p.Z)
+	} else {
+		label = fmt.Sprintf(
+			"X: %g\nY: %g\nSize: %g", p.X, p.Y, p.Z)
+	}
+	drawTooltip(ctx, px, py, label, th)
+}
+
 // drawXYTooltip draws a tooltip for the nearest XY data point.
 // Shared by line, scatter, and area charts.
 func drawXYTooltip(
