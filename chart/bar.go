@@ -74,13 +74,18 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 	bv.lastLB = loadLegendBounds(w, c.ID)
 	bv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	av := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + av + tv,
 		Clip:          true,
 		OnDraw:        bv.draw,
 		OnClick:       bv.internalClick,
@@ -91,6 +96,38 @@ func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
 		OnMouseScroll: bv.internalScroll,
 		OnGesture:     bv.internalGesture,
 	}).GenerateLayout(w)
+}
+
+// maybeStartTransition starts a transition animation if
+// AnimateTransitions is enabled and cfg.Version actually changed.
+func (bv *barView) maybeStartTransition() {
+	cfg := &bv.cfg
+	if !cfg.AnimateTransitions {
+		return
+	}
+	sm := chartTransitionMap(bv.win)
+	ts, _ := sm.Get(cfg.ID)
+	if ts.Active || cfg.Version == ts.LastCfgVer {
+		return
+	}
+	ts.LastCfgVer = cfg.Version
+	sm.Set(cfg.ID, ts)
+	startTransition(bv.win, cfg.ID, cfg.AnimDuration)
+}
+
+// cacheTransitionData stores current category values and axis
+// bounds for future transition animations.
+func (bv *barView) cacheTransitionData() {
+	if bv.cfg.AnimateTransitions &&
+		!transitionActive(bv.win, bv.cfg.ID) {
+		saveTransitionData(bv.win, bv.cfg.ID,
+			snapshotCategoryValues(bv.cfg.Series))
+		if bv.yAxis != nil {
+			yMin, yMax := bv.yAxis.Domain()
+			saveTransitionBounds(bv.win, bv.cfg.ID,
+				0, 0, yMin, yMax)
+		}
+	}
 }
 
 // yZoomPA builds a plotArea with nil XAxis for Y-only zoom.
@@ -237,6 +274,7 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 
 	// Recompute value axis only when version changes.
 	if bv.yAxis == nil || cfg.Version != bv.lastVersion {
+		bv.maybeStartTransition()
 		if cfg.YAxis != nil {
 			bv.yAxis = cfg.YAxis
 		} else {
@@ -301,6 +339,19 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		bv.lastVersion = cfg.Version
 	}
 
+	// Animated scale transition: lerp Y-axis domain from old to
+	// new bounds so the grid moves with the data.
+	tp := transitionProgress(bv.win, cfg.ID)
+	if tp < 1 {
+		_, _, oMinY, oMaxY, ok :=
+			loadTransitionBounds(bv.win, cfg.ID)
+		if ok {
+			nMinY, nMaxY := bv.yAxis.Domain()
+			lerpAxisRange(bv.yAxis, tp, oMinY, oMaxY,
+				nMinY, nMaxY)
+		}
+	}
+
 	zs := loadAndApplyZoom(bv.win, bv.cfg.ID, nil, bv.yAxis, false, true)
 
 	if !cfg.Horizontal {
@@ -317,12 +368,17 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 	drawAnnotations(ctx, &cfg.Annotations, th,
 		plotRect{left, right, top, bottom}, bv.xAxis, bv.yAxis)
 
+	progress := animProgress(bv.win, cfg.ID)
+	var oldVals [][]float64
+	if tp < 1 {
+		oldVals, _ = loadTransitionData(bv.win, cfg.ID)
+	}
 	if cfg.Horizontal {
 		bv.drawHorizontal(ctx, cfg, th, nCategories, nSeries, labels,
-			left, right, top, bottom)
+			left, right, top, bottom, progress, tp, oldVals)
 	} else {
 		bv.drawVertical(ctx, cfg, th, nCategories, nSeries, labels,
-			left, right, top, bottom)
+			left, right, top, bottom, progress, tp, oldVals)
 	}
 
 	pr := plotRect{left, right, top, bottom}
@@ -334,12 +390,15 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		drawCrosshair(ctx, th, bv.hoverPx, bv.hoverPy, pr)
 		bv.tooltipBar(ctx, pr, th)
 	}
+
+	bv.cacheTransitionData()
 }
 
 func (bv *barView) drawVertical(
 	ctx *render.Context, cfg *BarCfg, th *theme.Theme,
 	nCategories, nSeries int, labels []series.CategoryValue,
 	left, right, top, bottom float32,
+	progress float32, tp float32, oldVals [][]float64,
 ) {
 	hovCI, hovSI, hovOK := -1, -1, false
 	if bv.hovering {
@@ -398,6 +457,8 @@ func (bv *barView) drawVertical(
 				if !finite(v) {
 					continue
 				}
+				ev := applyTransitionAndProgress(
+					v, si, ci, tp, oldVals, progress)
 				color := seriesColor(s.Color(), si, th.Palette)
 				if hovOK && (ci != hovCI || si != hovSI) {
 					color = dimColor(color, HoverDimAlpha)
@@ -406,12 +467,12 @@ func (bv *barView) drawVertical(
 				var segTop, segBot float32
 				if v >= 0 {
 					segBot = yAxis.Transform(posOff, bottom, top)
-					segTop = yAxis.Transform(posOff+v, bottom, top)
-					posOff += v
+					segTop = yAxis.Transform(posOff+ev, bottom, top)
+					posOff += ev
 				} else {
 					segTop = yAxis.Transform(negOff, bottom, top)
-					segBot = yAxis.Transform(negOff+v, bottom, top)
-					negOff += v
+					segBot = yAxis.Transform(negOff+ev, bottom, top)
+					negOff += ev
 				}
 				bh := float32(math.Abs(float64(segBot - segTop)))
 				by := min(segTop, segBot)
@@ -460,13 +521,15 @@ func (bv *barView) drawVertical(
 				if !finite(v) {
 					continue
 				}
+				ev := applyTransitionAndProgress(
+					v, si, ci, tp, oldVals, progress)
 				color := seriesColor(s.Color(), si, th.Palette)
 				if hovOK && (ci != hovCI || si != hovSI) {
 					color = dimColor(color, HoverDimAlpha)
 				}
 
 				bx := barStart + float32(si)*(barWidth+barGap)
-				by := yAxis.Transform(v, bottom, top)
+				by := yAxis.Transform(ev, bottom, top)
 				barTop := min(by, baseline)
 				bh := float32(math.Abs(float64(by - baseline)))
 
@@ -909,6 +972,7 @@ func (bv *barView) drawHorizontal(
 	ctx *render.Context, cfg *BarCfg, th *theme.Theme,
 	nCategories, nSeries int, labels []series.CategoryValue,
 	left, right, top, bottom float32,
+	progress float32, tp float32, oldVals [][]float64,
 ) {
 	hovCI, hovSI, hovOK := -1, -1, false
 	if bv.hovering {
@@ -972,6 +1036,8 @@ func (bv *barView) drawHorizontal(
 				if !finite(v) {
 					continue
 				}
+				ev := applyTransitionAndProgress(
+					v, si, ci, tp, oldVals, progress)
 				color := seriesColor(s.Color(), si, th.Palette)
 				if hovOK && (ci != hovCI || si != hovSI) {
 					color = dimColor(color, HoverDimAlpha)
@@ -980,12 +1046,12 @@ func (bv *barView) drawHorizontal(
 				var segLeft, segRight float32
 				if v >= 0 {
 					segLeft = xAxis.Transform(posOff, left, right)
-					segRight = xAxis.Transform(posOff+v, left, right)
-					posOff += v
+					segRight = xAxis.Transform(posOff+ev, left, right)
+					posOff += ev
 				} else {
 					segRight = xAxis.Transform(negOff, left, right)
-					segLeft = xAxis.Transform(negOff+v, left, right)
-					negOff += v
+					segLeft = xAxis.Transform(negOff+ev, left, right)
+					negOff += ev
 				}
 				bw := float32(math.Abs(float64(segRight - segLeft)))
 				bx := min(segLeft, segRight)
@@ -1028,12 +1094,14 @@ func (bv *barView) drawHorizontal(
 				if !finite(v) {
 					continue
 				}
+				ev := applyTransitionAndProgress(
+					v, si, ci, tp, oldVals, progress)
 				color := seriesColor(s.Color(), si, th.Palette)
 				if hovOK && (ci != hovCI || si != hovSI) {
 					color = dimColor(color, HoverDimAlpha)
 				}
 
-				bx := xAxis.Transform(v, left, right)
+				bx := xAxis.Transform(ev, left, right)
 				barLeft := min(bx, baseline)
 				bw := float32(math.Abs(float64(bx - baseline)))
 				by := barStart + float32(si)*(barHeight+barGap)

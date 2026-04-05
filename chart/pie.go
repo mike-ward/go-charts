@@ -67,13 +67,18 @@ func (pv *pieView) GenerateLayout(w *gui.Window) gui.Layout {
 	pv.hidden, hidV = loadHiddenState(w, c.ID)
 	pv.lastLB = loadLegendBounds(w, c.ID)
 	pv.win = w
+	av := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv + hidV,
+		Version:      c.Version + hv + hidV + av + tv,
 		Clip:         true,
 		OnDraw:       pv.draw,
 		OnClick:      pv.internalClick,
@@ -283,13 +288,15 @@ func (pv *pieView) draw(dc *gui.DrawContext) {
 		hovIdx = pv.hoveredSliceIndex(pv.hoverPx, pv.hoverPy, cx, cy, outerR)
 	}
 
+	progress := animProgress(pv.win, cfg.ID)
+
 	// Draw slices (skip hidden).
 	angle := cfg.StartAngle
 	for i, s := range cfg.Slices {
 		if s.Value <= 0 || pv.hidden[i] {
 			continue
 		}
-		sweep := float32(s.Value/total) * (2 * math.Pi)
+		sweep := float32(s.Value/total) * (2 * math.Pi) * progress
 		color := s.Color
 		if !color.IsSet() {
 			color = seriesColor(gui.Color{}, i, th.Palette)

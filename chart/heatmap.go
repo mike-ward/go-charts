@@ -83,13 +83,18 @@ func (hv *heatmapView) GenerateLayout(w *gui.Window) gui.Layout {
 	hovV := loadHover(w, c.ID,
 		&hv.hovering, &hv.hoverPx, &hv.hoverPy)
 	hv.win = w
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hovV,
+		Version:      c.Version + hovV + animV + transV,
 		Clip:         true,
 		OnDraw:       hv.draw,
 		OnClick:      hv.internalClick,
@@ -245,6 +250,8 @@ func (hv *heatmapView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(hv.win, hv.cfg.ID)
+
 	// Draw cells.
 	for r := range nr {
 		for c := range nc {
@@ -260,6 +267,8 @@ func (hv *heatmapView) draw(dc *gui.DrawContext) {
 			if hovRow >= 0 && (r != hovRow || c != hovCol) {
 				color = dimColor(color, HoverDimAlpha)
 			}
+			color = gui.RGBA(color.R, color.G, color.B,
+				uint8(float32(color.A)*progress))
 			ctx.FilledRect(cx, cy, cw, ch, color)
 
 			// Value label.

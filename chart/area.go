@@ -26,6 +26,13 @@ type AreaCfg struct {
 	Stacked   bool
 	LineWidth float32 // 0 means default (2)
 	Opacity   float32 // fill opacity 0-1; 0 means default (0.3)
+
+	// AutoScroll enables smooth scrolling to follow latest
+	// data. Typically used with RealTimeSeries.
+	AutoScroll bool
+	// WindowSize is the visible X-axis range when AutoScroll
+	// is enabled. Zero shows all data.
+	WindowSize float64
 }
 
 type areaView struct {
@@ -80,13 +87,18 @@ func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
 	av.lastLB = loadLegendBounds(w, c.ID)
 	av.win = w
 	zv := loadZoomVersion(w, c.ID)
+	anV := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + anV + tv + loadScrollVersion(w, c.ID),
 		Clip:          true,
 		OnDraw:        av.draw,
 		OnClick:       av.internalClick,
@@ -314,6 +326,8 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 	yAxis := av.yAxis
 
 	zs := loadAndApplyZoom(av.win, av.cfg.ID, xAxis, yAxis, true, true)
+	applyAutoScroll(av.win, cfg.ID, cfg.AutoScroll,
+		cfg.WindowSize, zs.Zoomed, cfg.Series, xAxis)
 
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
 
@@ -387,10 +401,12 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(av.win, cfg.ID)
+
 	if cfg.Stacked {
-		av.drawStacked(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI)
+		av.drawStacked(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI, progress)
 	} else {
-		av.drawOverlapping(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI)
+		av.drawOverlapping(ctx, cfg, xAxis, yAxis, left, right, top, bottom, alpha, hovSI, progress)
 	}
 
 	entries := make([]legendEntry, len(cfg.Series))
@@ -434,10 +450,11 @@ func (av *areaView) drawOverlapping(
 	ctx *render.Context, cfg *AreaCfg,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	alpha uint8, hovSI int,
+	alpha uint8, hovSI int, progress float32,
 ) {
 	for i, s := range cfg.Series {
-		if s.Len() == 0 || av.hidden[i] {
+		n := s.Len()
+		if n == 0 || av.hidden[i] {
 			continue
 		}
 		color := seriesColor(s.Color(), i, cfg.Theme.Palette)
@@ -447,17 +464,22 @@ func (av *areaView) drawOverlapping(
 			fillAlpha = HoverDimAlpha / 4
 		}
 
-		needed := s.Len() * 2
+		needed := n * 2
 		if cap(av.ptsBuf) < needed {
 			av.ptsBuf = make([]float32, 0, needed)
 		}
 		pts := av.ptsBuf[:0]
-		for _, p := range s.Points {
+		for _, p := range s.Points[:n] {
 			if !finite(p.X) || !finite(p.Y) {
 				continue
 			}
 			px := xAxis.Transform(p.X, left, right)
 			py := yAxis.Transform(p.Y, bottom, top)
+			// Entry animation: lerp Y from baseline toward
+			// actual value for smooth grow-from-zero effect.
+			if progress < 1 {
+				py = bottom + (py-bottom)*progress
+			}
 			pts = append(pts, px, py)
 		}
 		av.ptsBuf = pts
@@ -505,7 +527,7 @@ func (av *areaView) drawStacked(
 	ctx *render.Context, cfg *AreaCfg,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	alpha uint8, hovSI int,
+	alpha uint8, hovSI int, progress float32,
 ) {
 	// Find reference point count from first non-empty series.
 	refLen := 0
@@ -569,7 +591,13 @@ func (av *areaView) drawStacked(
 			}
 			cumY[j] += p.Y
 			cur[j*2] = xAxis.Transform(p.X, left, right)
-			cur[j*2+1] = yAxis.Transform(cumY[j], bottom, top)
+			py := yAxis.Transform(cumY[j], bottom, top)
+			// Entry animation: lerp Y from baseline toward
+			// actual value for smooth grow-from-zero effect.
+			if progress < 1 {
+				py = bottom + (py-bottom)*progress
+			}
+			cur[j*2+1] = py
 		}
 
 		// Fill quad between cur top edge and prev top edge (or

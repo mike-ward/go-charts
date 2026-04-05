@@ -90,13 +90,18 @@ func (rv *radarView) GenerateLayout(w *gui.Window) gui.Layout {
 	rv.hidden, hidV = loadHiddenState(w, c.ID)
 	rv.lastLB = loadLegendBounds(w, c.ID)
 	rv.win = w
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv + hidV,
+		Version:      c.Version + hv + hidV + animV + transV,
 		Clip:         true,
 		OnDraw:       rv.draw,
 		OnClick:      rv.internalClick,
@@ -394,6 +399,8 @@ func (rv *radarView) draw(dc *gui.DrawContext) {
 	// Draw axis labels.
 	rv.drawAxisLabels(ctx, th, cx, cy, radius)
 
+	progress := animProgress(rv.win, rv.cfg.ID)
+
 	// Determine hovered series.
 	hovIdx := -1
 	if rv.hovering {
@@ -415,7 +422,7 @@ func (rv *radarView) draw(dc *gui.DrawContext) {
 			a := radarAxisAngle(cfg.StartAngle, ai, nAxes)
 			frac := float32(radarNormalize(
 				s.Values[ai], cfg.Axes[ai].Min, cfg.Axes[ai].Max))
-			r := radius * frac
+			r := radius * frac * progress
 			pts = append(pts,
 				cx+r*float32(math.Cos(float64(a))),
 				cy+r*float32(math.Sin(float64(a))))

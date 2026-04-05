@@ -122,13 +122,18 @@ func (wv *waterfallView) GenerateLayout(w *gui.Window) gui.Layout {
 	wv.lastLB = loadLegendBounds(w, c.ID)
 	wv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        wv.draw,
 		OnClick:       wv.internalClick,
@@ -310,6 +315,8 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 	drawAnnotations(ctx, &cfg.Annotations, th,
 		plotRect{left, right, top, bottom}, wv.xAxis, wv.yAxis)
 
+	progress := animProgress(wv.win, wv.cfg.ID)
+
 	// Determine hovered bar index.
 	hovI := -1
 	if wv.hovering {
@@ -337,8 +344,10 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 		}
 
 		cx := wv.xAxis.Transform(float64(i), left, right)
-		topPx := wv.yAxis.Transform(bb.Top, bottom, top)
-		botPx := wv.yAxis.Transform(bb.Bottom, bottom, top)
+		p := float64(progress)
+		mid := (bb.Top + bb.Bottom) / 2
+		topPx := wv.yAxis.Transform(mid+(bb.Top-mid)*p, bottom, top)
+		botPx := wv.yAxis.Transform(mid+(bb.Bottom-mid)*p, bottom, top)
 
 		barTop := min(topPx, botPx)
 		bh := float32(math.Abs(float64(topPx - botPx)))

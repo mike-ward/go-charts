@@ -28,6 +28,7 @@ const (
 	groupSankey      = "sankey"
 	groupSparkline   = "sparkline"
 	groupTransform   = "transform"
+	groupAnimation   = "animation"
 )
 
 // ShowcaseApp holds all state for the charts showcase.
@@ -84,6 +85,7 @@ var demoGroups = []DemoGroup{
 	{groupSankey, "Sankey"},
 	{groupSparkline, "Sparkline"},
 	{groupTransform, "Transform"},
+	{groupAnimation, "Animation"},
 	{groupStyles, "Styles"},
 }
 
@@ -177,6 +179,12 @@ var demoEntries = []DemoEntry{
 	{ID: "transform_regression", Label: "Regression", Group: groupTransform, Summary: "Linear trend and polynomial curve fit on scattered data.", Tags: []string{"transform", "regression", "linear", "polynomial", "trend", "fit"}},
 	{ID: "transform_bands", Label: "Bollinger Bands", Group: groupTransform, Summary: "Price series with upper/middle/lower Bollinger bands.", Tags: []string{"transform", "bollinger", "bands", "envelope", "stddev"}},
 	{ID: "transform_downsample", Label: "LTTB Downsampling", Group: groupTransform, Summary: "1000-point series downsampled to 50 points via LTTB.", Tags: []string{"transform", "lttb", "downsample", "large", "dataset"}},
+
+	// Animation
+	{ID: "anim_entry", Label: "Entry Animation", Group: groupAnimation, Summary: "Line, bar, and pie charts with animated entry.", Tags: []string{"animation", "entry", "draw-in", "grow", "sweep"}},
+	{ID: "anim_transition", Label: "Data Transition", Group: groupAnimation, Summary: "Smooth interpolation when data changes.", Tags: []string{"animation", "transition", "interpolate", "morph"}},
+	{ID: "anim_realtime", Label: "Real-time Stream", Group: groupAnimation, Summary: "Streaming data with rolling window and auto-scroll.", Tags: []string{"animation", "realtime", "stream", "live", "append"}},
+	{ID: "anim_fps", Label: "FPS Adaptive", Group: groupAnimation, Summary: "Heavy chart with FPS-aware detail reduction during animation.", Tags: []string{"animation", "fps", "adaptive", "performance", "detail"}},
 
 	// Combo
 	{ID: "combo_basic", Label: "Basic Combo", Group: groupCombo, Summary: "Monthly revenue as bars with trend line overlay.", Tags: []string{"combo", "bar", "line", "mixed", "trend"}},

@@ -83,13 +83,18 @@ func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
 	sv.lastLB = loadLegendBounds(w, c.ID)
 	sv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	av := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + av + tv,
 		Clip:          true,
 		OnDraw:        sv.draw,
 		OnClick:       sv.internalClick,
@@ -347,8 +352,10 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(sv.win, cfg.ID)
+
 	sv.drawMarkers(ctx, cfg, xAxis, yAxis,
-		left, right, top, bottom, hovSI, hovPx, hovPy)
+		left, right, top, bottom, hovSI, hovPx, hovPy, progress)
 
 	entries := make([]legendEntry, len(cfg.Series))
 	for i, s := range cfg.Series {
@@ -414,9 +421,10 @@ func (sv *scatterView) drawMarkers(
 	ctx *render.Context, cfg *ScatterCfg,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	hovSI int, hovPx, hovPy float32,
+	hovSI int, hovPx, hovPy float32, progress float32,
 ) {
 	th := cfg.Theme
+	markerR := cfg.MarkerSize * progress
 	for i, s := range cfg.Series {
 		if s.Len() == 0 || sv.hidden[i] {
 			continue
@@ -434,7 +442,7 @@ func (sv *scatterView) drawMarkers(
 			if px < left || px > right || py < top || py > bottom {
 				continue
 			}
-			drawMarker(ctx, px, py, cfg.MarkerSize, cfg.Marker, color)
+			drawMarker(ctx, px, py, markerR, cfg.Marker, color)
 		}
 	}
 	if hovSI >= 0 && !sv.hidden[hovSI] &&

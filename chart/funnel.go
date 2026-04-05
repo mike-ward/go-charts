@@ -85,13 +85,18 @@ func (fv *funnelView) GenerateLayout(w *gui.Window) gui.Layout {
 	hovV := loadHover(w, c.ID,
 		&fv.hovering, &fv.hoverPx, &fv.hoverPy)
 	fv.win = w
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hovV,
+		Version:      c.Version + hovV + animV + transV,
 		Clip:         true,
 		OnDraw:       fv.draw,
 		OnClick:      fv.internalClick,
@@ -211,18 +216,20 @@ func (fv *funnelView) draw(dc *gui.DrawContext) {
 		return
 	}
 
+	progress := animProgress(fv.win, fv.cfg.ID)
+
 	// Build segment layout.
 	fv.segments = fv.segments[:0]
 	for i, s := range cfg.Slices {
 		topW := float32(0)
 		if finite(s.Value) && s.Value > 0 {
-			topW = float32(s.Value/maxValue) * availW
+			topW = float32(s.Value/maxValue) * availW * progress
 		}
 		var botW float32
 		if i < n-1 {
 			nv := cfg.Slices[i+1].Value
 			if finite(nv) && nv > 0 {
-				botW = float32(nv/maxValue) * availW
+				botW = float32(nv/maxValue) * availW * progress
 			}
 		} else {
 			botW = topW * cfg.MinWidthRatio

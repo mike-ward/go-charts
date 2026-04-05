@@ -107,13 +107,18 @@ func (sv *sankeyView) GenerateLayout(w *gui.Window) gui.Layout {
 	hovV := loadHover(w, c.ID,
 		&sv.hovering, &sv.hoverPx, &sv.hoverPy)
 	sv.win = w
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hovV,
+		Version:      c.Version + hovV + animV + transV,
 		Clip:         true,
 		OnDraw:       sv.draw,
 		OnClick:      sv.internalClick,
@@ -477,6 +482,7 @@ func (sv *sankeyView) draw(dc *gui.DrawContext) {
 	ctx := render.NewContext(dc)
 	cfg := &sv.cfg
 	th := cfg.Theme
+	progress := animProgress(sv.win, sv.cfg.ID)
 
 	if len(cfg.Nodes) == 0 || len(cfg.Links) == 0 {
 		slog.Warn("no sankey data", "chart", cfg.ID)
@@ -525,8 +531,8 @@ func (sv *sankeyView) draw(dc *gui.DrawContext) {
 	anyHover := hovIdx >= 0
 
 	// Draw links, nodes, labels, hover border, tooltip.
-	sv.drawLinks(ctx, th, hlLink, anyHover)
-	sv.drawNodes(ctx, th, hlNode, anyHover)
+	sv.drawLinks(ctx, th, hlLink, anyHover, progress)
+	sv.drawNodes(ctx, th, hlNode, anyHover, progress)
 	sv.drawLabels(ctx, th, left, right)
 	sv.drawHoverBorder(ctx, th, hovKind, hovIdx, anyHover)
 	sv.drawSankeyTooltip(ctx, th, hovKind, hovIdx,
@@ -566,7 +572,7 @@ func (sv *sankeyView) buildHighlights(
 
 func (sv *sankeyView) drawLinks(
 	ctx *render.Context, th *theme.Theme,
-	hlLink []bool, anyHover bool,
+	hlLink []bool, anyHover bool, progress float32,
 ) {
 	cfg := &sv.cfg
 	for i := range sv.links {
@@ -592,14 +598,26 @@ func (sv *sankeyView) drawLinks(
 		// Render as convex quad strips (FilledPolygon
 		// requires convex input).
 		for j := range ll.Quads {
-			ctx.FilledPolygon(ll.Quads[j][:], color)
+			if progress >= 1 {
+				ctx.FilledPolygon(ll.Quads[j][:], color)
+			} else {
+				q := ll.Quads[j]
+				// Scale ribbon height toward vertical
+				// midpoint of each quad.
+				midY := (q[1] + q[3] + q[5] + q[7]) / 4
+				q[1] = midY + (q[1]-midY)*progress
+				q[3] = midY + (q[3]-midY)*progress
+				q[5] = midY + (q[5]-midY)*progress
+				q[7] = midY + (q[7]-midY)*progress
+				ctx.FilledPolygon(q[:], color)
+			}
 		}
 	}
 }
 
 func (sv *sankeyView) drawNodes(
 	ctx *render.Context, th *theme.Theme,
-	hlNode []bool, anyHover bool,
+	hlNode []bool, anyHover bool, progress float32,
 ) {
 	cfg := &sv.cfg
 	for i := range sv.nodes {
@@ -609,7 +627,9 @@ func (sv *sankeyView) drawNodes(
 		if anyHover && !hlNode[i] {
 			color = dimColor(color, HoverDimAlpha)
 		}
-		ctx.FilledRect(n.X, n.Y, n.W, n.H, color)
+		h := n.H * progress
+		y := n.Y + (n.H-h)/2
+		ctx.FilledRect(n.X, y, n.W, h, color)
 	}
 }
 

@@ -81,13 +81,18 @@ func (bv *bubbleView) GenerateLayout(w *gui.Window) gui.Layout {
 	bv.lastLB = loadLegendBounds(w, c.ID)
 	bv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        bv.draw,
 		OnClick:       bv.internalClick,
@@ -430,6 +435,8 @@ func (bv *bubbleView) drawBubbles(
 		}
 	}
 
+	progress := animProgress(bv.win, bv.cfg.ID)
+
 	// Collect all visible bubbles for Z-sorted drawing.
 	items := make([]bubbleDrawItem, 0, totalPts)
 	for i, s := range cfg.Series {
@@ -451,7 +458,7 @@ func (bv *bubbleView) drawBubbles(
 				continue
 			}
 			r := bubbleRadius(p.Z, zMin, zMax,
-				cfg.MinRadius, cfg.MaxRadius)
+				cfg.MinRadius, cfg.MaxRadius) * progress
 			items = append(items, bubbleDrawItem{px, py, r, color, shape})
 		}
 	}

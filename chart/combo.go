@@ -107,13 +107,18 @@ func (cv *comboView) GenerateLayout(w *gui.Window) gui.Layout {
 	cv.lastLB = loadLegendBounds(w, c.ID)
 	cv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        cv.draw,
 		OnClick:       cv.internalClick,
@@ -330,11 +335,13 @@ func (cv *comboView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(cv.win, cv.cfg.ID)
+
 	// Draw bars underneath, then lines on top.
 	cv.drawBars(ctx, cfg, th, nCategories, nBarSeries, groupWidth,
-		hovCI, hovSI, hovOK, left, top, bottom)
+		hovCI, hovSI, hovOK, left, top, bottom, progress)
 	cv.drawLines(ctx, cfg, th, nCategories, groupWidth,
-		hovSI, hovOK, left, top, bottom)
+		hovSI, hovOK, left, top, bottom, progress)
 
 	// --- X tick marks and labels ---
 	xts := tickStyle
@@ -380,7 +387,7 @@ func (cv *comboView) drawBars(
 	ctx *render.Context, cfg *ComboCfg, th *theme.Theme,
 	nCategories, nBarSeries int, groupWidth float32,
 	hovCI, hovSI int, hovOK bool,
-	left, top, bottom float32,
+	left, top, bottom float32, progress float32,
 ) {
 	if nBarSeries == 0 {
 		return
@@ -416,13 +423,14 @@ func (cv *comboView) drawBars(
 				barIdx++
 				continue
 			}
+			av := v * float64(progress)
 			color := seriesColor(s.Color(), si, th.Palette)
 			if hovOK && (ci != hovCI || si != hovSI) {
 				color = dimColor(color, HoverDimAlpha)
 			}
 
 			bx := barStart + float32(barIdx)*(barWidth+barGap)
-			by := cv.yAxis.Transform(v, bottom, top)
+			by := cv.yAxis.Transform(av, bottom, top)
 			barTop := min(by, baseline)
 			bh := float32(math.Abs(float64(by - baseline)))
 
@@ -439,7 +447,7 @@ func (cv *comboView) drawLines(
 	ctx *render.Context, cfg *ComboCfg, th *theme.Theme,
 	nCategories int, groupWidth float32,
 	hovSI int, hovOK bool,
-	left, top, bottom float32,
+	left, top, bottom float32, progress float32,
 ) {
 	for si, s := range cfg.Series {
 		if s.Type != ComboLine || cv.hidden[si] {
@@ -451,6 +459,9 @@ func (cv *comboView) drawLines(
 		}
 
 		n := min(len(s.Values), nCategories)
+		if progress < 1 {
+			n = max(1, int(float32(n)*progress))
+		}
 		needed := n * 2
 		if cap(cv.ptsBuf) < needed {
 			cv.ptsBuf = make([]float32, 0, needed)

@@ -60,6 +60,7 @@ type gaugeView struct {
 	hovering bool
 	// Cached geometry for cursor hit-testing.
 	cx, cy, outerR, innerR float32
+	win                    *gui.Window
 }
 
 // Gauge creates a gauge chart view.
@@ -129,13 +130,19 @@ func (gv *gaugeView) GenerateLayout(w *gui.Window) gui.Layout {
 	c := &gv.cfg
 	hv := loadHover(w, c.ID,
 		&gv.hovering, &gv.hoverPx, &gv.hoverPy)
+	gv.win = w
+	av := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hv,
+		Version:      c.Version + hv + av + tv,
 		Clip:         true,
 		OnDraw:       gv.draw,
 		OnClick:      c.OnClick,
@@ -268,8 +275,9 @@ func (gv *gaugeView) draw(dc *gui.DrawContext) {
 	}
 
 	// Value arc.
+	progress := animProgress(gv.win, cfg.ID)
 	valFrac := float32(gaugeValueFraction(cfg.Value, cfg.Min, cfg.Max))
-	valSweep := valFrac * cfg.ArcAngle
+	valSweep := valFrac * cfg.ArcAngle * progress
 	valColor := seriesColor(gui.Color{}, 0, th.Palette)
 	// Color the value arc based on which zone the value falls in.
 	for i, z := range cfg.Zones {

@@ -97,13 +97,18 @@ func (cv *candlestickView) GenerateLayout(w *gui.Window) gui.Layout {
 	cv.lastLB = loadLegendBounds(w, c.ID)
 	cv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        cv.draw,
 		OnClick:       cv.internalClick,
@@ -480,6 +485,7 @@ func (cv *candlestickView) drawCandles(
 	ctx *render.Context, cfg *CandlestickCfg,
 	candleW, left, right, top, bottom float32,
 ) {
+	progress := animProgress(cv.win, cv.cfg.ID)
 	for si, s := range cfg.Series {
 		upHidden := cv.hidden[2*si]
 		downHidden := cv.hidden[2*si+1]
@@ -498,11 +504,19 @@ func (cv *candlestickView) drawCandles(
 			if !isUp && downHidden {
 				continue
 			}
+
+			// Interpolate OHLC toward midpoint by (1-progress).
+			mid := (p.Open + p.Close) / 2
+			aOpen := mid + (p.Open-mid)*float64(progress)
+			aClose := mid + (p.Close-mid)*float64(progress)
+			aHigh := mid + (p.High-mid)*float64(progress)
+			aLow := mid + (p.Low-mid)*float64(progress)
+
 			cx := cv.xAxis.Transform(float64(i), left, right)
-			highPx := cv.yAxis.Transform(p.High, bottom, top)
-			lowPx := cv.yAxis.Transform(p.Low, bottom, top)
-			openPx := cv.yAxis.Transform(p.Open, bottom, top)
-			closePx := cv.yAxis.Transform(p.Close, bottom, top)
+			highPx := cv.yAxis.Transform(aHigh, bottom, top)
+			lowPx := cv.yAxis.Transform(aLow, bottom, top)
+			openPx := cv.yAxis.Transform(aOpen, bottom, top)
+			closePx := cv.yAxis.Transform(aClose, bottom, top)
 
 			color := candleColor(s, isUp)
 

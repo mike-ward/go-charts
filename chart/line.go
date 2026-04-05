@@ -26,6 +26,13 @@ type LineCfg struct {
 	LineWidth   float32 // 0 means default (2)
 	ShowMarkers bool
 	ShowArea    bool // filled area under the line
+
+	// AutoScroll enables smooth scrolling to follow latest
+	// data. Typically used with RealTimeSeries.
+	AutoScroll bool
+	// WindowSize is the visible X-axis range when AutoScroll
+	// is enabled. Zero shows all data.
+	WindowSize float64
 }
 
 type lineView struct {
@@ -75,13 +82,19 @@ func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
 	lv.lastLB = loadLegendBounds(w, c.ID)
 	lv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	av := loadAnimVersion(w, c.ID)
+	tv := loadTransitionVersion(w, c.ID)
+	sv := loadScrollVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + av + tv + sv,
 		Clip:          true,
 		OnDraw:        lv.draw,
 		OnClick:       lv.internalClick,
@@ -174,6 +187,62 @@ func (lv *lineView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Windo
 	}
 }
 
+// cacheTransitionData stores current Y values and axis bounds
+// for future transition animations. Skips while a transition
+// is active to preserve old values.
+func (lv *lineView) cacheTransitionData() {
+	cfg := &lv.cfg
+	if cfg.AnimateTransitions &&
+		!transitionActive(lv.win, cfg.ID) {
+		saveTransitionData(lv.win, cfg.ID,
+			snapshotYValues(cfg.Series))
+		if lv.xAxis != nil && lv.yAxis != nil {
+			xMin, xMax := lv.xAxis.Domain()
+			yMin, yMax := lv.yAxis.Domain()
+			saveTransitionBounds(lv.win, cfg.ID,
+				xMin, xMax, yMin, yMax)
+		}
+	}
+}
+
+// maybeStartTransition starts a transition animation if
+// AnimateTransitions is enabled and cfg.Version actually
+// changed. Uses LastCfgVer in StateMap to detect real data
+// changes (lineView is recreated each frame in immediate-mode
+// so struct fields cannot track version across frames).
+func (lv *lineView) maybeStartTransition() {
+	cfg := &lv.cfg
+	if !cfg.AnimateTransitions {
+		return
+	}
+	sm := chartTransitionMap(lv.win)
+	ts, _ := sm.Get(cfg.ID)
+	if ts.Active || cfg.Version == ts.LastCfgVer {
+		return
+	}
+	ts.LastCfgVer = cfg.Version
+	sm.Set(cfg.ID, ts)
+	startTransition(lv.win, cfg.ID, cfg.AnimDuration)
+}
+
+// applyAutoScroll overrides X-axis domain to follow latest data
+// when auto-scroll is enabled and zoom is not active.
+func applyAutoScroll(
+	w *gui.Window, id string, autoScroll bool,
+	windowSize float64, zoomed bool,
+	ss []series.XY, xAxis *axis.Linear,
+) {
+	if !autoScroll || windowSize <= 0 || zoomed {
+		return
+	}
+	_, dataXMax, _, _ := seriesBoundsXY(ss)
+	updateAutoScroll(w, id, dataXMax, windowSize)
+	if xMax, ok := scrollXMax(w, id); ok {
+		xAxis.SetRange(xMax-windowSize, xMax)
+		xAxis.SetOverrideDomain(true)
+	}
+}
+
 // updateAxes recomputes axes from config or series bounds.
 // Returns false if bounds are invalid (empty or non-finite).
 func (lv *lineView) updateAxes() bool {
@@ -242,6 +311,7 @@ func (lv *lineView) updateAxes() bool {
 }
 
 func (lv *lineView) draw(dc *gui.DrawContext) {
+	updateFPSTracker(lv.win)
 	ctx := render.NewContext(dc)
 	cfg := &lv.cfg
 	th := cfg.Theme
@@ -275,6 +345,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	// Recompute axes only when version changes.
 	if lv.xAxis == nil || cfg.Version != lv.lastVersion {
+		lv.maybeStartTransition()
 		if !lv.updateAxes() {
 			return
 		}
@@ -283,7 +354,23 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	xAxis := lv.xAxis
 	yAxis := lv.yAxis
 
+	// Animated scale transition: lerp axis domain from old to
+	// new bounds so the grid moves with the data.
+	tp := transitionProgress(lv.win, cfg.ID)
+	if tp < 1 {
+		oMinX, oMaxX, oMinY, oMaxY, ok :=
+			loadTransitionBounds(lv.win, cfg.ID)
+		if ok {
+			nMinX, nMaxX := xAxis.Domain()
+			nMinY, nMaxY := yAxis.Domain()
+			lerpAxisRange(xAxis, tp, oMinX, oMaxX, nMinX, nMaxX)
+			lerpAxisRange(yAxis, tp, oMinY, oMaxY, nMinY, nMaxY)
+		}
+	}
+
 	zs := loadAndApplyZoom(lv.win, lv.cfg.ID, xAxis, yAxis, true, true)
+	applyAutoScroll(lv.win, cfg.ID, cfg.AutoScroll,
+		cfg.WindowSize, zs.Zoomed, cfg.Series, xAxis)
 
 	left = resolveLeft(ctx, th, left, bottom, top, yAxis)
 
@@ -297,14 +384,20 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	lv.yTicks = yAxis.Ticks(bottom, top)
 	lv.xTicks = xAxis.Ticks(left, right)
 
+	// FPS-aware: skip grid when animating under load.
+	reduceFPS := animProgress(lv.win, cfg.ID) < 1 &&
+		shouldReduceDetail(lv.win)
+
 	// Draw grid lines.
-	for _, t := range lv.yTicks {
-		ctx.Line(left, t.Position, right, t.Position,
-			th.GridColor, th.GridWidth)
-	}
-	for _, t := range lv.xTicks {
-		ctx.Line(t.Position, top, t.Position, bottom,
-			th.GridColor, th.GridWidth)
+	if !reduceFPS {
+		for _, t := range lv.yTicks {
+			ctx.Line(left, t.Position, right, t.Position,
+				th.GridColor, th.GridWidth)
+		}
+		for _, t := range lv.xTicks {
+			ctx.Line(t.Position, top, t.Position, bottom,
+				th.GridColor, th.GridWidth)
+		}
 	}
 
 	// Draw axes.
@@ -360,8 +453,13 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(lv.win, cfg.ID)
+	var oldYs [][]float64
+	if tp < 1 {
+		oldYs, _ = loadTransitionData(lv.win, cfg.ID)
+	}
 	lv.drawSeries(ctx, cfg, th, xAxis, yAxis,
-		left, right, top, bottom, hovSI)
+		left, right, top, bottom, hovSI, progress, tp, oldYs)
 
 	// Enlarged point marker on hovered series (only if inside plot).
 	if hovSI >= 0 && !lv.hidden[hovSI] &&
@@ -387,13 +485,15 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	drawSelectionRectIf(ctx, zs, pr, th)
 
-	// Crosshair and tooltip.
-	if lv.hovering && lv.xAxis != nil {
+	// Crosshair and tooltip (skip during FPS reduction).
+	if lv.hovering && lv.xAxis != nil && !reduceFPS {
 		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy, pr)
 		pa := lv.lastPA
 		drawXYTooltip(ctx, th, cfg.Series, pa,
 			lv.hoverPx, lv.hoverPy)
 	}
+
+	lv.cacheTransitionData()
 }
 
 // drawSeries renders each visible series as polylines with
@@ -402,11 +502,18 @@ func (lv *lineView) drawSeries(
 	ctx *render.Context, cfg *LineCfg, th *theme.Theme,
 	xAxis, yAxis *axis.Linear,
 	left, right, top, bottom float32,
-	hovSI int,
+	hovSI int, progress float32,
+	tp float32, oldYs [][]float64,
 ) {
 	for i, s := range cfg.Series {
-		if s.Len() == 0 || lv.hidden[i] {
+		n := s.Len()
+		if n == 0 || lv.hidden[i] {
 			continue
+		}
+		// Resolve old Y values for this series if transitioning.
+		var serOldY []float64
+		if tp < 1 && i < len(oldYs) {
+			serOldY = oldYs[i]
 		}
 		color := seriesColor(s.Color(), i, th.Palette)
 		if hovSI >= 0 && i != hovSI {
@@ -414,17 +521,27 @@ func (lv *lineView) drawSeries(
 		}
 
 		// Build polyline points (flat x,y pairs), reusing buffer.
-		needed := s.Len() * 2
+		needed := n * 2
 		if cap(lv.ptsBuf) < needed {
 			lv.ptsBuf = make([]float32, 0, needed)
 		}
 		pts := lv.ptsBuf[:0]
-		for _, p := range s.Points {
+		for j, p := range s.Points[:n] {
 			if !finite(p.X) || !finite(p.Y) {
 				continue
 			}
+			y := p.Y
+			// Transition: interpolate from old Y to new Y.
+			if serOldY != nil && j < len(serOldY) {
+				y = lerpFloat64(serOldY[j], p.Y, float64(tp))
+			}
 			px := xAxis.Transform(p.X, left, right)
-			py := yAxis.Transform(p.Y, bottom, top)
+			py := yAxis.Transform(y, bottom, top)
+			// Entry animation: lerp Y from baseline toward
+			// actual value for smooth grow-from-zero effect.
+			if progress < 1 {
+				py = bottom + (py-bottom)*progress
+			}
 			pts = append(pts, px, py)
 		}
 		lv.ptsBuf = pts
@@ -465,19 +582,39 @@ func (lv *lineView) drawSeries(
 
 		ctx.Polyline(clipped, color, cfg.LineWidth)
 
-		// Markers only at points inside the plot area.
 		if cfg.ShowMarkers {
-			for _, p := range s.Points {
-				if !finite(p.X) || !finite(p.Y) {
-					continue
-				}
-				px := xAxis.Transform(p.X, left, right)
-				py := yAxis.Transform(p.Y, bottom, top)
-				if px < left || px > right || py < top || py > bottom {
-					continue
-				}
-				ctx.FilledCircle(px, py, cfg.LineWidth*2, color)
-			}
+			drawLineMarkers(ctx, s.Points[:n], serOldY, tp,
+				xAxis, yAxis, left, right, top, bottom,
+				cfg.LineWidth, color, progress)
 		}
+	}
+}
+
+// drawLineMarkers renders point markers with transition
+// interpolation for the line chart.
+func drawLineMarkers(
+	ctx *render.Context, pts []series.Point,
+	oldY []float64, tp float32,
+	xAxis, yAxis *axis.Linear,
+	left, right, top, bottom, lineWidth float32,
+	color gui.Color, progress float32,
+) {
+	for j, p := range pts {
+		if !finite(p.X) || !finite(p.Y) {
+			continue
+		}
+		y := p.Y
+		if oldY != nil && j < len(oldY) {
+			y = lerpFloat64(oldY[j], p.Y, float64(tp))
+		}
+		px := xAxis.Transform(p.X, left, right)
+		py := yAxis.Transform(y, bottom, top)
+		if progress < 1 {
+			py = bottom + (py-bottom)*progress
+		}
+		if px < left || px > right || py < top || py > bottom {
+			continue
+		}
+		ctx.FilledCircle(px, py, lineWidth*2, color)
 	}
 }

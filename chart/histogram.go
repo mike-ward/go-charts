@@ -82,13 +82,18 @@ func (hv *histogramView) GenerateLayout(w *gui.Window) gui.Layout {
 		&hv.hovering, &hv.hoverPx, &hv.hoverPy)
 	hv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hvr + zv,
+		Version:       c.Version + hvr + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        hv.draw,
 		OnClick:       hv.internalClick,
@@ -265,8 +270,10 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 	hv.lastTop = top
 	hv.lastBottom = bottom
 
+	progress := animProgress(hv.win, hv.cfg.ID)
+
 	pr := plotRect{left, right, top, bottom}
-	hv.drawBars(ctx, th, pr)
+	hv.drawBars(ctx, th, pr, progress)
 
 	drawSelectionRectIf(ctx, zs, pr, th)
 
@@ -277,6 +284,7 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 
 func (hv *histogramView) drawBars(
 	ctx *render.Context, th *theme.Theme, pr plotRect,
+	progress float32,
 ) {
 	left, right, top, bottom := pr.Left, pr.Right, pr.Top, pr.Bottom
 	cfg := &hv.cfg
@@ -332,7 +340,7 @@ func (hv *histogramView) drawBars(
 		bx := xAxis.Transform(binEdges[i], left, right)
 		bx2 := xAxis.Transform(binEdges[i+1], left, right)
 		barWidth := bx2 - bx
-		by := yAxis.Transform(v, bottom, top)
+		by := yAxis.Transform(v*float64(progress), bottom, top)
 		bh := bottom - by
 		if bh <= 0 {
 			continue

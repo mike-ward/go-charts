@@ -91,13 +91,18 @@ func (tv *treemapView) GenerateLayout(w *gui.Window) gui.Layout {
 	hovV := loadHover(w, c.ID,
 		&tv.hovering, &tv.hoverPx, &tv.hoverPy)
 	tv.win = w
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:           c.ID,
 		Sizing:       c.Sizing,
 		Width:        width,
 		Height:       height,
-		Version:      c.Version + hovV,
+		Version:      c.Version + hovV + animV + transV,
 		Clip:         true,
 		OnDraw:       tv.draw,
 		OnClick:      tv.internalClick,
@@ -438,6 +443,8 @@ func (tv *treemapView) draw(dc *gui.DrawContext) {
 		}
 	}
 
+	progress := animProgress(tv.win, tv.cfg.ID)
+
 	gap := cfg.CellGap
 	tickStyle := th.TickStyle
 	fh := ctx.FontHeight(tickStyle)
@@ -453,6 +460,8 @@ func (tv *treemapView) draw(dc *gui.DrawContext) {
 		if hovIdx >= 0 && i != hovIdx {
 			color = dimColor(color, HoverDimAlpha)
 		}
+		color = gui.RGBA(color.R, color.G, color.B,
+			uint8(float32(color.A)*progress))
 
 		cx := c.X + gap/2
 		cy := c.Y + gap/2

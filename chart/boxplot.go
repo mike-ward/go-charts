@@ -90,13 +90,18 @@ func (bv *boxplotView) GenerateLayout(w *gui.Window) gui.Layout {
 	bv.lastLB = loadLegendBounds(w, c.ID)
 	bv.win = w
 	zv := loadZoomVersion(w, c.ID)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 	return gui.DrawCanvas(gui.DrawCanvasCfg{
 		ID:            c.ID,
 		Sizing:        c.Sizing,
 		Width:         width,
 		Height:        height,
-		Version:       c.Version + hv + hidV + zv,
+		Version:       c.Version + hv + hidV + zv + animV + transV,
 		Clip:          true,
 		OnDraw:        bv.draw,
 		OnClick:       bv.internalClick,
@@ -280,6 +285,8 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 	drawAnnotations(ctx, &cfg.Annotations, th,
 		plotRect{left, right, top, bottom}, bv.xAxis, bv.yAxis)
 
+	progress := animProgress(bv.win, bv.cfg.ID)
+
 	// Determine hovered box index.
 	hovI := -1
 	if bv.hovering {
@@ -315,11 +322,12 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 
 		cx := bv.xAxis.Transform(float64(i), left, right)
 
-		q1Px := bv.yAxis.Transform(st.Q1, bottom, top)
-		q3Px := bv.yAxis.Transform(st.Q3, bottom, top)
+		p := float64(progress)
 		medPx := bv.yAxis.Transform(st.Median, bottom, top)
-		minPx := bv.yAxis.Transform(st.Min, bottom, top)
-		maxPx := bv.yAxis.Transform(st.Max, bottom, top)
+		q1Px := bv.yAxis.Transform(st.Median+(st.Q1-st.Median)*p, bottom, top)
+		q3Px := bv.yAxis.Transform(st.Median+(st.Q3-st.Median)*p, bottom, top)
+		minPx := bv.yAxis.Transform(st.Median+(st.Min-st.Median)*p, bottom, top)
+		maxPx := bv.yAxis.Transform(st.Median+(st.Max-st.Median)*p, bottom, top)
 
 		// Box body: Q1 to Q3.
 		bodyTop := min(q1Px, q3Px)

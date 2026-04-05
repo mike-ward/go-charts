@@ -159,6 +159,11 @@ func (sv *sparklineView) GenerateLayout(
 	sv.win = w
 	hv := loadHover(w, c.ID,
 		&sv.hovering, &sv.hoverPx, &sv.hoverPy)
+	animV := loadAnimVersion(w, c.ID)
+	transV := loadTransitionVersion(w, c.ID)
+	if c.Animate {
+		startEntryAnimation(w, c.ID, c.AnimDuration)
+	}
 	width, height := resolveSize(c.Width, c.Height, w)
 
 	dcCfg := gui.DrawCanvasCfg{
@@ -166,7 +171,7 @@ func (sv *sparklineView) GenerateLayout(
 		Sizing:  c.Sizing,
 		Width:   width,
 		Height:  height,
-		Version: c.Version + hv,
+		Version: c.Version + hv + animV + transV,
 		Clip:    true,
 		OnDraw:  sv.draw,
 	}
@@ -246,17 +251,18 @@ func (sv *sparklineView) draw(dc *gui.DrawContext) {
 	pr := plotRect{left, right, top, bottom}
 	sv.lastPA = plotArea{pr, sv.xAxis, sv.yAxis}
 
+	progress := animProgress(sv.win, sv.cfg.ID)
 	color := seriesColor(cfg.Color, 0, cfg.Theme.Palette)
 
 	switch cfg.Type {
 	case SparklineBar:
-		sv.drawBars(ctx, color, left, right, top, bottom)
+		sv.drawBars(ctx, color, left, right, top, bottom, progress)
 	case SparklineArea:
 		sv.drawLineOrArea(ctx, color, left, right, top, bottom,
-			true)
+			true, progress)
 	default:
 		sv.drawLineOrArea(ctx, color, left, right, top, bottom,
-			false)
+			false, progress)
 	}
 
 	// Reference line.
@@ -324,24 +330,33 @@ func (sv *sparklineView) buildAxes() bool {
 func (sv *sparklineView) drawLineOrArea(
 	ctx *render.Context, color gui.Color,
 	left, right, top, bottom float32,
-	fillArea bool,
+	fillArea bool, progress float32,
 ) {
 	cfg := &sv.cfg
 	s := sv.resolved
 
 	// Build polyline points.
-	needed := s.Len() * 2
+	n := s.Len()
+	if progress < 1 {
+		n = max(1, int(float32(n)*progress))
+	}
+	needed := n * 2
 	if cap(sv.ptsBuf) < needed {
 		sv.ptsBuf = make([]float32, 0, needed)
 	}
 	pts := sv.ptsBuf[:0]
+	count := 0
 	for _, p := range s.Points {
+		if count >= n {
+			break
+		}
 		if !finite(p.X) || !finite(p.Y) {
 			continue
 		}
 		px := sv.xAxis.Transform(p.X, left, right)
 		py := sv.yAxis.Transform(p.Y, bottom, top)
 		pts = append(pts, px, py)
+		count++
 	}
 	sv.ptsBuf = pts
 
@@ -503,7 +518,7 @@ func (sv *sparklineView) fillQuad(
 
 func (sv *sparklineView) drawBars(
 	ctx *render.Context, color gui.Color,
-	left, right, top, bottom float32,
+	left, right, top, bottom float32, progress float32,
 ) {
 	cfg := &sv.cfg
 	s := sv.resolved
@@ -560,6 +575,10 @@ func (sv *sparklineView) drawBars(
 		} else {
 			by = refPy
 			bh = py - refPy
+		}
+		bh *= progress
+		if py < refPy {
+			by = refPy - bh
 		}
 		if bh < 0.5 {
 			bh = 0.5

@@ -106,4 +106,12 @@ const (
 	// DefaultSparklineBarGap is the gap in pixels between
 	// sparkline bars.
 	DefaultSparklineBarGap float32 = 1
+
+	// DefaultFPSBudgetMs is the frame time threshold in
+	// milliseconds above which detail reduction kicks in.
+	DefaultFPSBudgetMs float32 = 20
+
+	// fpsEMAAlpha is the exponential moving average smoothing
+	// factor for frame time tracking.
+	fpsEMAAlpha float32 = 0.3
 )

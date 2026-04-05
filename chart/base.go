@@ -3,6 +3,7 @@ package chart
 import (
 	"errors"
 	"strings"
+	"time"
 
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
@@ -41,6 +42,19 @@ type BaseCfg struct {
 	EnablePan bool
 	// EnableRangeSelect enables shift+LMB brush-to-zoom.
 	EnableRangeSelect bool
+
+	// Animate enables entry animation on first render. Series
+	// draw in progressively over DefaultAnimDuration.
+	Animate bool
+
+	// AnimateTransitions enables smooth transitions when data
+	// changes (Version bump). Old values interpolate to new
+	// over DefaultTransitionDuration.
+	AnimateTransitions bool
+
+	// AnimDuration overrides the default entry animation
+	// duration. Zero uses DefaultAnimDuration (500ms).
+	AnimDuration time.Duration
 
 	Version uint64
 }

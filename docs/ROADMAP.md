@@ -91,11 +91,11 @@ First renderable chart types.
 
 ## Phase 9 — Animation & Real-time
 
-- [ ] Entry animation (series draw-in, bar grow)
-- [ ] Transition animation on data update (via go-gui animation)
-- [ ] Real-time data append (streaming, rolling window)
-- [ ] Smooth scrolling for time-series
-- [ ] FPS-aware rendering (skip frames under load)
+- [x] Entry animation (series draw-in, bar grow)
+- [x] Transition animation on data update (via go-gui animation)
+- [x] Real-time data append (streaming, rolling window)
+- [x] Smooth scrolling for time-series
+- [x] FPS-aware rendering (skip frames under load)
 
 ## Phase 10 — Export & Accessibility
 
