@@ -416,6 +416,186 @@ s, err := series.XYZFromSlices("Cities",
 	return typesDoc(w, "series-xyz", source)
 }
 
+func demoDataCSV(w *gui.Window) gui.View {
+	source := `**CSV Parsers** convert CSV data into typed series via
+` + "`io.Reader`" + `. All functions live in the ` + "`series`" + ` package.
+
+### CSVCfg
+
+` + "```go" + `
+type CSVCfg struct {
+    Delimiter  rune // 0 defaults to ','
+    Comment    rune // 0 means no comment character
+    HasHeader  bool // first row is column headers
+    TrimSpace  bool // trim whitespace from fields
+    SkipErrors bool // skip unparseable rows
+}
+` + "```" + `
+
+### Column Selection
+
+Columns are identified by index or header name:
+
+` + "```go" + `
+series.ColIdx(0)       // first column (0-based)
+series.ColName("price") // column named "price"
+` + "```" + `
+
+### XY from CSV
+
+` + "```go" + `
+// Single series
+r := strings.NewReader("x,y\n1,10\n2,20\n3,30")
+s, err := series.XYFromCSV(r, "Revenue",
+    series.ColName("x"), series.ColName("y"),
+    series.CSVCfg{HasHeader: true})
+
+// Multiple series sharing an X column
+r = strings.NewReader("month,2024,2025\n1,10,12\n2,15,18")
+ss, err := series.XYMultiFromCSV(r,
+    series.ColName("month"),
+    []series.Col{
+        series.ColName("2024"),
+        series.ColName("2025"),
+    },
+    nil, // names from headers
+    series.CSVCfg{HasHeader: true})
+` + "```" + `
+
+### Category from CSV
+
+` + "```go" + `
+r := strings.NewReader("region,sales\nNorth,45\nSouth,32")
+s, err := series.CategoryFromCSV(r, "Q1",
+    series.ColName("region"), series.ColName("sales"),
+    series.CSVCfg{HasHeader: true})
+` + "```" + `
+
+### OHLC from CSV
+
+` + "```go" + `
+s, err := series.OHLCFromCSV(r, "AAPL",
+    series.OHLCCSVCfg{
+        CSVCfg:     series.CSVCfg{HasHeader: true},
+        TimeCol:    series.ColName("date"),
+        OpenCol:    series.ColName("open"),
+        HighCol:    series.ColName("high"),
+        LowCol:     series.ColName("low"),
+        CloseCol:   series.ColName("close"),
+        VolumeCol:  series.ColName("volume"),
+        TimeLayout: "2006-01-02",
+    })
+` + "```" + `
+
+### Grid from CSV
+
+First column = row labels, header row = column labels:
+
+` + "```go" + `
+r := strings.NewReader(",Mon,Tue,Wed\nAlice,1,2,3\nBob,4,5,6")
+g, err := series.GridFromCSV(r, "schedule",
+    series.CSVCfg{HasHeader: true})
+` + "```" + `
+
+### Notes
+
+- All parsers accept ` + "`io.Reader`" + ` (files, strings, HTTP bodies).
+- SkipErrors silently drops rows that fail to parse.
+- Tab-separated: set ` + "`Delimiter: '\\t'`" + `.
+`
+
+	return typesDoc(w, "data-csv", source)
+}
+
+func demoDataJSON(w *gui.Window) gui.View {
+	source := `**JSON Parsers** convert JSON arrays of objects into typed
+series via ` + "`io.Reader`" + `. All functions live in the
+` + "`series`" + ` package.
+
+### XY from JSON
+
+` + "```go" + `
+data := ` + "`" + `[{"x": 1, "y": 10}, {"x": 2, "y": 20}]` + "`" + `
+s, err := series.XYFromJSON(
+    strings.NewReader(data), "Revenue", "x", "y")
+
+// Multiple series sharing an X field
+data = ` + "`" + `[{"month":1,"a":10,"b":100},{"month":2,"a":20,"b":200}]` + "`" + `
+ss, err := series.XYMultiFromJSON(
+    strings.NewReader(data), "month", []string{"a", "b"})
+` + "```" + `
+
+### Category from JSON
+
+` + "```go" + `
+data := ` + "`" + `[
+    {"region": "North", "sales": 45},
+    {"region": "South", "sales": 32}
+]` + "`" + `
+s, err := series.CategoryFromJSON(
+    strings.NewReader(data), "Q1", "region", "sales")
+` + "```" + `
+
+### XYZ from JSON
+
+` + "```go" + `
+data := ` + "`" + `[{"x":12,"y":75,"z":331},{"x":42,"y":83,"z":83}]` + "`" + `
+s, err := series.XYZFromJSON(
+    strings.NewReader(data), "Cities", "x", "y", "z")
+` + "```" + `
+
+### OHLC from JSON
+
+` + "```go" + `
+s, err := series.OHLCFromJSON(r, "AAPL",
+    series.OHLCJSONCfg{
+        TimeLayout:  "2006-01-02",
+        VolumeField: "vol",
+    })
+// Default field names: time, open, high, low, close
+` + "```" + `
+
+### Grid from JSON
+
+` + "```go" + `
+data := ` + "`" + `{
+    "rows": ["Alice", "Bob"],
+    "cols": ["Mon", "Tue"],
+    "values": [[1, 2], [3, 4]]
+}` + "`" + `
+g, err := series.GridFromJSON(
+    strings.NewReader(data), "schedule")
+` + "```" + `
+
+### TreeNode from JSON
+
+` + "```go" + `
+data := ` + "`" + `{
+    "label": "root",
+    "value": 0,
+    "children": [
+        {"label": "A", "value": 10},
+        {"label": "B", "value": 0, "children": [
+            {"label": "B1", "value": 5},
+            {"label": "B2", "value": 3}
+        ]}
+    ]
+}` + "`" + `
+n, err := series.TreeNodeFromJSON(strings.NewReader(data))
+` + "```" + `
+
+### Notes
+
+- All parsers decode arrays of objects (not arrays of arrays).
+- JSON number fields accept both integers and floats.
+- OHLCJSONCfg defaults: field names are "time", "open",
+  "high", "low", "close"; layout is RFC3339.
+- GridFromJSON validates dimensions match via NewGrid.
+`
+
+	return typesDoc(w, "data-json", source)
+}
+
 func typesDoc(w *gui.Window, id, source string) gui.View {
 	return w.Markdown(gui.MarkdownCfg{
 		ID:      "doc-" + id,

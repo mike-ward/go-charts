@@ -108,6 +108,8 @@ var demoEntries = []DemoEntry{
 	{ID: "type_axis", Label: "axis.Linear", Group: groupTypes, Summary: "Linear numeric axis with auto-tick generation.", Tags: []string{"axis", "linear", "tick", "range", "format", "auto"}},
 	{ID: "type_axis_log", Label: "axis.Log", Group: groupTypes, Summary: "Logarithmic axis with major/minor tick generation.", Tags: []string{"axis", "log", "logarithmic", "tick", "base", "decade"}},
 	{ID: "type_axis_time", Label: "axis.Time", Group: groupTypes, Summary: "Time axis with adaptive tick alignment.", Tags: []string{"axis", "time", "date", "tick", "format", "auto"}},
+	{ID: "type_data_csv", Label: "Data: CSV", Group: groupTypes, Summary: "Parse CSV data into typed series.", Tags: []string{"csv", "data", "parse", "import", "file", "reader"}},
+	{ID: "type_data_json", Label: "Data: JSON", Group: groupTypes, Summary: "Parse JSON data into typed series.", Tags: []string{"json", "data", "parse", "import", "file", "reader"}},
 
 	// Line
 	{ID: "line_basic", Label: "Basic Line", Group: groupLine, Summary: "Monthly revenue comparison across two years.", Tags: []string{"line", "multi", "revenue"}},

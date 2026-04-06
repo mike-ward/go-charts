@@ -129,6 +129,8 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"transform_bands":      demoTransformBands,
 	"transform_downsample": demoTransformDownsample,
 	"type_series_xyz":      demoSeriesXYZ,
+	"type_data_csv":        demoDataCSV,
+	"type_data_json":       demoDataJSON,
 	"style_palette":        demoPaletteSwap,
 	"style_tick_marks":     demoTickMarks,
 	"style_legend_pos":     demoLegendPositions,
