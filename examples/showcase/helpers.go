@@ -182,7 +182,7 @@ func exportButtons(id string, chartView gui.View) gui.View {
 				Sizing:  gui.FitFit,
 				Padding: btnPad,
 				Content: []gui.View{gui.Text(gui.TextCfg{
-					Text:      "Export SVG",
+					Text:      "Show SVG",
 					TextStyle: t.N4,
 				})},
 				OnClick: func(_ *gui.Layout, _ *gui.Event, _ *gui.Window) {
@@ -197,7 +197,7 @@ func exportButtons(id string, chartView gui.View) gui.View {
 				Sizing:  gui.FitFit,
 				Padding: btnPad,
 				Content: []gui.View{gui.Text(gui.TextCfg{
-					Text:      "Export PNG",
+					Text:      "Show PNG",
 					TextStyle: t.N4,
 				})},
 				OnClick: func(_ *gui.Layout, _ *gui.Event, _ *gui.Window) {
