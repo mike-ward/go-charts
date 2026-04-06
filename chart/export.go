@@ -34,6 +34,10 @@ func ExportPNG(v gui.View, width, height int, path string) error {
 	if width <= 0 || height <= 0 {
 		return errors.New("chart: dimensions must be positive")
 	}
+	const maxDim = 16384
+	if width > maxDim || height > maxDim {
+		return errors.New("chart: dimensions exceed 16384")
+	}
 
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -119,11 +123,18 @@ func edgeInside(e0, e1, e2 float32) bool {
 
 // rasterizeTriBatches fills triangles onto img using
 // edge-function rasterization with 16x MSAA and src-over
-// compositing.
+// compositing. Hits are accumulated across all triangles in
+// a batch before blending so that shared interior edges
+// between tessellated triangles are invisible.
 func rasterizeTriBatches(img *image.RGBA, batches []gui.DrawCanvasTriBatch) {
 	bounds := img.Bounds()
 	stride := img.Stride
 	pix := img.Pix
+	imgW := bounds.Max.X
+
+	// Reusable per-row coverage buffer. Each entry holds
+	// accumulated MSAA hits (clamped to msaaSamples).
+	coverage := make([]uint8, imgW)
 
 	for _, batch := range batches {
 		cr := uint32(batch.Color.R)
@@ -132,47 +143,97 @@ func rasterizeTriBatches(img *image.RGBA, batches []gui.DrawCanvasTriBatch) {
 		ca := uint32(batch.Color.A)
 		tris := batch.Triangles
 
+		if len(tris) < 6 {
+			continue
+		}
+
+		// Compute bounding box of the entire batch.
+		batchMinX, batchMinY := tris[0], tris[1]
+		batchMaxX, batchMaxY := tris[0], tris[1]
+		for i := 0; i+1 < len(tris); i += 2 {
+			batchMinX = min(batchMinX, tris[i])
+			batchMinY = min(batchMinY, tris[i+1])
+			batchMaxX = max(batchMaxX, tris[i])
+			batchMaxY = max(batchMaxY, tris[i+1])
+		}
+
+		// Skip batch if bounds contain NaN or Inf.
+		if math.IsNaN(float64(batchMinX)) || math.IsNaN(float64(batchMinY)) ||
+			math.IsNaN(float64(batchMaxX)) || math.IsNaN(float64(batchMaxY)) ||
+			math.IsInf(float64(batchMinX), 0) || math.IsInf(float64(batchMinY), 0) ||
+			math.IsInf(float64(batchMaxX), 0) || math.IsInf(float64(batchMaxY), 0) {
+			continue
+		}
+
+		bMinX := max(int(math.Floor(float64(batchMinX))), bounds.Min.X)
+		bMinY := max(int(math.Floor(float64(batchMinY))), bounds.Min.Y)
+		bMaxX := min(int(math.Ceil(float64(batchMaxX))), bounds.Max.X-1)
+		bMaxY := min(int(math.Ceil(float64(batchMaxY))), bounds.Max.Y-1)
+
+		// Precompute per-triangle bounding boxes and edge deltas.
+		type triInfo struct {
+			mnX, mnY, mxX, mxY     int
+			dx01, dy01             float32
+			dx12, dy12             float32
+			dx20, dy20             float32
+			x0, y0, x1, y1, x2, y2 float32
+		}
+		nTris := len(tris) / 6
+		infos := make([]triInfo, 0, nTris)
 		for i := 0; i+5 < len(tris); i += 6 {
 			x0, y0 := tris[i], tris[i+1]
 			x1, y1 := tris[i+2], tris[i+3]
 			x2, y2 := tris[i+4], tris[i+5]
 
-			mnX := int(math.Floor(float64(min(x0, x1, x2))))
-			mnY := int(math.Floor(float64(min(y0, y1, y2))))
-			mxX := int(math.Ceil(float64(max(x0, x1, x2))))
-			mxY := int(math.Ceil(float64(max(y0, y1, y2))))
+			mnX := max(int(math.Floor(float64(min(x0, x1, x2)))), bounds.Min.X)
+			mnY := max(int(math.Floor(float64(min(y0, y1, y2)))), bounds.Min.Y)
+			mxX := min(int(math.Ceil(float64(max(x0, x1, x2)))), bounds.Max.X-1)
+			mxY := min(int(math.Ceil(float64(max(y0, y1, y2)))), bounds.Max.Y-1)
 
-			mnX = max(mnX, bounds.Min.X)
-			mnY = max(mnY, bounds.Min.Y)
-			mxX = min(mxX, bounds.Max.X-1)
-			mxY = min(mxY, bounds.Max.Y-1)
+			infos = append(infos, triInfo{
+				mnX: mnX, mnY: mnY, mxX: mxX, mxY: mxY,
+				dx01: x1 - x0, dy01: y1 - y0,
+				dx12: x2 - x1, dy12: y2 - y1,
+				dx20: x0 - x2, dy20: y0 - y2,
+				x0: x0, y0: y0, x1: x1, y1: y1, x2: x2, y2: y2,
+			})
+		}
 
-			dx01, dy01 := x1-x0, y1-y0
-			dx12, dy12 := x2-x1, y2-y1
-			dx20, dy20 := x0-x2, y0-y2
+		// Process row by row: accumulate MSAA hits from all
+		// triangles, then blend once per pixel.
+		for py := bMinY; py <= bMaxY; py++ {
+			// Clear coverage for this row's active range.
+			clear(coverage[bMinX : bMaxX+1])
 
-			for py := mnY; py <= mxY; py++ {
-				rowOff := py*stride + mnX*4
-				for px := mnX; px <= mxX; px++ {
-					// Count sub-pixel samples inside the
-					// triangle (16x MSAA).
-					hits := uint32(0)
+			for ti := range infos {
+				t := &infos[ti]
+				if py < t.mnY || py > t.mxY {
+					continue
+				}
+				for px := t.mnX; px <= t.mxX; px++ {
+					hits := uint8(0)
 					for _, off := range msaaOffsets {
 						sx := float32(px) + off[0]
 						sy := float32(py) + off[1]
-						e0 := dx01*(sy-y0) - dy01*(sx-x0)
-						e1 := dx12*(sy-y1) - dy12*(sx-x1)
-						e2 := dx20*(sy-y2) - dy20*(sx-x2)
+						e0 := t.dx01*(sy-t.y0) - t.dy01*(sx-t.x0)
+						e1 := t.dx12*(sy-t.y1) - t.dy12*(sx-t.x1)
+						e2 := t.dx20*(sy-t.y2) - t.dy20*(sx-t.x2)
 						if edgeInside(e0, e1, e2) {
 							hits++
 						}
 					}
-					if hits > 0 {
-						sa := ca * hits / msaaSamples
-						blendPixel(pix, rowOff, cr, cg, cb, sa)
-					}
-					rowOff += 4
+					coverage[px] = min(coverage[px]+hits, uint8(msaaSamples))
 				}
+			}
+
+			// Blend pixels with non-zero coverage.
+			rowOff := py*stride + bMinX*4
+			for px := bMinX; px <= bMaxX; px++ {
+				if coverage[px] > 0 {
+					sa := ca * uint32(coverage[px]) / msaaSamples
+					blendPixel(pix, rowOff, cr, cg, cb, sa)
+				}
+				rowOff += 4
 			}
 		}
 	}

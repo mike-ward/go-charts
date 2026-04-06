@@ -1,7 +1,9 @@
 package chart
 
 import (
+	"image"
 	"image/png"
+	"math"
 	"os"
 	"path/filepath"
 	"testing"
@@ -341,6 +343,111 @@ func TestExportPNG_RejectsZeroDimensions(t *testing.T) {
 	err := ExportPNG(v, 0, 100, "/dev/null")
 	if err == nil {
 		t.Fatal("expected error for zero width")
+	}
+}
+
+func TestExportPNG_RejectsExcessiveDimensions(t *testing.T) {
+	v := Line(LineCfg{
+		BaseCfg: BaseCfg{Width: 100, Height: 100},
+	})
+	err := ExportPNG(v, 20000, 100, "/dev/null")
+	if err == nil {
+		t.Fatal("expected error for excessive width")
+	}
+	err = ExportPNG(v, 100, 20000, "/dev/null")
+	if err == nil {
+		t.Fatal("expected error for excessive height")
+	}
+}
+
+func TestRasterizeTriBatches_SkipsNaNInfBounds(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 10, 10))
+	// Fill white so we can detect any writes.
+	for i := range img.Pix {
+		img.Pix[i] = 255
+	}
+	snapshot := make([]byte, len(img.Pix))
+	copy(snapshot, img.Pix)
+
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+	batches := []gui.DrawCanvasTriBatch{
+		{Color: gui.Hex(0xFF0000), Triangles: []float32{
+			nan, 0, 5, 0, 5, 5,
+		}},
+		{Color: gui.Hex(0x00FF00), Triangles: []float32{
+			0, 0, inf, 0, 5, 5,
+		}},
+	}
+	rasterizeTriBatches(img, batches)
+
+	for i, v := range img.Pix {
+		if v != snapshot[i] {
+			t.Fatal("NaN/Inf batch modified image pixels")
+		}
+	}
+}
+
+func TestRasterizeTriBatches_SharedEdgeCoverage(t *testing.T) {
+	// Two triangles sharing an edge should produce full coverage
+	// at the shared edge pixels (no seam).
+	img := image.NewRGBA(image.Rect(0, 0, 10, 10))
+	// Black background.
+	for i := 3; i < len(img.Pix); i += 4 {
+		img.Pix[i] = 255
+	}
+
+	// Two triangles forming a 10x10 quad, same batch.
+	batch := gui.DrawCanvasTriBatch{
+		Color: gui.RGBA(255, 0, 0, 255),
+		Triangles: []float32{
+			0, 0, 10, 0, 10, 10,
+			0, 0, 10, 10, 0, 10,
+		},
+	}
+	rasterizeTriBatches(img, []gui.DrawCanvasTriBatch{batch})
+
+	// Interior pixel (5,5) must be fully red, no background
+	// bleed from seam artifacts.
+	off := 5*img.Stride + 5*4
+	r, g, b, a := img.Pix[off], img.Pix[off+1], img.Pix[off+2], img.Pix[off+3]
+	if r != 255 || g != 0 || b != 0 || a != 255 {
+		t.Fatalf("interior pixel: got (%d,%d,%d,%d), want (255,0,0,255)",
+			r, g, b, a)
+	}
+}
+
+func TestRasterizeTriBatches_SkipsShortBatch(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 4, 4))
+	// Batch with fewer than 6 floats (one triangle needs 6).
+	batch := gui.DrawCanvasTriBatch{
+		Color:     gui.Hex(0xFF0000),
+		Triangles: []float32{0, 0, 1, 1},
+	}
+	// Must not panic.
+	rasterizeTriBatches(img, []gui.DrawCanvasTriBatch{batch})
+}
+
+func TestRasterizeTriBatches_CoverageClamp(t *testing.T) {
+	// Three overlapping triangles covering the same pixel.
+	// Coverage should clamp at msaaSamples, not overflow uint8.
+	img := image.NewRGBA(image.Rect(0, 0, 4, 4))
+	for i := 3; i < len(img.Pix); i += 4 {
+		img.Pix[i] = 255
+	}
+
+	tri := []float32{0, 0, 4, 0, 4, 4}
+	batch := gui.DrawCanvasTriBatch{
+		Color:     gui.RGBA(0, 0, 255, 255),
+		Triangles: append(append(tri, tri...), tri...),
+	}
+	// Must not panic from uint8 overflow.
+	rasterizeTriBatches(img, []gui.DrawCanvasTriBatch{batch})
+
+	// Center pixel should be fully blue.
+	off := 2*img.Stride + 2*4
+	if img.Pix[off+2] != 255 {
+		t.Fatalf("blue channel: got %d, want 255", img.Pix[off+2])
 	}
 }
 

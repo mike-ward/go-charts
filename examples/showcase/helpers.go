@@ -1,8 +1,14 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 
+	"github.com/mike-ward/go-charts/chart"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
 )
@@ -103,7 +109,7 @@ func demoWithCode(
 	t := gui.CurrentTheme()
 	source := "```go\n" + code + "\n```"
 
-	views := []gui.View{chartView}
+	views := collectExportable(id, chartView)
 
 	if prefix, _, ok := strings.Cut(id, "-"); ok {
 		if desc, found := chartTypeDescriptions[prefix]; found {
@@ -135,6 +141,94 @@ func demoWithCode(
 		Spacing: gui.SomeF(12),
 		Content: views,
 	})
+}
+
+// collectExportable returns the chart view followed by export
+// buttons. If the view is a container (not a Drawer), it walks
+// Content() children and adds export buttons after each chart.
+func collectExportable(id string, v gui.View) []gui.View {
+	if _, ok := v.(chart.Drawer); ok {
+		return []gui.View{v, exportButtons(id, v)}
+	}
+	children := v.Content()
+	if len(children) == 0 {
+		return []gui.View{v}
+	}
+	views := make([]gui.View, 0, len(children)*2)
+	idx := 0
+	for _, child := range children {
+		views = append(views, child)
+		if _, ok := child.(chart.Drawer); ok {
+			btnID := fmt.Sprintf("%s-%d", id, idx)
+			views = append(views, exportButtons(btnID, child))
+			idx++
+		}
+	}
+	return views
+}
+
+func exportButtons(id string, chartView gui.View) gui.View {
+	t := gui.CurrentTheme()
+	btnPad := gui.SomeP(4, 12, 4, 12)
+
+	return gui.Row(gui.ContainerCfg{
+		Sizing:     gui.FillFit,
+		Padding:    gui.NoPadding,
+		SizeBorder: gui.NoBorder,
+		Spacing:    gui.SomeF(8),
+		Content: []gui.View{
+			gui.Button(gui.ButtonCfg{
+				ID:      "export-svg-" + id,
+				Sizing:  gui.FitFit,
+				Padding: btnPad,
+				Content: []gui.View{gui.Text(gui.TextCfg{
+					Text:      "Export SVG",
+					TextStyle: t.N4,
+				})},
+				OnClick: func(_ *gui.Layout, _ *gui.Event, _ *gui.Window) {
+					path := filepath.Join(tempDir(), id+".svg")
+					if chart.ExportSVG(chartView, 800, 600, path) == nil {
+						openFile(path)
+					}
+				},
+			}),
+			gui.Button(gui.ButtonCfg{
+				ID:      "export-png-" + id,
+				Sizing:  gui.FitFit,
+				Padding: btnPad,
+				Content: []gui.View{gui.Text(gui.TextCfg{
+					Text:      "Export PNG",
+					TextStyle: t.N4,
+				})},
+				OnClick: func(_ *gui.Layout, _ *gui.Event, _ *gui.Window) {
+					path := filepath.Join(tempDir(), id+".png")
+					if chart.ExportPNG(chartView, 800, 600, path) == nil {
+						openFile(path)
+					}
+				},
+			}),
+		},
+	})
+}
+
+// tempDir returns a stable subdirectory in the system temp folder
+// for chart exports.
+func tempDir() string {
+	dir := filepath.Join(os.TempDir(), "go-charts-export")
+	_ = os.MkdirAll(dir, 0o755)
+	return dir
+}
+
+// openFile opens a file with the platform default viewer.
+func openFile(path string) {
+	switch runtime.GOOS {
+	case "darwin":
+		_ = exec.Command("open", path).Start()
+	case "windows":
+		_ = exec.Command("cmd", "/c", "start", "", path).Start()
+	default:
+		_ = exec.Command("xdg-open", path).Start()
+	}
 }
 
 func line() gui.View {

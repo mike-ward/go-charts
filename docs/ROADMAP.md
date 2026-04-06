@@ -99,7 +99,7 @@ First renderable chart types.
 
 ## Phase 10 — Export & Accessibility
 
-- [ ] SVG export (static chart to SVG string)
+- [x] SVG export (static chart to SVG string)
 - [x] PNG export (rasterize via backend)
 - [ ] PDF export (via go-pdf/fpdf)
 - [ ] Keyboard navigation (tab between points, series)
