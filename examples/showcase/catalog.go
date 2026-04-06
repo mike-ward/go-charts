@@ -106,47 +106,40 @@ var themeChoices = []struct{ key, label string }{
 	{themeHighContrast, "Hi-Con"},
 }
 
-func themePicker(app *ShowcaseApp) gui.View {
-	t := gui.CurrentTheme()
-	items := make([]gui.View, 0, len(themeChoices)+1)
-	items = append(items, gui.Text(gui.TextCfg{
-		Text:      "Theme:",
-		TextStyle: t.N5,
-	}))
+func themeLabel(key string) string {
 	for _, tc := range themeChoices {
-		items = append(items, themePickerItem(tc.label, tc.key, app))
+		if tc.key == key {
+			return tc.label
+		}
 	}
-	return gui.Wrap(gui.ContainerCfg{
-		Sizing:  gui.FillFit,
-		Padding: gui.NoPadding,
-		Spacing: gui.SomeF(3),
-		Content: items,
-	})
+	return themeChoices[0].label
 }
 
-func themePickerItem(label, key string, app *ShowcaseApp) gui.View {
+func themePicker(app *ShowcaseApp) gui.View {
 	t := gui.CurrentTheme()
-	selected := app.SelectedTheme == key
-	color := t.ColorBackground
-	if selected {
-		color = t.ColorActive
-	}
-
 	return gui.Button(gui.ButtonCfg{
-		ID:          "theme-" + key,
-		Color:       color,
-		ColorBorder: color,
+		ID:          "theme-cycle",
+		Color:       t.ColorBackground,
+		ColorBorder: t.ColorBackground,
 		Radius:      gui.SomeF(3),
 		Padding:     gui.SomeP(3, 6, 3, 6),
 		Content: []gui.View{
 			gui.Text(gui.TextCfg{
-				Text:      label,
+				Text:      "Theme: " + themeLabel(app.SelectedTheme),
 				TextStyle: t.N5,
 			}),
 		},
 		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
-			gui.State[ShowcaseApp](w).SelectedTheme = key
-			applyChartTheme(key)
+			sa := gui.State[ShowcaseApp](w)
+			next := 0
+			for i, tc := range themeChoices {
+				if tc.key == sa.SelectedTheme {
+					next = (i + 1) % len(themeChoices)
+					break
+				}
+			}
+			sa.SelectedTheme = themeChoices[next].key
+			applyChartTheme(sa.SelectedTheme)
 			w.ClearDrawCanvasCache()
 			e.IsHandled = true
 		},
