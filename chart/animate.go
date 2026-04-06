@@ -299,7 +299,7 @@ func loadTransitionBounds(
 // new bounds during a transition. Skips if any input is
 // non-finite or if the interpolated range is degenerate.
 func lerpAxisRange(
-	a *axis.Linear, tp float32,
+	a axis.Axis, tp float32,
 	oldMin, oldMax, newMin, newMax float64,
 ) {
 	if !finite(oldMin) || !finite(oldMax) ||

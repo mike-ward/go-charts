@@ -20,7 +20,7 @@ type BarCfg struct {
 	Series []series.Category
 
 	// Axes (optional; Y auto-created from series bounds when nil)
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// Appearance
 	BarWidth   float32
@@ -34,7 +34,7 @@ type barView struct {
 	cfg         BarCfg
 	lastVersion uint64
 	xAxis       *axis.Category
-	yAxis       *axis.Linear
+	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	hoverPx     float32
 	hoverPy     float32

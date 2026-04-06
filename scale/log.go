@@ -33,6 +33,9 @@ func (s *Log) Domain() (float64, float64) {
 	return s.min, s.max
 }
 
+// Base returns the logarithmic base.
+func (s *Log) Base() float64 { return s.base }
+
 // Transform implements Scale. Non-finite values and non-positive
 // domain/value return pixelMin.
 func (s *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {

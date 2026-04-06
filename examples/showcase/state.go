@@ -97,6 +97,8 @@ var demoEntries = []DemoEntry{
 	{ID: "type_theme", Label: "theme.Theme", Group: groupTypes, Summary: "Visual style: colors, fonts, padding, palette.", Tags: []string{"theme", "palette", "color", "style", "tableau", "pastel", "vivid"}},
 	{ID: "type_series_xyz", Label: "series.XYZ", Group: groupTypes, Summary: "XYZ data series for Bubble charts.", Tags: []string{"series", "xyz", "point", "data", "bubble", "size"}},
 	{ID: "type_axis", Label: "axis.Linear", Group: groupTypes, Summary: "Linear numeric axis with auto-tick generation.", Tags: []string{"axis", "linear", "tick", "range", "format", "auto"}},
+	{ID: "type_axis_log", Label: "axis.Log", Group: groupTypes, Summary: "Logarithmic axis with major/minor tick generation.", Tags: []string{"axis", "log", "logarithmic", "tick", "base", "decade"}},
+	{ID: "type_axis_time", Label: "axis.Time", Group: groupTypes, Summary: "Time axis with adaptive tick alignment.", Tags: []string{"axis", "time", "date", "tick", "format", "auto"}},
 
 	// Line
 	{ID: "line_basic", Label: "Basic Line", Group: groupLine, Summary: "Monthly revenue comparison across two years.", Tags: []string{"line", "multi", "revenue"}},

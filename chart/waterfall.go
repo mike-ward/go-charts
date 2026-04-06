@@ -29,7 +29,7 @@ type WaterfallCfg struct {
 	Values []WaterfallValue
 
 	// YAxis overrides the auto-computed Y axis.
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// BarWidth is the body width in pixels. 0 = auto
 	// (slot width * DefaultWaterfallWidthRatio).
@@ -83,7 +83,7 @@ type waterfallView struct {
 	cfg         WaterfallCfg
 	lastVersion uint64
 	bars        []waterfallBar
-	yAxis       *axis.Linear
+	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
 	hoverPx     float32

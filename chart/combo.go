@@ -39,7 +39,7 @@ type ComboCfg struct {
 	Series []ComboSeries
 
 	// YAxis overrides the auto-computed Y axis.
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// BarWidth is the body width in pixels. 0 = auto
 	// (evenly divided across bar series within each group).
@@ -62,7 +62,7 @@ type comboView struct {
 	cfg         ComboCfg
 	lastVersion uint64
 	xAxis       *axis.Category
-	yAxis       *axis.Linear
+	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	ptsBuf      []float32
 	hoverPx     float32

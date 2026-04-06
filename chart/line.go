@@ -19,8 +19,8 @@ type LineCfg struct {
 	Series []series.XY
 
 	// Axes (optional; auto-created from series bounds when nil)
-	XAxis *axis.Linear
-	YAxis *axis.Linear
+	XAxis axis.Axis
+	YAxis axis.Axis
 
 	// Appearance
 	LineWidth   float32 // 0 means default (2)
@@ -38,8 +38,8 @@ type LineCfg struct {
 type lineView struct {
 	cfg         LineCfg
 	lastVersion uint64
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	ptsBuf      []float32
@@ -230,7 +230,7 @@ func (lv *lineView) maybeStartTransition() {
 func applyAutoScroll(
 	w *gui.Window, id string, autoScroll bool,
 	windowSize float64, zoomed bool,
-	ss []series.XY, xAxis *axis.Linear,
+	ss []series.XY, xAxis axis.Axis,
 ) {
 	if !autoScroll || windowSize <= 0 || zoomed {
 		return
@@ -500,7 +500,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 // optional area fill and markers.
 func (lv *lineView) drawSeries(
 	ctx *render.Context, cfg *LineCfg, th *theme.Theme,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom float32,
 	hovSI int, progress float32,
 	tp float32, oldYs [][]float64,
@@ -595,7 +595,7 @@ func (lv *lineView) drawSeries(
 func drawLineMarkers(
 	ctx *render.Context, pts []series.Point,
 	oldY []float64, tp float32,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom, lineWidth float32,
 	color gui.Color, progress float32,
 ) {

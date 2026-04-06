@@ -23,6 +23,21 @@ func NewCategory(cfg CategoryCfg) *Category {
 // Label implements Axis.
 func (a *Category) Label() string { return a.title }
 
+// SetRange implements Axis. No-op for categorical axes.
+func (a *Category) SetRange(_, _ float64) {}
+
+// Domain implements Axis. Returns [0, len(categories)-1].
+func (a *Category) Domain() (float64, float64) {
+	n := len(a.categories)
+	if n == 0 {
+		return 0, 0
+	}
+	return 0, float64(n - 1)
+}
+
+// SetOverrideDomain implements Axis. No-op for categorical axes.
+func (a *Category) SetOverrideDomain(_ bool) {}
+
 // Ticks implements Axis.
 func (a *Category) Ticks(pixelMin, pixelMax float32) []Tick {
 	n := len(a.categories)

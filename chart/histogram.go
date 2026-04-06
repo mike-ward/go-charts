@@ -36,7 +36,7 @@ type HistogramCfg struct {
 	Radius float32
 
 	// YAxis overrides the auto-computed Y axis.
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// TickFormat formats bin-edge values for axis labels and
 	// tooltips. nil = default "%.1f".
@@ -48,8 +48,8 @@ type histogramView struct {
 	lastVersion uint64
 	binEdges    []float64
 	binValues   []float64 // counts or densities
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	hoverPx     float32
 	hoverPy     float32
 	hovering    bool

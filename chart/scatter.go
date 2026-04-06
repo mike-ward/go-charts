@@ -31,8 +31,8 @@ type ScatterCfg struct {
 	Series []series.XY
 
 	// Axes (optional; auto-created from series bounds when nil)
-	XAxis *axis.Linear
-	YAxis *axis.Linear
+	XAxis axis.Axis
+	YAxis axis.Axis
 
 	// Appearance
 	MarkerSize float32 // 0 means default (6)
@@ -42,8 +42,8 @@ type ScatterCfg struct {
 type scatterView struct {
 	cfg         ScatterCfg
 	lastVersion uint64
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	hoverPx     float32
@@ -419,7 +419,7 @@ func drawMarker(
 // skipping points outside the plot area.
 func (sv *scatterView) drawMarkers(
 	ctx *render.Context, cfg *ScatterCfg,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom float32,
 	hovSI int, hovPx, hovPy float32, progress float32,
 ) {

@@ -146,7 +146,7 @@ func clampZoomRange(
 // applyZoomToAxes sets the zoomed domain on the given axes
 // and enables overrideDomain to prevent Ticks() expansion.
 func applyZoomToAxes(
-	zs zoomState, xAxis, yAxis *axis.Linear,
+	zs zoomState, xAxis, yAxis axis.Axis,
 	zoomX, zoomY bool,
 ) {
 	if zoomX && xAxis != nil {
@@ -530,7 +530,7 @@ func drawSelectionRect(
 // Safe to call with nil window (headless export).
 func loadAndApplyZoom(
 	w *gui.Window, id string,
-	xAxis, yAxis *axis.Linear, zoomX, zoomY bool,
+	xAxis, yAxis axis.Axis, zoomX, zoomY bool,
 ) zoomState {
 	zs, _ := loadZoomState(w, id)
 	if !zs.Zoomed {
@@ -733,7 +733,7 @@ func edgeIsect(
 // ensureOrigBounds stores the original axis domain if not
 // already captured and initializes the zoom domain.
 func ensureOrigBounds(
-	zs *zoomState, xAxis, yAxis *axis.Linear,
+	zs *zoomState, xAxis, yAxis axis.Axis,
 	zoomX, zoomY bool,
 ) {
 	if zs.OrigStored {

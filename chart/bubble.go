@@ -20,8 +20,8 @@ type BubbleCfg struct {
 	Series []series.XYZ
 
 	// Axes (optional; auto-created from series bounds when nil)
-	XAxis *axis.Linear
-	YAxis *axis.Linear
+	XAxis axis.Axis
+	YAxis axis.Axis
 
 	// Appearance
 	MinRadius float32     // minimum marker radius; 0 means default (4)
@@ -36,8 +36,8 @@ type BubbleCfg struct {
 type bubbleView struct {
 	cfg         BubbleCfg
 	lastVersion uint64
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	zMin, zMax  float64
@@ -420,7 +420,7 @@ type bubbleDrawItem struct {
 // the hovered highlight, skipping points outside the plot area.
 func (bv *bubbleView) drawBubbles(
 	ctx *render.Context, cfg *BubbleCfg,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom float32,
 	hovSI, hovPI int, hovPx, hovPy float32,
 ) {

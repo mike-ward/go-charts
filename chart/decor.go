@@ -143,7 +143,7 @@ func drawXAxisLabel(
 func resolveLeft(
 	ctx *render.Context, th *theme.Theme,
 	left, bottom, top float32,
-	yAxis *axis.Linear,
+	yAxis axis.Axis,
 ) float32 {
 	if yAxis == nil || yAxis.Label() == "" {
 		return left

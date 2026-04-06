@@ -21,6 +21,17 @@ type Axis interface {
 
 	// Invert converts a pixel position back to a data value.
 	Invert(pixel, pixelMin, pixelMax float32) float64
+
+	// SetRange updates the axis data range.
+	SetRange(min, max float64)
+
+	// Domain returns the current data range.
+	Domain() (float64, float64)
+
+	// SetOverrideDomain controls whether Ticks() skips
+	// auto-range expansion. When true, the domain set by
+	// SetRange is preserved exactly.
+	SetOverrideDomain(v bool)
 }
 
 // Position indicates where an axis is drawn.

@@ -26,7 +26,7 @@ type CandlestickCfg struct {
 	Series []series.OHLCSeries
 
 	// Axes (optional; Y auto-created from High/Low bounds when nil)
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// CandleWidth is the body width in pixels. 0 = auto (slot width
 	// multiplied by DefaultCandleWidthRatio).
@@ -55,7 +55,7 @@ func (c *CandlestickCfg) Validate() error {
 type candlestickView struct {
 	cfg         CandlestickCfg
 	lastVersion uint64
-	yAxis       *axis.Linear
+	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
 	hoverPx     float32

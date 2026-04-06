@@ -12,7 +12,7 @@ func testPlotRect() plotRect {
 	return plotRect{Left: 60, Right: 380, Top: 40, Bottom: 260}
 }
 
-func testLinearAxes() (*axis.Linear, *axis.Linear) {
+func testLinearAxes() (axis.Axis, axis.Axis) {
 	xAxis := axis.NewLinear(axis.LinearCfg{Min: 0, Max: 100})
 	yAxis := axis.NewLinear(axis.LinearCfg{Min: 0, Max: 100})
 	return xAxis, yAxis

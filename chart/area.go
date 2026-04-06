@@ -19,8 +19,8 @@ type AreaCfg struct {
 	Series []series.XY
 
 	// Axes (optional; auto-created from series bounds when nil)
-	XAxis *axis.Linear
-	YAxis *axis.Linear
+	XAxis axis.Axis
+	YAxis axis.Axis
 
 	// Appearance
 	Stacked   bool
@@ -38,8 +38,8 @@ type AreaCfg struct {
 type areaView struct {
 	cfg         AreaCfg
 	lastVersion uint64
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	ptsBuf      []float32
@@ -448,7 +448,7 @@ func (av *areaView) draw(dc *gui.DrawContext) {
 
 func (av *areaView) drawOverlapping(
 	ctx *render.Context, cfg *AreaCfg,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom float32,
 	alpha uint8, hovSI int, progress float32,
 ) {
@@ -525,7 +525,7 @@ func (av *areaView) drawOverlapping(
 
 func (av *areaView) drawStacked(
 	ctx *render.Context, cfg *AreaCfg,
-	xAxis, yAxis *axis.Linear,
+	xAxis, yAxis axis.Axis,
 	left, right, top, bottom float32,
 	alpha uint8, hovSI int, progress float32,
 ) {

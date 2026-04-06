@@ -27,7 +27,7 @@ type BoxPlotCfg struct {
 	Data []BoxData
 
 	// YAxis overrides the auto-computed Y axis.
-	YAxis *axis.Linear
+	YAxis axis.Axis
 
 	// BoxWidth is the body width in pixels. 0 = auto
 	// (slot width * DefaultBoxWidthRatio).
@@ -51,7 +51,7 @@ type boxplotView struct {
 	lastVersion uint64
 	stats       []boxStats
 	valid       []bool // valid[i] = computeBoxStats succeeded
-	yAxis       *axis.Linear
+	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
 	hoverPx     float32

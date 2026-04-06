@@ -87,8 +87,8 @@ type sparklineView struct {
 	hoverPy     float32
 	hovering    bool
 	lastVersion uint64
-	xAxis       *axis.Linear
-	yAxis       *axis.Linear
+	xAxis       axis.Axis
+	yAxis       axis.Axis
 	lastPA      plotArea
 	win         *gui.Window
 }

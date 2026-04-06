@@ -18,7 +18,7 @@ type plotRect struct {
 // region. Passed to tooltip helpers to avoid long parameter lists.
 type plotArea struct {
 	plotRect
-	XAxis, YAxis *axis.Linear
+	XAxis, YAxis axis.Axis
 }
 
 // nearestXYPoint finds the series/point index and pixel position
