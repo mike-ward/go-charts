@@ -173,6 +173,22 @@ func (r *svgRecorder) PolylineJoined(points []float32, color gui.Color, width fl
 	})
 }
 
+func (r *svgRecorder) QuadBezier(
+	x0, y0, cx, cy, x1, y1 float32, color gui.Color, width float32,
+) {
+	r.cmds = append(r.cmds, &svgQuadBezier{
+		x0, y0, cx, cy, x1, y1, color, width,
+	})
+}
+
+func (r *svgRecorder) CubicBezier(
+	x0, y0, c1x, c1y, c2x, c2y, x1, y1 float32, color gui.Color, width float32,
+) {
+	r.cmds = append(r.cmds, &svgCubicBezier{
+		x0, y0, c1x, c1y, c2x, c2y, x1, y1, color, width,
+	})
+}
+
 func (r *svgRecorder) Text(x, y float32, text string, style gui.TextStyle) {
 	ascent := style.Size * 0.8
 	if r.measurer != nil {
@@ -393,6 +409,38 @@ func (c *svgPolylineJoined) writeSVG(b *strings.Builder) {
 	fmt.Fprintf(b,
 		"\" fill=\"none\" stroke=\"%s\" stroke-width=\"%.1f\""+
 			" stroke-linejoin=\"miter\"",
+		colorToCSS(c.color), c.width)
+	writeOpacity(b, c.color)
+	b.WriteString("/>\n")
+}
+
+type svgQuadBezier struct {
+	x0, y0, cx, cy, x1, y1 float32
+	color                  gui.Color
+	width                  float32
+}
+
+func (c *svgQuadBezier) writeSVG(b *strings.Builder) {
+	fmt.Fprintf(b,
+		"<path d=\"M%.1f %.1f Q%.1f %.1f %.1f %.1f\""+
+			" fill=\"none\" stroke=\"%s\" stroke-width=\"%.1f\"",
+		c.x0, c.y0, c.cx, c.cy, c.x1, c.y1,
+		colorToCSS(c.color), c.width)
+	writeOpacity(b, c.color)
+	b.WriteString("/>\n")
+}
+
+type svgCubicBezier struct {
+	x0, y0, c1x, c1y, c2x, c2y, x1, y1 float32
+	color                              gui.Color
+	width                              float32
+}
+
+func (c *svgCubicBezier) writeSVG(b *strings.Builder) {
+	fmt.Fprintf(b,
+		"<path d=\"M%.1f %.1f C%.1f %.1f %.1f %.1f %.1f %.1f\""+
+			" fill=\"none\" stroke=\"%s\" stroke-width=\"%.1f\"",
+		c.x0, c.y0, c.c1x, c.c1y, c.c2x, c.c2y, c.x1, c.y1,
 		colorToCSS(c.color), c.width)
 	writeOpacity(b, c.color)
 	b.WriteString("/>\n")
