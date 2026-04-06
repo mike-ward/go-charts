@@ -1,6 +1,10 @@
 package main
 
-import "github.com/mike-ward/go-gui/gui"
+import (
+	"github.com/mike-ward/go-gui/gui"
+
+	"github.com/mike-ward/go-charts/theme"
+)
 
 func catalogPanel(w *gui.Window, entries []DemoEntry) gui.View {
 	t := gui.CurrentTheme()
@@ -19,6 +23,7 @@ func catalogPanel(w *gui.Window, entries []DemoEntry) gui.View {
 			}),
 			searchInput(app),
 			groupPicker(app),
+			themePicker(app),
 			line(),
 			gui.Column(gui.ContainerCfg{
 				IDScroll: scrollCatalog,
@@ -92,6 +97,78 @@ func groupPickerItem(label, key string, app *ShowcaseApp) gui.View {
 			e.IsHandled = true
 		},
 	})
+}
+
+var themeChoices = []struct{ key, label string }{
+	{themeDefault, "Default"},
+	{themePastel, "Pastel"},
+	{themeVivid, "Vivid"},
+	{themeHighContrast, "Hi-Con"},
+}
+
+func themePicker(app *ShowcaseApp) gui.View {
+	t := gui.CurrentTheme()
+	items := make([]gui.View, 0, len(themeChoices)+1)
+	items = append(items, gui.Text(gui.TextCfg{
+		Text:      "Theme:",
+		TextStyle: t.N5,
+	}))
+	for _, tc := range themeChoices {
+		items = append(items, themePickerItem(tc.label, tc.key, app))
+	}
+	return gui.Wrap(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		Spacing: gui.SomeF(3),
+		Content: items,
+	})
+}
+
+func themePickerItem(label, key string, app *ShowcaseApp) gui.View {
+	t := gui.CurrentTheme()
+	selected := app.SelectedTheme == key
+	color := t.ColorBackground
+	if selected {
+		color = t.ColorActive
+	}
+
+	return gui.Button(gui.ButtonCfg{
+		ID:          "theme-" + key,
+		Color:       color,
+		ColorBorder: color,
+		Radius:      gui.SomeF(3),
+		Padding:     gui.SomeP(3, 6, 3, 6),
+		Content: []gui.View{
+			gui.Text(gui.TextCfg{
+				Text:      label,
+				TextStyle: t.N5,
+			}),
+		},
+		OnClick: func(_ *gui.Layout, e *gui.Event, w *gui.Window) {
+			gui.State[ShowcaseApp](w).SelectedTheme = key
+			applyChartTheme(key)
+			w.ClearDrawCanvasCache()
+			e.IsHandled = true
+		},
+	})
+}
+
+func applyChartTheme(key string) {
+	theme.SetDefault(nil)
+	switch key {
+	case themePastel:
+		t := theme.Default()
+		t.Palette = theme.Pastel()
+		theme.SetDefault(t)
+	case themeVivid:
+		t := theme.Default()
+		t.Palette = theme.Vivid()
+		theme.SetDefault(t)
+	case themeHighContrast:
+		theme.SetDefault(theme.HighContrastTheme())
+	default:
+		theme.SetDefault(theme.Default())
+	}
 }
 
 func catalogRows(entries []DemoEntry, app *ShowcaseApp) []gui.View {

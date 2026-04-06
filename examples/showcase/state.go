@@ -6,6 +6,13 @@ import (
 )
 
 const (
+	themeDefault      = "default"
+	themePastel       = "pastel"
+	themeVivid        = "vivid"
+	themeHighContrast = "high-contrast"
+)
+
+const (
 	groupAll         = "all"
 	groupTypes       = "types"
 	groupLine        = "line"
@@ -36,12 +43,14 @@ type ShowcaseApp struct {
 	NavQuery          string
 	SelectedGroup     string
 	SelectedComponent string
+	SelectedTheme     string
 }
 
 func newShowcaseApp() *ShowcaseApp {
 	return &ShowcaseApp{
 		SelectedGroup:     groupAll,
 		SelectedComponent: "line_basic",
+		SelectedTheme:     themeDefault,
 	}
 }
 
