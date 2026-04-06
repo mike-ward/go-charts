@@ -70,6 +70,9 @@ func Funnel(cfg FunnelCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableSlices(&cfg.BaseCfg, cfg.Slices)
+	}
 	return &funnelView{cfg: cfg}
 }
 

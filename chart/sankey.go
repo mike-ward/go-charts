@@ -92,6 +92,9 @@ func Sankey(cfg SankeyCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableSankey(&cfg.BaseCfg, cfg.Nodes, cfg.Links)
+	}
 	return &sankeyView{cfg: cfg}
 }
 

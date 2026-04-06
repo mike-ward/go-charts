@@ -137,6 +137,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"style_padding":        demoCustomPadding,
 	"style_kitchen":        demoKitchenSink,
 	"style_high_contrast":  demoHighContrast,
+	"style_data_table":     demoDataTable,
 	"style_zoom":           demoZoomPan,
 	"anim_entry":           demoAnimEntry,
 	"anim_transition":      demoAnimTransition,

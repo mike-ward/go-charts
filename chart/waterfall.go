@@ -104,6 +104,9 @@ func Waterfall(cfg WaterfallCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableWaterfall(&cfg.BaseCfg, cfg.Values)
+	}
 	return &waterfallView{cfg: cfg}
 }
 

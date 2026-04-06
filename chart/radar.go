@@ -72,6 +72,9 @@ func Radar(cfg RadarCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableRadar(&cfg.BaseCfg, cfg.Axes, cfg.Series)
+	}
 	return &radarView{cfg: cfg}
 }
 

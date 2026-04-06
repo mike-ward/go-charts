@@ -69,6 +69,9 @@ func Gauge(cfg GaugeCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableGauge(&cfg.BaseCfg, cfg.Value, cfg.Min, cfg.Max)
+	}
 	return &gaugeView{cfg: cfg}
 }
 

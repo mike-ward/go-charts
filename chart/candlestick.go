@@ -79,6 +79,9 @@ func Candlestick(cfg CandlestickCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableOHLC(&cfg.BaseCfg, cfg.Series, cfg.XTimeFormat)
+	}
 	return &candlestickView{cfg: cfg}
 }
 

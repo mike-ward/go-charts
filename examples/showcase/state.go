@@ -201,6 +201,7 @@ var demoEntries = []DemoEntry{
 	{ID: "style_padding", Label: "Custom Padding", Group: groupStyles, Summary: "Tight versus spacious chart padding.", Tags: []string{"style", "padding", "spacing", "inset"}},
 	{ID: "style_kitchen", Label: "Kitchen Sink", Group: groupStyles, Summary: "All style knobs combined on a single chart.", Tags: []string{"style", "combined", "kitchen", "sink", "all"}},
 	{ID: "style_high_contrast", Label: "High Contrast", Group: groupStyles, Summary: "Accessibility theme with bold axes, larger text, WCAG-compliant palette.", Tags: []string{"style", "high", "contrast", "accessibility", "wcag", "bold"}},
+	{ID: "style_data_table", Label: "Data Table", Group: groupStyles, Summary: "Accessible table fallback showing chart data in tabular form.", Tags: []string{"style", "table", "data", "accessibility", "fallback", "a11y"}},
 	{ID: "style_zoom", Label: "Zoom & Pan", Group: groupStyles, Summary: "Scroll-wheel zoom, drag pan, double-click reset, and brush-to-zoom selection.", Tags: []string{"style", "zoom", "pan", "scroll", "drag", "select", "brush"}},
 }
 

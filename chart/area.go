@@ -68,6 +68,9 @@ func Area(cfg AreaCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableXY(&cfg.BaseCfg, cfg.Series)
+	}
 	return &areaView{cfg: cfg}
 }
 

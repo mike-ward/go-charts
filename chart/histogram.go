@@ -66,6 +66,9 @@ func Histogram(cfg HistogramCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableHistogram(&cfg.BaseCfg, cfg.Data, cfg.Bins, cfg.BinEdges, cfg.Normalized)
+	}
 	return &histogramView{cfg: cfg}
 }
 

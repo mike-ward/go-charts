@@ -68,6 +68,9 @@ func Heatmap(cfg HeatmapCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableGrid(&cfg.BaseCfg, cfg.Data)
+	}
 	return &heatmapView{cfg: cfg}
 }
 

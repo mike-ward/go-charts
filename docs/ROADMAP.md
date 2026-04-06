@@ -104,7 +104,7 @@ First renderable chart types.
 - [ ] Keyboard navigation (tab between points, series)
 - [ ] Screen reader labels (ARIA-style metadata)
 - [x] High contrast mode
-- [ ] Data table fallback view
+- [x] Data table fallback view
 
 ## Design Principles
 

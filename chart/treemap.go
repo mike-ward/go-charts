@@ -76,6 +76,9 @@ func Treemap(cfg TreemapCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableTree(&cfg.BaseCfg, cfg.Data)
+	}
 	return &treemapView{cfg: cfg}
 }
 

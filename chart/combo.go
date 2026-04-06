@@ -89,6 +89,9 @@ func Combo(cfg ComboCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableCombo(&cfg.BaseCfg, cfg.Series)
+	}
 	return &comboView{cfg: cfg}
 }
 

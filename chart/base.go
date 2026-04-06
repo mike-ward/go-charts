@@ -52,6 +52,10 @@ type BaseCfg struct {
 	// over DefaultTransitionDuration.
 	AnimateTransitions bool
 
+	// ShowDataTable replaces the chart with an accessible data
+	// table showing all series values in tabular form.
+	ShowDataTable bool
+
 	// AnimDuration overrides the default entry animation
 	// duration. Zero uses DefaultAnimDuration (500ms).
 	AnimDuration time.Duration

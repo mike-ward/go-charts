@@ -72,6 +72,9 @@ func BoxPlot(cfg BoxPlotCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableBoxplot(&cfg.BaseCfg, cfg.Data)
+	}
 	return &boxplotView{cfg: cfg}
 }
 

@@ -55,6 +55,9 @@ func Bar(cfg BarCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableCategory(&cfg.BaseCfg, cfg.Series)
+	}
 	return &barView{cfg: cfg}
 }
 

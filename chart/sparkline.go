@@ -99,6 +99,9 @@ func Sparkline(cfg SparklineCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableSparkline(&cfg.BaseCfg, cfg.Values, cfg.Series)
+	}
 	sv := &sparklineView{cfg: cfg}
 	sv.resolveData()
 	return sv

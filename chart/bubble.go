@@ -62,6 +62,9 @@ func Bubble(cfg BubbleCfg) gui.View {
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
+	if cfg.ShowDataTable {
+		return dataTableXYZ(&cfg.BaseCfg, cfg.Series)
+	}
 	return &bubbleView{cfg: cfg}
 }
 
