@@ -397,6 +397,72 @@ chart.Line(chart.LineCfg{
 })`)
 }
 
+func demoHighContrast(w *gui.Window) gui.View {
+	t := theme.HighContrastTheme()
+	barData := []series.Category{
+		series.NewCategory(series.CategoryCfg{
+			Name: "Q1",
+			Values: []series.CategoryValue{
+				{Label: "North", Value: 45},
+				{Label: "South", Value: 32},
+				{Label: "East", Value: 58},
+				{Label: "West", Value: 41},
+			},
+		}),
+		series.NewCategory(series.CategoryCfg{
+			Name: "Q2",
+			Values: []series.CategoryValue{
+				{Label: "North", Value: 52},
+				{Label: "South", Value: 38},
+				{Label: "East", Value: 49},
+				{Label: "West", Value: 55},
+			},
+		}),
+	}
+
+	return demoWithCode(w, "style-high-contrast", gui.Column(gui.ContainerCfg{
+		Sizing:  gui.FillFit,
+		Padding: gui.NoPadding,
+		Spacing: gui.SomeF(16),
+		Content: []gui.View{
+			chart.Line(chart.LineCfg{
+				BaseCfg: chart.BaseCfg{
+					ID:             "hc-line",
+					Title:          "High Contrast Line",
+					Sizing:         gui.FillFixed,
+					Height:         250,
+					Theme:          t,
+					LegendPosition: &posBottom,
+				},
+				ShowMarkers: true,
+				LineWidth:   2.5,
+				Series:      styleSeries(),
+			}),
+			chart.Bar(chart.BarCfg{
+				BaseCfg: chart.BaseCfg{
+					ID:             "hc-bar",
+					Title:          "High Contrast Bar",
+					Sizing:         gui.FillFixed,
+					Height:         250,
+					Theme:          t,
+					LegendPosition: &posBottom,
+				},
+				Series: barData,
+			}),
+		},
+	}), `t := theme.HighContrastTheme()
+
+chart.Line(chart.LineCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "High Contrast Line",
+        Theme: t,
+    },
+    ShowMarkers: true,
+    LineWidth:   2.5,
+    Series:      data,
+})`)
+}
+
 func demoZoomPan(w *gui.Window) gui.View {
 	t := gui.CurrentTheme()
 	zoomBase := func(id, title string) chart.BaseCfg {

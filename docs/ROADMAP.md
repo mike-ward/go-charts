@@ -101,10 +101,9 @@ First renderable chart types.
 
 - [x] SVG export (static chart to SVG string)
 - [x] PNG export (rasterize via backend)
-- [ ] PDF export (via go-pdf/fpdf)
 - [ ] Keyboard navigation (tab between points, series)
 - [ ] Screen reader labels (ARIA-style metadata)
-- [ ] High contrast mode
+- [x] High contrast mode
 - [ ] Data table fallback view
 
 ## Design Principles

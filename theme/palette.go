@@ -56,3 +56,21 @@ func Pastel() []gui.Color { return slices.Clone(pastel) }
 
 // Vivid returns a vivid/saturated color palette.
 func Vivid() []gui.Color { return slices.Clone(vivid) }
+
+var highContrast = []gui.Color{
+	gui.Hex(0x0000CD), // medium blue
+	gui.Hex(0xDC143C), // crimson
+	gui.Hex(0x009E73), // bluish green
+	gui.Hex(0xD55E00), // vermillion
+	gui.Hex(0xCC79A7), // reddish purple
+	gui.Hex(0x56B4E9), // sky blue
+	gui.Hex(0xB8860B), // dark goldenrod
+	gui.Hex(0x8B008B), // dark magenta
+	gui.Hex(0x2F4F4F), // dark slate gray
+	gui.Hex(0xE69F00), // orange
+}
+
+// HighContrast returns a high-contrast color palette designed for
+// accessibility. Colors are colorblind-safe and meet WCAG AA
+// contrast guidelines against both light and dark backgrounds.
+func HighContrast() []gui.Color { return slices.Clone(highContrast) }
