@@ -48,6 +48,10 @@ type GaugeCfg struct {
 	// ShowMinMax renders min/max labels at the arc endpoints.
 	ShowMinMax bool
 
+	// ShowPointer draws a triangular needle pointing at the
+	// current value, with a hub circle at the center.
+	ShowPointer bool
+
 	// ValueFormat is the fmt format string for the value label.
 	// Default: "%.0f".
 	ValueFormat string
@@ -193,7 +197,9 @@ func gaugeStartAngle(arcAngle float32) float32 {
 // gaugeValueFraction returns the clamped fraction of value
 // within [min, max].
 func gaugeValueFraction(value, min, max float64) float64 {
-	if max == min {
+	if max == min ||
+		math.IsNaN(value) || math.IsNaN(min) || math.IsNaN(max) ||
+		math.IsInf(min, 0) || math.IsInf(max, 0) {
 		return 0
 	}
 	f := (value - min) / (max - min)
@@ -300,6 +306,30 @@ func (gv *gaugeView) draw(dc *gui.DrawContext) {
 	// Donut hole.
 	if innerR > 0 {
 		ctx.FilledCircle(cx, cy, innerR, th.Background)
+	}
+
+	// Pointer needle.
+	if cfg.ShowPointer && !math.IsNaN(float64(valSweep)) &&
+		!math.IsInf(float64(valSweep), 0) && outerR > 2 {
+		needleAngle := float64(startAngle + valSweep)
+		tipR := outerR - 2
+		hubR := innerR * DefaultGaugePointerHubRatio
+		hw := DefaultGaugePointerWidthPx
+
+		cosA := float32(math.Cos(needleAngle))
+		sinA := float32(math.Sin(needleAngle))
+
+		// Tip point and two base points offset perpendicular.
+		var pts [6]float32
+		pts[0] = cx + tipR*cosA
+		pts[1] = cy + tipR*sinA
+		pts[2] = cx - hw*sinA
+		pts[3] = cy + hw*cosA
+		pts[4] = cx + hw*sinA
+		pts[5] = cy - hw*cosA
+		ctx.FilledPolygon(pts[:], valColor)
+
+		ctx.FilledCircle(cx, cy, hubR, valColor)
 	}
 
 	// Min/max labels at arc endpoints.

@@ -108,13 +108,20 @@ func TestGaugeValueFraction(t *testing.T) {
 		{50, 0, 100, 0.5},
 		{0, 0, 100, 0},
 		{100, 0, 100, 1},
-		{-10, 0, 100, 0}, // clamped
-		{200, 0, 100, 1}, // clamped
-		{50, 50, 50, 0},  // degenerate
+		{-10, 0, 100, 0},                   // clamped
+		{200, 0, 100, 1},                   // clamped
+		{50, 50, 50, 0},                    // degenerate
+		{math.NaN(), 0, 100, 0},            // NaN → 0
+		{math.Inf(1), 0, 100, 1},           // +Inf → clamped
+		{math.Inf(-1), 0, 100, 0},          // -Inf → clamped
+		{50, math.NaN(), 100, 0},           // NaN min → 0
+		{50, 0, math.NaN(), 0},             // NaN max → 0
+		{50, math.NaN(), math.NaN(), 0},    // NaN both → 0
+		{50, math.Inf(-1), math.Inf(1), 0}, // Inf bounds → 0
 	}
 	for _, tt := range tests {
 		got := gaugeValueFraction(tt.value, tt.min, tt.max)
-		if math.Abs(got-tt.want) > 1e-9 {
+		if math.IsNaN(got) || math.Abs(got-tt.want) > 1e-9 {
 			t.Errorf("gaugeValueFraction(%g, %g, %g) = %g, want %g",
 				tt.value, tt.min, tt.max, got, tt.want)
 		}
@@ -148,5 +155,20 @@ func TestGaugeConstructor(t *testing.T) {
 	}
 	if gv.cfg.ArcAngle == 0 {
 		t.Error("default ArcAngle not set")
+	}
+}
+
+func TestGaugeConstructor_ShowPointer(t *testing.T) {
+	v := Gauge(GaugeCfg{
+		BaseCfg:     BaseCfg{ID: "gp1"},
+		Value:       42,
+		ShowPointer: true,
+	})
+	gv, ok := v.(*gaugeView)
+	if !ok {
+		t.Fatal("Gauge did not return *gaugeView")
+	}
+	if !gv.cfg.ShowPointer {
+		t.Error("ShowPointer not preserved")
 	}
 }

@@ -15,6 +15,14 @@ const (
 	DefaultGaugeArcAngle   float32 = 3 * 3.14159265 / 2 // 270°
 	DefaultGaugeInnerRatio float32 = 0.7
 
+	// DefaultGaugePointerHubRatio is the hub circle radius as
+	// a fraction of the inner radius.
+	DefaultGaugePointerHubRatio float32 = 0.15
+
+	// DefaultGaugePointerWidthPx is the half-width of the
+	// needle base in pixels.
+	DefaultGaugePointerWidthPx float32 = 4
+
 	// DefaultCandleWidthRatio is the fraction of the slot width used
 	// for the candle body when CandleWidth is 0.
 	DefaultCandleWidthRatio float32 = 0.6

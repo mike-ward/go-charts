@@ -14,9 +14,10 @@ func demoGauge(w *gui.Window) gui.View {
 			Height:         300,
 			LegendPosition: &posBottom,
 		},
-		Value:      72,
-		ShowValue:  true,
-		ShowMinMax: true,
+		Value:       72,
+		ShowValue:   true,
+		ShowMinMax:  true,
+		ShowPointer: true,
 		Zones: []chart.GaugeZone{
 			{Label: "Normal", Threshold: 60, Color: gui.Hex(0x59A14F)},
 			{Label: "Warning", Threshold: 80, Color: gui.Hex(0xF28E2B)},
@@ -26,9 +27,10 @@ func demoGauge(w *gui.Window) gui.View {
     BaseCfg: chart.BaseCfg{
         Title: "CPU Usage",
     },
-    Value:      72,
-    ShowValue:  true,
-    ShowMinMax: true,
+    Value:       72,
+    ShowValue:   true,
+    ShowMinMax:  true,
+    ShowPointer: true,
     Zones: []chart.GaugeZone{
         {Label: "Normal", Threshold: 60, Color: gui.Hex(0x59A14F)},
         {Label: "Warning", Threshold: 80, Color: gui.Hex(0xF28E2B)},
