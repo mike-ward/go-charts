@@ -464,7 +464,6 @@ chart.Line(chart.LineCfg{
 }
 
 func demoZoomPan(w *gui.Window) gui.View {
-	t := gui.CurrentTheme()
 	zoomBase := func(id, title string) chart.BaseCfg {
 		return chart.BaseCfg{
 			ID:                id,
@@ -483,14 +482,6 @@ func demoZoomPan(w *gui.Window) gui.View {
 		Padding: gui.NoPadding,
 		Spacing: gui.SomeF(16),
 		Content: []gui.View{
-			gui.Text(gui.TextCfg{
-				Text: "Scroll wheel to zoom toward cursor. " +
-					"Click and drag to pan. " +
-					"Shift+drag to select a region and zoom to it. " +
-					"Double-click to reset.",
-				TextStyle: t.N4,
-				Mode:      gui.TextModeWrap,
-			}),
 			chart.Line(chart.LineCfg{
 				BaseCfg:     zoomBase("zoom-line", "Line — Zoom & Pan"),
 				ShowMarkers: true,

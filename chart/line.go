@@ -157,6 +157,8 @@ func (lv *lineView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) 
 
 func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	if isDragging(w, lv.cfg.ID) {
+		lv.hovering = false
+		saveHover(w, l, lv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

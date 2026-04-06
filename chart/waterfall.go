@@ -209,6 +209,8 @@ func (wv *waterfallView) internalHover(
 	l *gui.Layout, e *gui.Event, w *gui.Window,
 ) {
 	if isDragging(w, wv.cfg.ID) {
+		wv.hovering = false
+		saveHover(w, l, wv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

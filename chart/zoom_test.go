@@ -594,6 +594,78 @@ func TestIsDragging(t *testing.T) {
 	}
 }
 
+// --- handleZoomScroll modifier tests ---
+
+func TestHandleZoomScrollRequiresCtrlOrSuper(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+
+	// Plain scroll (no modifier) — should NOT zoom.
+	e := &gui.Event{ScrollY: -5, Modifiers: gui.ModNone}
+	handleZoomScroll(w, l, e, "zs1", pa, true, true)
+	if e.IsHandled {
+		t.Error("plain scroll should not be handled")
+	}
+
+	// Ctrl+scroll — should zoom.
+	e2 := &gui.Event{ScrollY: -5, Modifiers: gui.ModCtrl}
+	handleZoomScroll(w, l, e2, "zs2", pa, true, true)
+	if !e2.IsHandled {
+		t.Error("Ctrl+scroll should be handled")
+	}
+
+	// Super+scroll — should zoom.
+	e3 := &gui.Event{ScrollY: -5, Modifiers: gui.ModSuper}
+	handleZoomScroll(w, l, e3, "zs3", pa, true, true)
+	if !e3.IsHandled {
+		t.Error("Super+scroll should be handled")
+	}
+}
+
+// --- internalHover clears state during drag ---
+
+func TestHoverClearedDuringDrag(t *testing.T) {
+	t.Parallel()
+	w := &gui.Window{}
+	l := &gui.Layout{Shape: &gui.Shape{}}
+	pa := testPA()
+	id := "hd1"
+
+	// Set hover state.
+	saveHover(w, l, id, true, 100, 50)
+	var hovering bool
+	var px, py float32
+	loadHover(w, id, &hovering, &px, &py)
+	if !hovering {
+		t.Fatal("hover should be active before drag")
+	}
+
+	// Start a drag.
+	e := &gui.Event{
+		MouseX: 200, MouseY: 100,
+		Modifiers: gui.ModLMB,
+	}
+	handleDragHover(w, l, e, id, pa, true, false, true, true)
+	if !isDragging(w, id) {
+		t.Fatal("should be dragging")
+	}
+
+	// Simulate what internalHover does during drag.
+	if isDragging(w, id) {
+		saveHover(w, l, id, false, 0, 0)
+	}
+
+	loadHover(w, id, &hovering, &px, &py)
+	if hovering {
+		t.Error("hover should be cleared during drag")
+	}
+	if px != 0 || py != 0 {
+		t.Errorf("hover coords should be zeroed, got (%g, %g)", px, py)
+	}
+}
+
 // --- clipConvexToRect tests ---
 
 func approxEq(a, b, tol float32) bool {

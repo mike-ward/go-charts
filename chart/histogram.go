@@ -154,6 +154,8 @@ func (hv *histogramView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Win
 
 func (hv *histogramView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	if isDragging(w, hv.cfg.ID) {
+		hv.hovering = false
+		saveHover(w, l, hv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

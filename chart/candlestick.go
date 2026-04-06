@@ -178,6 +178,8 @@ func (cv *candlestickView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.W
 
 func (cv *candlestickView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	if isDragging(w, cv.cfg.ID) {
+		cv.hovering = false
+		saveHover(w, l, cv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

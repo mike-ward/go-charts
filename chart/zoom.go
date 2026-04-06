@@ -169,6 +169,9 @@ func handleZoomScroll(
 	if pa.XAxis == nil && pa.YAxis == nil {
 		return
 	}
+	if !e.Modifiers.HasAny(gui.ModCtrl, gui.ModSuper) {
+		return
+	}
 	dy := e.ScrollY
 	if dy == 0 {
 		return

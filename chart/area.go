@@ -161,6 +161,8 @@ func (av *areaView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) 
 
 func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	if isDragging(w, av.cfg.ID) {
+		av.hovering = false
+		saveHover(w, l, av.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

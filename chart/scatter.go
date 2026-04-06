@@ -157,6 +157,8 @@ func (sv *scatterView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Windo
 
 func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	if isDragging(w, sv.cfg.ID) {
+		sv.hovering = false
+		saveHover(w, l, sv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true

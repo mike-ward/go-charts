@@ -177,6 +177,8 @@ func (bv *boxplotView) internalHover(
 	l *gui.Layout, e *gui.Event, w *gui.Window,
 ) {
 	if isDragging(w, bv.cfg.ID) {
+		bv.hovering = false
+		saveHover(w, l, bv.cfg.ID, false, 0, 0)
 		return
 	}
 	e.IsHandled = true
