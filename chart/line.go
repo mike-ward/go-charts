@@ -442,16 +442,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	lv.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 
 	// Hover highlight: find nearest series/point.
-	hovSI := -1
-	var hovPx, hovPy float32
-	if lv.hovering && xAxis != nil {
-		pa := lv.lastPA
-		si, _, px, py, snapOK := nearestXYPoint(
-			cfg.Series, pa, lv.hoverPx, lv.hoverPy, 20)
-		if snapOK {
-			hovSI, hovPx, hovPy = si, px, py
-		}
-	}
+	hovSI, hovPx, hovPy := lv.hoverHighlight(cfg, xAxis)
 
 	progress := animProgress(lv.win, cfg.ID)
 	var oldYs [][]float64
@@ -494,6 +485,23 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	}
 
 	lv.cacheTransitionData()
+}
+
+// hoverHighlight returns the hovered series index and pixel
+// coordinates, or -1 if nothing is hovered.
+func (lv *lineView) hoverHighlight(
+	cfg *LineCfg, xAxis axis.Axis,
+) (int, float32, float32) {
+	if !lv.hovering || xAxis == nil {
+		return -1, 0, 0
+	}
+	pa := lv.lastPA
+	si, _, px, py, ok := nearestXYPoint(
+		cfg.Series, pa, lv.hoverPx, lv.hoverPy, 20)
+	if !ok {
+		return -1, 0, 0
+	}
+	return si, px, py
 }
 
 // drawSeries renders each visible series as polylines with

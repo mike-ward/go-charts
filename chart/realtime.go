@@ -41,13 +41,7 @@ type RealTimeSeries struct {
 // Negative MaxLen is treated as zero (unlimited). MaxLen is
 // capped at maxRealTimePoints to prevent OOM.
 func NewRealTimeSeries(cfg RealTimeSeriesCfg) *RealTimeSeries {
-	ml := cfg.MaxLen
-	if ml < 0 {
-		ml = 0
-	}
-	if ml > maxRealTimePoints {
-		ml = maxRealTimePoints
-	}
+	ml := min(max(cfg.MaxLen, 0), maxRealTimePoints)
 	var buf []series.Point
 	if ml > 0 {
 		buf = make([]series.Point, ml)
@@ -122,9 +116,7 @@ func (rts *RealTimeSeries) Snapshot() series.XY {
 	if rts.maxLen > 0 {
 		// Linearize ring buffer.
 		first := rts.maxLen - rts.head
-		if first > rts.count {
-			first = rts.count
-		}
+		first = min(first, rts.count)
 		copy(pts, rts.buf[rts.head:rts.head+first])
 		if first < rts.count {
 			copy(pts[first:], rts.buf[:rts.count-first])
