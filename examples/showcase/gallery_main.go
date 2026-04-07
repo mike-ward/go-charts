@@ -39,6 +39,9 @@ func main() {
 	total := 0
 
 	for _, e := range demoEntries {
+		if e.Group == groupAnimation || e.Group == groupTypes {
+			continue
+		}
 		files := renderEntry(w, e, *width, *height, *out)
 		if len(files) == 0 {
 			continue

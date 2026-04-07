@@ -8,10 +8,24 @@ Professional charting library for Go, built on
 [go-gui](https://github.com/mike-ward/go-gui). Immediate-mode rendering
 via `DrawCanvas` — no virtual DOM, no diffing, just fast composable charts.
 
-## Status
+![Showcase](screenshot.png)
 
-Early development. Package structure and APIs are scaffolded. Rendering
-implementations are in progress.
+**[Browse the full chart gallery →](https://mike-ward.github.io/go-charts/)**
+
+## Highlights
+
+- 18+ chart types covering analytics, statistics, and finance
+- Pure-Go rendering with retained tessellation cache; redraws are free
+  when data is unchanged
+- 16x MSAA PNG and SVG export — no window required
+- Themeable: Tableau 10, Pastel, Vivid, and high-contrast accessibility
+  palettes; customize colors, padding, legends, and tick styles
+- Built-in data transforms: SMA/EMA/WMA, linear and polynomial
+  regression, Bollinger bands, LTTB downsampling, binning
+- CSV and JSON parsers for typed series
+- Linear, Log, Time, and Category axes with auto-tick generation
+- Zoom, pan, and brush select out of the box
+- Zero external runtime dependencies beyond go-gui
 
 ## Quick Start
 
@@ -25,21 +39,14 @@ import (
     "github.com/mike-ward/go-gui/gui/backend"
 )
 
-type App struct{}
-
 func main() {
     gui.SetTheme(gui.ThemeDarkBordered)
-
     w := gui.NewWindow(gui.WindowCfg{
-        State:  &App{},
         Title:  "Line Chart",
         Width:  800,
         Height: 600,
-        OnInit: func(w *gui.Window) {
-            w.UpdateView(view)
-        },
+        OnInit: func(w *gui.Window) { w.UpdateView(view) },
     })
-
     backend.Run(w)
 }
 
@@ -51,10 +58,8 @@ func view(w *gui.Window) gui.View {
                 Name:  "Sales",
                 Color: gui.Hex(0x4E79A7),
                 Points: []series.Point{
-                    {X: 1, Y: 10},
-                    {X: 2, Y: 25},
-                    {X: 3, Y: 18},
-                    {X: 4, Y: 32},
+                    {X: 1, Y: 10}, {X: 2, Y: 25},
+                    {X: 3, Y: 18}, {X: 4, Y: 32},
                 },
             }),
         },
@@ -62,45 +67,62 @@ func view(w *gui.Window) gui.View {
 }
 ```
 
-## Packages
+## Headless Export
 
-| Package  | Description                                    |
-|----------|------------------------------------------------|
-| `chart`  | Chart widgets: Line, Bar, Area, Scatter, Bubble, Pie, Treemap, … |
-| `axis`   | Axis types: Linear, Log, Time, Category        |
-| `series` | Data series: XY, XYZ, Category, OHLC, Grid, TreeNode |
-| `scale`  | Data-to-pixel mapping: Linear, Log             |
-| `render` | DrawContext adapter for chart rendering         |
-| `theme`  | Theming and color palettes                     |
-| `transform` | Data transforms: moving averages, regression, envelopes, LTTB, binning |
+Render any chart to PNG or SVG with no window or display:
+
+```go
+chart.ExportPNG(view, 960, 600, "chart.png")
+chart.ExportSVG(view, 960, 600, "chart.svg")
+```
+
+## Showcase
+
+Run the interactive showcase to browse 70+ live demos with source code:
+
+```bash
+go run ./examples/showcase
+```
 
 ## Chart Types
 
-| Type        | Function              | Status |
-|-------------|-----------------------|--------|
-| Line        | `chart.Line()`        | Done   |
-| Bar         | `chart.Bar()`         | Done   |
-| Area        | `chart.Area()`        | Done   |
-| Scatter     | `chart.Scatter()`     | Done   |
-| Bubble      | `chart.Bubble()`      | Done   |
-| Pie/Donut   | `chart.Pie()`         | Done   |
-| Gauge       | `chart.Gauge()`       | Done   |
-| Candlestick | `chart.Candlestick()` | Done   |
-| Histogram   | `chart.Histogram()`   | Done   |
-| Box Plot    | `chart.BoxPlot()`     | Done   |
-| Waterfall   | `chart.Waterfall()`   | Done   |
-| Combo       | `chart.Combo()`       | Done   |
-| Radar       | `chart.Radar()`       | Done   |
-| Heatmap     | `chart.Heatmap()`     | Done   |
-| Treemap     | `chart.Treemap()`     | Done   |
+| Type        | Function              | Type        | Function              |
+|-------------|-----------------------|-------------|-----------------------|
+| Line        | `chart.Line()`        | Box Plot    | `chart.BoxPlot()`     |
+| Bar         | `chart.Bar()`         | Waterfall   | `chart.Waterfall()`   |
+| Area        | `chart.Area()`        | Combo       | `chart.Combo()`       |
+| Scatter     | `chart.Scatter()`     | Radar       | `chart.Radar()`       |
+| Bubble      | `chart.Bubble()`      | Heatmap     | `chart.Heatmap()`     |
+| Pie/Donut   | `chart.Pie()`         | Treemap     | `chart.Treemap()`     |
+| Gauge       | `chart.Gauge()`       | Funnel      | `chart.Funnel()`      |
+| Candlestick | `chart.Candlestick()` | Sankey      | `chart.Sankey()`      |
+| Histogram   | `chart.Histogram()`   | Sparkline   | `chart.Sparkline()`   |
 
-See [doc/ROADMAP.md](doc/ROADMAP.md) for planned chart types and features.
+See [doc/ROADMAP.md](doc/ROADMAP.md) for planned features.
+
+## Packages
+
+| Package     | Description                                                           |
+|-------------|-----------------------------------------------------------------------|
+| `chart`     | Chart widgets and headless PNG/SVG export                             |
+| `axis`      | Linear, Log, Time, and Category axes with auto-tick generation        |
+| `series`    | Data types: XY, XYZ, Category, OHLC, Grid, TreeNode + CSV/JSON parsers |
+| `scale`     | Data-to-pixel mapping: Linear, Log                                    |
+| `theme`     | Color palettes and visual styling                                     |
+| `transform` | Moving averages, regression, envelopes, LTTB, binning                 |
+| `render`    | `DrawContext` adapter for chart primitives                            |
 
 ## Requirements
 
 - Go 1.26+
-- [go-gui](https://github.com/mike-ward/go-gui) (sibling directory)
-- SDL2 (for running examples)
+- [go-gui](https://github.com/mike-ward/go-gui)
+- SDL2 (for the interactive showcase; not required for headless export)
+
+## Install
+
+```bash
+go get github.com/mike-ward/go-charts
+```
 
 ## Build
 
