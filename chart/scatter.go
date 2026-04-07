@@ -28,7 +28,8 @@ type ScatterCfg struct {
 	BaseCfg
 
 	// Data
-	Series []series.XY
+	Series      []series.XY
+	ErrorSeries []series.ErrorXY
 
 	// Axes (optional; auto-created from series bounds when nil)
 	XAxis axis.Axis
@@ -171,6 +172,11 @@ func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window)
 	} else if sv.lastPA.XAxis != nil {
 		_, _, _, _, ok := nearestXYPoint(
 			sv.cfg.Series, sv.lastPA, sv.hoverPx, sv.hoverPy, 20)
+		if !ok {
+			_, _, _, _, ok = nearestErrorXYPoint(
+				sv.cfg.ErrorSeries, sv.lastPA,
+				sv.hoverPx, sv.hoverPy, 20)
+		}
 		if ok {
 			w.SetMouseCursorPointingHand()
 		} else {
@@ -201,6 +207,16 @@ func (sv *scatterView) updateAxes() bool {
 	minY, maxY := math.MaxFloat64, -math.MaxFloat64
 
 	for _, s := range cfg.Series {
+		if s.Len() == 0 {
+			continue
+		}
+		sx0, sx1, sy0, sy1 := s.Bounds()
+		minX = min(minX, sx0)
+		maxX = max(maxX, sx1)
+		minY = min(minY, sy0)
+		maxY = max(maxY, sy1)
+	}
+	for _, s := range cfg.ErrorSeries {
 		if s.Len() == 0 {
 			continue
 		}
@@ -262,7 +278,7 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	cfg := &sv.cfg
 	th := cfg.Theme
 
-	if len(cfg.Series) == 0 {
+	if len(cfg.Series) == 0 && len(cfg.ErrorSeries) == 0 {
 		slog.Warn("no series data", "chart", cfg.ID)
 		return
 	}
@@ -272,9 +288,12 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	top := th.PaddingTop
 	bottom := ctx.Height() - th.PaddingBottom
 
-	names := make([]string, len(cfg.Series))
+	names := make([]string, len(cfg.Series)+len(cfg.ErrorSeries))
 	for i, s := range cfg.Series {
 		names[i] = s.Name()
+	}
+	for i, s := range cfg.ErrorSeries {
+		names[len(cfg.Series)+i] = s.Name()
 	}
 	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
 	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
@@ -345,7 +364,9 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	// Cache plot area for cursor hit-testing in hover callback.
 	sv.lastPA = plotArea{plotRect{left, right, top, bottom}, xAxis, yAxis}
 
-	// Hover highlight: find nearest series/point.
+	// Hover highlight: find nearest series/point across both
+	// XY and ErrorXY series. Indices >= len(cfg.Series) refer
+	// to ErrorSeries.
 	hovSI := -1
 	var hovPx, hovPy float32
 	if sv.hovering && xAxis != nil {
@@ -355,6 +376,18 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		if snapOK {
 			hovSI, hovPx, hovPy = si, px, py
 		}
+		esi, _, epx, epy, eOK := nearestErrorXYPoint(
+			cfg.ErrorSeries, pa, sv.hoverPx, sv.hoverPy, 20)
+		if eOK {
+			dx0 := hovPx - sv.hoverPx
+			dy0 := hovPy - sv.hoverPy
+			dx1 := epx - sv.hoverPx
+			dy1 := epy - sv.hoverPy
+			if !snapOK || dx1*dx1+dy1*dy1 < dx0*dx0+dy0*dy0 {
+				hovSI = len(cfg.Series) + esi
+				hovPx, hovPy = epx, epy
+			}
+		}
 	}
 
 	progress := animProgress(sv.win, cfg.ID)
@@ -362,12 +395,21 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 	sv.drawMarkers(ctx, cfg, xAxis, yAxis,
 		left, right, top, bottom, hovSI, hovPx, hovPy, progress)
 
-	entries := make([]legendEntry, len(cfg.Series))
+	nBase := len(cfg.Series)
+	entries := make([]legendEntry, nBase+len(cfg.ErrorSeries))
 	for i, s := range cfg.Series {
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
 			Index: i,
+		}
+	}
+	for i, s := range cfg.ErrorSeries {
+		idx := nBase + i
+		entries[idx] = legendEntry{
+			Name:  s.Name(),
+			Color: seriesColor(s.Color(), idx, th.Palette),
+			Index: idx,
 		}
 	}
 	pr := plotRect{left, right, top, bottom}
@@ -382,6 +424,8 @@ func (sv *scatterView) draw(dc *gui.DrawContext) {
 		drawCrosshair(ctx, th, sv.hoverPx, sv.hoverPy, pr)
 		pa := plotArea{pr, xAxis, yAxis}
 		drawXYTooltip(ctx, th, cfg.Series, pa,
+			sv.hoverPx, sv.hoverPy)
+		drawErrorXYTooltip(ctx, th, cfg.ErrorSeries, pa,
 			sv.hoverPx, sv.hoverPy)
 	}
 }
@@ -420,6 +464,65 @@ func drawMarker(
 	}
 }
 
+// errorBarCapSize is the half-width of error bar caps in pixels.
+const errorBarCapSize float32 = 4
+
+// drawErrorBars renders X and Y whiskers with caps for a single
+// ErrorPoint. Zero-valued ErrorBar fields are skipped.
+func drawErrorBars(
+	ctx *render.Context,
+	px, py float32,
+	p series.ErrorPoint,
+	xAxis, yAxis axis.Axis,
+	left, right, top, bottom float32,
+	color gui.Color,
+) {
+	yLo, yHi := safeErr(p.YErr)
+	if yLo > 0 || yHi > 0 {
+		pyLo := yAxis.Transform(p.Y-yLo, bottom, top)
+		pyHi := yAxis.Transform(p.Y+yHi, bottom, top)
+		pyLo = clampF32(pyLo, top, bottom)
+		pyHi = clampF32(pyHi, top, bottom)
+		ctx.Line(px, pyLo, px, pyHi, color, 1)
+		ctx.Line(px-errorBarCapSize, pyLo, px+errorBarCapSize, pyLo, color, 1)
+		ctx.Line(px-errorBarCapSize, pyHi, px+errorBarCapSize, pyHi, color, 1)
+	}
+	xLo, xHi := safeErr(p.XErr)
+	if xLo > 0 || xHi > 0 {
+		pxLo := xAxis.Transform(p.X-xLo, left, right)
+		pxHi := xAxis.Transform(p.X+xHi, left, right)
+		pxLo = clampF32(pxLo, left, right)
+		pxHi = clampF32(pxHi, left, right)
+		ctx.Line(pxLo, py, pxHi, py, color, 1)
+		ctx.Line(pxLo, py-errorBarCapSize, pxLo, py+errorBarCapSize, color, 1)
+		ctx.Line(pxHi, py-errorBarCapSize, pxHi, py+errorBarCapSize, color, 1)
+	}
+}
+
+// safeErr returns finite, non-negative low/high error widths.
+// NaN, Inf, and negatives become 0 so downstream rendering
+// stays bounded.
+func safeErr(e series.ErrorBar) (lo, hi float64) {
+	if finite(e.Low) && e.Low > 0 {
+		lo = e.Low
+	}
+	if finite(e.High) && e.High > 0 {
+		hi = e.High
+	}
+	return
+}
+
+// clampF32 clamps v to [lo, hi]. Non-finite v becomes lo.
+func clampF32(v, lo, hi float32) float32 {
+	if v != v || v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
 // drawMarkers renders scatter markers and the hovered highlight,
 // skipping points outside the plot area.
 func (sv *scatterView) drawMarkers(
@@ -450,10 +553,49 @@ func (sv *scatterView) drawMarkers(
 			drawMarker(ctx, px, py, markerR, cfg.Marker, color)
 		}
 	}
+	// Error bar series: whiskers + caps + center marker.
+	nBase := len(cfg.Series)
+	for i, s := range cfg.ErrorSeries {
+		if s.Len() == 0 {
+			continue
+		}
+		idx := nBase + i
+		color := seriesColor(s.Color(), idx, th.Palette)
+		if hovSI >= 0 && idx != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+		}
+		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
+			px := xAxis.Transform(p.X, left, right)
+			py := yAxis.Transform(p.Y, bottom, top)
+			if px < left || px > right || py < top || py > bottom {
+				continue
+			}
+			drawErrorBars(ctx, px, py, p, xAxis, yAxis,
+				left, right, top, bottom, color)
+			drawMarker(ctx, px, py, markerR, cfg.Marker, color)
+		}
+	}
+
 	if hovSI >= 0 && !sv.hidden[hovSI] &&
 		hovPx >= left && hovPx <= right &&
 		hovPy >= top && hovPy <= bottom {
-		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		hc := hoverSeriesColor(cfg, hovSI, th.Palette)
 		drawMarker(ctx, hovPx, hovPy, cfg.MarkerSize*2, cfg.Marker, hc)
 	}
+}
+
+// hoverSeriesColor returns the palette color for the hovered
+// series index, mapping indices >= len(Series) to ErrorSeries.
+func hoverSeriesColor(
+	cfg *ScatterCfg, idx int, palette []gui.Color,
+) gui.Color {
+	nBase := len(cfg.Series)
+	if idx < nBase {
+		return seriesColor(cfg.Series[idx].Color(), idx, palette)
+	}
+	ei := idx - nBase
+	return seriesColor(cfg.ErrorSeries[ei].Color(), idx, palette)
 }

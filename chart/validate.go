@@ -13,7 +13,7 @@ func (c *LineCfg) Validate() error {
 		return err
 	}
 	var errs []string
-	if len(c.Series) == 0 {
+	if len(c.Series) == 0 && len(c.ErrorSeries) == 0 {
 		errs = append(errs, "no series data")
 	}
 	if c.LineWidth < 0 {
@@ -83,7 +83,7 @@ func (c *ScatterCfg) Validate() error {
 		return err
 	}
 	var errs []string
-	if len(c.Series) == 0 {
+	if len(c.Series) == 0 && len(c.ErrorSeries) == 0 {
 		errs = append(errs, "no series data")
 	}
 	if c.MarkerSize < 0 {

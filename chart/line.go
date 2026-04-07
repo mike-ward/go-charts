@@ -16,7 +16,8 @@ type LineCfg struct {
 	BaseCfg
 
 	// Data
-	Series []series.XY
+	Series      []series.XY
+	ErrorSeries []series.ErrorXY
 
 	// Axes (optional; auto-created from series bounds when nil)
 	XAxis axis.Axis
@@ -171,6 +172,11 @@ func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
 	} else if lv.lastPA.XAxis != nil {
 		_, _, _, _, ok := nearestXYPoint(
 			lv.cfg.Series, lv.lastPA, lv.hoverPx, lv.hoverPy, 20)
+		if !ok {
+			_, _, _, _, ok = nearestErrorXYPoint(
+				lv.cfg.ErrorSeries, lv.lastPA,
+				lv.hoverPx, lv.hoverPy, 20)
+		}
 		if ok {
 			w.SetMouseCursorPointingHand()
 		} else {
@@ -268,6 +274,16 @@ func (lv *lineView) updateAxes() bool {
 		minY = min(minY, sy0)
 		maxY = max(maxY, sy1)
 	}
+	for _, s := range cfg.ErrorSeries {
+		if s.Len() == 0 {
+			continue
+		}
+		sx0, sx1, sy0, sy1 := s.Bounds()
+		minX = min(minX, sx0)
+		maxX = max(maxX, sx1)
+		minY = min(minY, sy0)
+		maxY = max(maxY, sy1)
+	}
 
 	hasBounds := minX <= maxX
 	if hasBounds && (!finite(minX) || !finite(maxX) ||
@@ -321,7 +337,7 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	cfg := &lv.cfg
 	th := cfg.Theme
 
-	if len(cfg.Series) == 0 {
+	if len(cfg.Series) == 0 && len(cfg.ErrorSeries) == 0 {
 		slog.Warn("no series data", "chart", cfg.ID)
 		return
 	}
@@ -333,9 +349,12 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	bottom := ctx.Height() - th.PaddingBottom
 
 	// Reserve space for outside legends.
-	names := make([]string, len(cfg.Series))
+	names := make([]string, len(cfg.Series)+len(cfg.ErrorSeries))
 	for i, s := range cfg.Series {
 		names[i] = s.Name()
+	}
+	for i, s := range cfg.ErrorSeries {
+		names[len(cfg.Series)+i] = s.Name()
 	}
 	right -= legendRightReserve(ctx, th, cfg.LegendPosition, names)
 	top += legendTopReserve(ctx, th, cfg.LegendPosition, names, left, right)
@@ -457,21 +476,41 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 	lv.drawSeries(ctx, cfg, th, xAxis, yAxis,
 		left, right, top, bottom, hovSI, progress, tp, oldYs)
 
+	// Error bar series.
+	nBase := len(cfg.Series)
+	drawErrorSeries(ctx, cfg.ErrorSeries, th, nBase,
+		xAxis, yAxis, left, right, top, bottom,
+		hovSI, cfg.LineWidth*2)
+
 	// Enlarged point marker on hovered series (only if inside plot).
 	if hovSI >= 0 && !lv.hidden[hovSI] &&
 		hovPx >= left && hovPx <= right &&
 		hovPy >= top && hovPy <= bottom {
-		hc := seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		var hc gui.Color
+		if hovSI < nBase {
+			hc = seriesColor(cfg.Series[hovSI].Color(), hovSI, th.Palette)
+		} else {
+			ei := hovSI - nBase
+			hc = seriesColor(cfg.ErrorSeries[ei].Color(), hovSI, th.Palette)
+		}
 		ctx.FilledCircle(hovPx, hovPy, cfg.LineWidth*4, hc)
 	}
 
 	// Legend.
-	entries := make([]legendEntry, len(cfg.Series))
+	entries := make([]legendEntry, nBase+len(cfg.ErrorSeries))
 	for i, s := range cfg.Series {
 		entries[i] = legendEntry{
 			Name:  s.Name(),
 			Color: seriesColor(s.Color(), i, th.Palette),
 			Index: i,
+		}
+	}
+	for i, s := range cfg.ErrorSeries {
+		idx := nBase + i
+		entries[idx] = legendEntry{
+			Name:  s.Name(),
+			Color: seriesColor(s.Color(), idx, th.Palette),
+			Index: idx,
 		}
 	}
 	pr := plotRect{left, right, top, bottom}
@@ -481,19 +520,30 @@ func (lv *lineView) draw(dc *gui.DrawContext) {
 
 	drawSelectionRectIf(ctx, zs, pr, th)
 
-	// Crosshair and tooltip (skip during FPS reduction).
-	if lv.hovering && lv.xAxis != nil && !reduceFPS {
-		drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy, pr)
-		pa := lv.lastPA
-		drawXYTooltip(ctx, th, cfg.Series, pa,
-			lv.hoverPx, lv.hoverPy)
-	}
-
+	lv.drawTooltips(ctx, cfg, th, pr, reduceFPS)
 	lv.cacheTransitionData()
 }
 
+// drawTooltips renders crosshair and tooltip overlays when
+// hovering and not in FPS-reduction mode.
+func (lv *lineView) drawTooltips(
+	ctx *render.Context, cfg *LineCfg,
+	th *theme.Theme, pr plotRect, reduceFPS bool,
+) {
+	if !lv.hovering || lv.xAxis == nil || reduceFPS {
+		return
+	}
+	drawCrosshair(ctx, th, lv.hoverPx, lv.hoverPy, pr)
+	pa := lv.lastPA
+	drawXYTooltip(ctx, th, cfg.Series, pa,
+		lv.hoverPx, lv.hoverPy)
+	drawErrorXYTooltip(ctx, th, cfg.ErrorSeries, pa,
+		lv.hoverPx, lv.hoverPy)
+}
+
 // hoverHighlight returns the hovered series index and pixel
-// coordinates, or -1 if nothing is hovered.
+// coordinates, or -1 if nothing is hovered. Indices >=
+// len(cfg.Series) refer to ErrorSeries.
 func (lv *lineView) hoverHighlight(
 	cfg *LineCfg, xAxis axis.Axis,
 ) (int, float32, float32) {
@@ -503,10 +553,58 @@ func (lv *lineView) hoverHighlight(
 	pa := lv.lastPA
 	si, _, px, py, ok := nearestXYPoint(
 		cfg.Series, pa, lv.hoverPx, lv.hoverPy, 20)
-	if !ok {
+	esi, _, epx, epy, eok := nearestErrorXYPoint(
+		cfg.ErrorSeries, pa, lv.hoverPx, lv.hoverPy, 20)
+	if !ok && !eok {
 		return -1, 0, 0
 	}
+	if eok {
+		dx1 := epx - lv.hoverPx
+		dy1 := epy - lv.hoverPy
+		if !ok {
+			return len(cfg.Series) + esi, epx, epy
+		}
+		dx0 := px - lv.hoverPx
+		dy0 := py - lv.hoverPy
+		if dx1*dx1+dy1*dy1 < dx0*dx0+dy0*dy0 {
+			return len(cfg.Series) + esi, epx, epy
+		}
+	}
 	return si, px, py
+}
+
+// drawErrorSeries renders error bar whiskers, caps, and center
+// markers for all ErrorXY series.
+func drawErrorSeries(
+	ctx *render.Context, ess []series.ErrorXY,
+	th *theme.Theme, baseIdx int,
+	xAxis, yAxis axis.Axis,
+	left, right, top, bottom float32,
+	hovSI int, markerR float32,
+) {
+	for i, s := range ess {
+		if s.Len() == 0 {
+			continue
+		}
+		idx := baseIdx + i
+		color := seriesColor(s.Color(), idx, th.Palette)
+		if hovSI >= 0 && idx != hovSI {
+			color = dimColor(color, HoverDimAlpha)
+		}
+		for _, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
+			px := xAxis.Transform(p.X, left, right)
+			py := yAxis.Transform(p.Y, bottom, top)
+			if px < left || px > right || py < top || py > bottom {
+				continue
+			}
+			drawErrorBars(ctx, px, py, p, xAxis, yAxis,
+				left, right, top, bottom, color)
+			ctx.FilledCircle(px, py, markerR, color)
+		}
+	}
 }
 
 // drawSeries renders each visible series as polylines with

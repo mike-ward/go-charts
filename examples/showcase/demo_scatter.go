@@ -48,6 +48,63 @@ func demoScatter(w *gui.Window) gui.View {
 })`)
 }
 
+func demoScatterErrorBars(w *gui.Window) gui.View {
+	return demoWithCode(w, "scatter-error-bars", chart.Scatter(chart.ScatterCfg{
+		BaseCfg: chart.BaseCfg{
+			ID:             "scatter-error-bars",
+			Title:          "Measurement Uncertainty",
+			Sizing:         gui.FillFixed,
+			Height:         350,
+			LegendPosition: &posBottom,
+		},
+		ErrorSeries: []series.ErrorXY{
+			series.NewErrorXY(series.ErrorXYCfg{
+				Name:  "Sensor A",
+				Color: gui.Hex(0x4E79A7),
+				Points: []series.ErrorPoint{
+					{X: 1, Y: 12, YErr: series.Symmetric(1.5)},
+					{X: 2, Y: 18, YErr: series.ErrorBar{Low: 2, High: 3}},
+					{X: 3, Y: 15, YErr: series.Symmetric(1.0)},
+					{X: 4, Y: 22, YErr: series.ErrorBar{Low: 1.5, High: 2.5}},
+					{X: 5, Y: 28, YErr: series.Symmetric(2.0)},
+					{X: 6, Y: 25, YErr: series.ErrorBar{Low: 3, High: 1}},
+					{X: 7, Y: 32, YErr: series.Symmetric(1.8)},
+					{X: 8, Y: 30, YErr: series.ErrorBar{Low: 2, High: 4}},
+				},
+			}),
+			series.NewErrorXY(series.ErrorXYCfg{
+				Name:  "Sensor B",
+				Color: gui.Hex(0xE15759),
+				Points: []series.ErrorPoint{
+					{X: 1, Y: 10, YErr: series.Symmetric(2.0)},
+					{X: 2, Y: 15, YErr: series.Symmetric(1.5)},
+					{X: 3, Y: 20, YErr: series.ErrorBar{Low: 1, High: 3}},
+					{X: 4, Y: 18, YErr: series.Symmetric(2.5)},
+					{X: 5, Y: 24, YErr: series.ErrorBar{Low: 2, High: 1}},
+					{X: 6, Y: 30, YErr: series.Symmetric(1.0)},
+					{X: 7, Y: 27, YErr: series.ErrorBar{Low: 3, High: 2}},
+					{X: 8, Y: 35, YErr: series.Symmetric(2.2)},
+				},
+			}),
+		},
+	}), `chart.Scatter(chart.ScatterCfg{
+    BaseCfg: chart.BaseCfg{
+        Title: "Measurement Uncertainty",
+    },
+    ErrorSeries: []series.ErrorXY{
+        series.NewErrorXY(series.ErrorXYCfg{
+            Name:  "Sensor A",
+            Color: gui.Hex(0x4E79A7),
+            Points: []series.ErrorPoint{
+                {X: 1, Y: 12, YErr: series.Symmetric(1.5)},
+                {X: 2, Y: 18, YErr: series.ErrorBar{Low: 2, High: 3}},
+                // ...
+            },
+        }),
+    },
+})`)
+}
+
 func demoScatterMarkers(w *gui.Window) gui.View {
 	return demoWithCode(w, "scatter-markers", chart.Scatter(chart.ScatterCfg{
 		BaseCfg: chart.BaseCfg{

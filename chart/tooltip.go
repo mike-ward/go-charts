@@ -201,3 +201,67 @@ func drawXYTooltip(
 	}
 	drawTooltip(ctx, px, py, label, th, pa.plotRect)
 }
+
+// nearestErrorXYPoint finds the series/point index and pixel
+// position of the ErrorXY data point closest to (mx, my)
+// within snapPx pixels.
+func nearestErrorXYPoint(
+	serieses []series.ErrorXY, pa plotArea,
+	mx, my, snapPx float32,
+) (si, pi int, px, py float32, ok bool) {
+	best := snapPx * snapPx
+	for i, s := range serieses {
+		for j, p := range s.Points {
+			if !finite(p.X) || !finite(p.Y) {
+				continue
+			}
+			ppx := pa.XAxis.Transform(p.X, pa.Left, pa.Right)
+			ppy := pa.YAxis.Transform(p.Y, pa.Bottom, pa.Top)
+			dx := ppx - mx
+			dy := ppy - my
+			d2 := dx*dx + dy*dy
+			if d2 < best {
+				best = d2
+				si, pi, px, py = i, j, ppx, ppy
+				ok = true
+			}
+		}
+	}
+	return
+}
+
+// drawErrorXYTooltip draws a tooltip for the nearest ErrorXY
+// data point showing X, Y values and error bounds.
+func drawErrorXYTooltip(
+	ctx *render.Context, th *theme.Theme,
+	serieses []series.ErrorXY, pa plotArea,
+	mx, my float32,
+) {
+	si, pi, px, py, ok := nearestErrorXYPoint(
+		serieses, pa, mx, my, 20)
+	if !ok {
+		return
+	}
+	s := serieses[si]
+	p := s.Points[pi]
+	label := formatErrorPointLabel(s.Name(), p)
+	drawTooltip(ctx, px, py, label, th, pa.plotRect)
+}
+
+// formatErrorPointLabel builds a tooltip string for an
+// ErrorPoint, including error bounds when non-zero.
+func formatErrorPointLabel(name string, p series.ErrorPoint) string {
+	noErr := series.ErrorBar{}
+	var label string
+	if name != "" {
+		label = name + "\n"
+	}
+	label += fmt.Sprintf("X: %g\nY: %g", p.X, p.Y)
+	if p.YErr != noErr {
+		label += fmt.Sprintf("\nY err: +%g/-%g", p.YErr.High, p.YErr.Low)
+	}
+	if p.XErr != noErr {
+		label += fmt.Sprintf("\nX err: +%g/-%g", p.XErr.High, p.XErr.Low)
+	}
+	return label
+}

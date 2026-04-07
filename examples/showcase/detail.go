@@ -98,6 +98,7 @@ var componentDemos = map[string]func(*gui.Window) gui.View{
 	"area_basic":           demoArea,
 	"area_stacked":         demoAreaStacked,
 	"scatter_basic":        demoScatter,
+	"scatter_error_bars":   demoScatterErrorBars,
 	"scatter_markers":      demoScatterMarkers,
 	"candlestick_basic":    demoCandlestickBasic,
 	"histogram_basic":      demoHistogramBasic,

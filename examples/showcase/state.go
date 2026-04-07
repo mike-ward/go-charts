@@ -140,6 +140,7 @@ var demoEntries = []DemoEntry{
 
 	// Scatter
 	{ID: "scatter_basic", Label: "Basic Scatter", Group: groupScatter, Summary: "Height versus weight correlation.", Tags: []string{"scatter", "correlation", "points"}},
+	{ID: "scatter_error_bars", Label: "Error Bars", Group: groupScatter, Summary: "Measurement uncertainty with asymmetric error bars.", Tags: []string{"scatter", "error", "bars", "uncertainty"}},
 	{ID: "scatter_markers", Label: "Marker Shapes", Group: groupScatter, Summary: "Wind speed versus temperature with different marker shapes.", Tags: []string{"scatter", "markers", "shapes"}},
 
 	// Candlestick
