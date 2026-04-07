@@ -20,9 +20,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Clone go-gui
-        run: git clone --depth 1 https://github.com/mike-ward/go-gui.git ../go-gui
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
