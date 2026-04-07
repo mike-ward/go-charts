@@ -13,7 +13,7 @@ const (
 
 const catalogWidth float32 = 250
 
-func main() {
+func runShowcase() {
 	gui.SetTheme(gui.ThemeDarkBordered)
 
 	w := gui.NewWindow(gui.WindowCfg{

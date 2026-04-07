@@ -30,3 +30,6 @@ coverage.out
 # OS
 .DS_Store
 Thumbs.db
+
+# Generated gallery output
+docs/gallery/

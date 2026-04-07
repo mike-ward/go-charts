@@ -1,0 +1,57 @@
+name: Gallery
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone go-gui
+        run: git clone --depth 1 https://github.com/mike-ward/go-gui.git ../go-gui
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsdl2-dev libfreetype6-dev libharfbuzz-dev libpango1.0-dev libfontconfig1-dev libhunspell-dev
+
+      - name: Generate gallery
+        run: go run -tags gallery ./examples/showcase -out site/gallery
+
+      - name: Landing page
+        run: |
+          cat > site/index.html <<'EOF'
+          <!doctype html><meta charset="utf-8">
+          <title>go-charts</title>
+          <meta http-equiv="refresh" content="0; url=gallery/">
+          <a href="gallery/">go-charts gallery</a>
+          EOF
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4
