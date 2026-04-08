@@ -11,7 +11,16 @@ import (
 	"github.com/mike-ward/go-charts/chart"
 	"github.com/mike-ward/go-charts/theme"
 	"github.com/mike-ward/go-gui/gui"
+	"github.com/mike-ward/go-gui/gui/highlight"
 )
+
+// markdownStyleWithHighlighter returns the default markdown style with
+// the chroma-backed syntax highlighter enabled for fenced code blocks.
+func markdownStyleWithHighlighter() gui.MarkdownStyle {
+	s := gui.DefaultMarkdownStyle()
+	s.CodeHighlighter = highlight.Default()
+	return s
+}
 
 // posBottom is the default legend position for all showcase charts.
 var posBottom = theme.LegendBottom
@@ -131,7 +140,7 @@ func demoWithCode(
 			ID:      "code-" + id,
 			Source:  source,
 			Padding: gui.NoPadding,
-			Style:   gui.DefaultMarkdownStyle(),
+			Style:   markdownStyleWithHighlighter(),
 		}),
 	)
 
