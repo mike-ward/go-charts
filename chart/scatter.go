@@ -41,19 +41,13 @@ type ScatterCfg struct {
 }
 
 type scatterView struct {
-	cfg         ScatterCfg
+	cfg ScatterCfg
+	xyBase
 	lastVersion uint64
 	xAxis       axis.Axis
 	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool // legend toggle state
-	lastPA      plotArea     // cached for cursor hit-testing
-	lastLB      legendBounds // cached for legend click
-	win         *gui.Window
 }
 
 // Scatter creates a scatter plot view.
@@ -68,7 +62,23 @@ func Scatter(cfg ScatterCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableXY(&cfg.BaseCfg, cfg.Series)
 	}
-	return &scatterView{cfg: cfg}
+	sv := &scatterView{cfg: cfg}
+	sv.base = &sv.cfg.BaseCfg
+	sv.zoomX = true
+	sv.zoomY = true
+	sv.nearestFn = func(px, py float32) bool {
+		if sv.lastPA.XAxis == nil {
+			return false
+		}
+		_, _, _, _, ok := nearestXYPoint(
+			sv.cfg.Series, sv.lastPA, px, py, 20)
+		if !ok {
+			_, _, _, _, ok = nearestErrorXYPoint(
+				sv.cfg.ErrorSeries, sv.lastPA, px, py, 20)
+		}
+		return ok
+	}
+	return sv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -79,123 +89,7 @@ func (sv *scatterView) chartTheme() *theme.Theme { return sv.cfg.Theme }
 func (sv *scatterView) Content() []gui.View { return nil }
 
 func (sv *scatterView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &sv.cfg
-	hv := loadHover(w, c.ID,
-		&sv.hovering, &sv.hoverPx, &sv.hoverPy)
-	var hidV uint64
-	sv.hidden, hidV = loadHiddenState(w, c.ID)
-	sv.lastLB = loadLegendBounds(w, c.ID)
-	sv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	av := loadAnimVersion(w, c.ID)
-	tv := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + av + tv,
-		Clip:          true,
-		OnDraw:        sv.draw,
-		OnClick:       sv.internalClick,
-		OnHover:       sv.internalHover,
-		OnMouseMove:   sv.internalMouseMove,
-		OnMouseUp:     sv.internalMouseUp,
-		OnMouseLeave:  sv.internalMouseLeave,
-		OnMouseScroll: sv.internalScroll,
-		OnGesture:     sv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (sv *scatterView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !sv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
-}
-
-func (sv *scatterView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !sv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
-}
-
-func (sv *scatterView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if sv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, sv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(sv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, sv.cfg.ID, idx)
-		return
-	}
-	if sv.cfg.OnClick != nil {
-		sv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (sv *scatterView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (sv.cfg.EnablePan || sv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, sv.cfg.ID, sv.lastPA,
-			sv.cfg.EnablePan, sv.cfg.EnableRangeSelect, true, true) {
-		return
-	}
-}
-
-func (sv *scatterView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if sv.cfg.EnablePan || sv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, sv.cfg.ID, sv.lastPA, true, true)
-	}
-}
-
-func (sv *scatterView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, sv.cfg.ID) {
-		sv.hovering = false
-		saveHover(w, l, sv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	sv.hoverPx = e.MouseX - l.Shape.X
-	sv.hoverPy = e.MouseY - l.Shape.Y
-	sv.hovering = true
-	saveHover(w, l, sv.cfg.ID, true, sv.hoverPx, sv.hoverPy)
-	if legendHitTest(sv.lastLB, sv.hoverPx, sv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if sv.lastPA.XAxis != nil {
-		_, _, _, _, ok := nearestXYPoint(
-			sv.cfg.Series, sv.lastPA, sv.hoverPx, sv.hoverPy, 20)
-		if !ok {
-			_, _, _, _, ok = nearestErrorXYPoint(
-				sv.cfg.ErrorSeries, sv.lastPA,
-				sv.hoverPx, sv.hoverPy, 20)
-		}
-		if ok {
-			w.SetMouseCursorPointingHand()
-		} else {
-			w.SetMouseCursorArrow()
-		}
-	}
-	if sv.cfg.OnHover != nil {
-		sv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (sv *scatterView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	sv.hovering = false
-	saveHover(w, l, sv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if sv.cfg.OnMouseLeave != nil {
-		sv.cfg.OnMouseLeave(l, e, w)
-	}
+	return sv.generateLayout(w, sv.draw)
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -234,40 +128,14 @@ func (sv *scatterView) updateAxes() bool {
 		return false
 	}
 
-	if cfg.XAxis != nil {
-		sv.xAxis = cfg.XAxis
-		if hasBounds {
-			sv.xAxis.SetRange(minX, maxX)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		xRange := maxX - minX
-		if xRange == 0 {
-			xRange = 1
-		}
-		sv.xAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		sv.xAxis.SetRange(minX-xRange*0.05, maxX+xRange*0.05)
+	var ok bool
+	sv.xAxis, ok = autoLinearAxis(cfg.XAxis, minX, maxX, 0.05, cfg.ID)
+	if !ok {
+		return false
 	}
-
-	if cfg.YAxis != nil {
-		sv.yAxis = cfg.YAxis
-		if hasBounds {
-			sv.yAxis.SetRange(minY, maxY)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		yRange := maxY - minY
-		if yRange == 0 {
-			yRange = 1
-		}
-		sv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		sv.yAxis.SetRange(minY-yRange*0.05, maxY+yRange*0.05)
+	sv.yAxis, ok = autoLinearAxis(cfg.YAxis, minY, maxY, 0.05, cfg.ID)
+	if !ok {
+		return false
 	}
 	sv.lastVersion = cfg.Version
 	return true

@@ -80,22 +80,13 @@ type waterfallBar struct {
 }
 
 type waterfallView struct {
-	cfg         WaterfallCfg
+	cfg WaterfallCfg
+	xyBase
 	lastVersion uint64
 	bars        []waterfallBar
 	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool
-	lastLeft    float32
-	lastRight   float32
-	lastTop     float32
-	lastBottom  float32
-	lastLB      legendBounds
-	win         *gui.Window
 }
 
 // Waterfall creates a waterfall chart view.
@@ -107,7 +98,15 @@ func Waterfall(cfg WaterfallCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableWaterfall(&cfg.BaseCfg, cfg.Values)
 	}
-	return &waterfallView{cfg: cfg}
+	wv := &waterfallView{cfg: cfg}
+	wv.base = &wv.cfg.BaseCfg
+	wv.zoomX = false
+	wv.zoomY = true
+	wv.nearestFn = func(px, py float32) bool {
+		return px >= wv.lastPA.Left && px <= wv.lastPA.Right &&
+			py >= wv.lastPA.Top && py <= wv.lastPA.Bottom
+	}
+	return wv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -118,131 +117,7 @@ func (wv *waterfallView) chartTheme() *theme.Theme { return wv.cfg.Theme }
 func (wv *waterfallView) Content() []gui.View { return nil }
 
 func (wv *waterfallView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &wv.cfg
-	hv := loadHover(w, c.ID, &wv.hovering, &wv.hoverPx, &wv.hoverPy)
-	var hidV uint64
-	wv.hidden, hidV = loadHiddenState(w, c.ID)
-	wv.lastLB = loadLegendBounds(w, c.ID)
-	wv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	animV := loadAnimVersion(w, c.ID)
-	transV := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + animV + transV,
-		Clip:          true,
-		OnDraw:        wv.draw,
-		OnClick:       wv.internalClick,
-		OnHover:       wv.internalHover,
-		OnMouseMove:   wv.internalMouseMove,
-		OnMouseUp:     wv.internalMouseUp,
-		OnMouseLeave:  wv.internalMouseLeave,
-		OnMouseScroll: wv.internalScroll,
-		OnGesture:     wv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (wv *waterfallView) yZoomPA() plotArea {
-	return plotArea{
-		plotRect{wv.lastLeft, wv.lastRight, wv.lastTop, wv.lastBottom},
-		nil, wv.yAxis,
-	}
-}
-
-func (wv *waterfallView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !wv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
-}
-
-func (wv *waterfallView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !wv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
-}
-
-func (wv *waterfallView) internalClick(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if wv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, wv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(wv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, wv.cfg.ID, idx)
-		return
-	}
-	if wv.cfg.OnClick != nil {
-		wv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (wv *waterfallView) internalMouseMove(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if (wv.cfg.EnablePan || wv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, wv.cfg.ID, wv.yZoomPA(),
-			wv.cfg.EnablePan, wv.cfg.EnableRangeSelect, false, true) {
-		return
-	}
-}
-
-func (wv *waterfallView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if wv.cfg.EnablePan || wv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, wv.cfg.ID, wv.yZoomPA(), false, true)
-	}
-}
-
-func (wv *waterfallView) internalHover(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if isDragging(w, wv.cfg.ID) {
-		wv.hovering = false
-		saveHover(w, l, wv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	wv.hoverPx = e.MouseX - l.Shape.X
-	wv.hoverPy = e.MouseY - l.Shape.Y
-	wv.hovering = true
-	saveHover(w, l, wv.cfg.ID, true, wv.hoverPx, wv.hoverPy)
-	if legendHitTest(wv.lastLB, wv.hoverPx, wv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if wv.hoverPx >= wv.lastLeft &&
-		wv.hoverPx <= wv.lastRight &&
-		wv.hoverPy >= wv.lastTop &&
-		wv.hoverPy <= wv.lastBottom {
-		w.SetMouseCursorPointingHand()
-	} else {
-		w.SetMouseCursorArrow()
-	}
-	if wv.cfg.OnHover != nil {
-		wv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (wv *waterfallView) internalMouseLeave(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	e.IsHandled = true
-	wv.hovering = false
-	saveHover(w, l, wv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if wv.cfg.OnMouseLeave != nil {
-		wv.cfg.OnMouseLeave(l, e, w)
-	}
+	return wv.generateLayout(w, wv.draw)
 }
 
 func (wv *waterfallView) draw(dc *gui.DrawContext) {
@@ -287,10 +162,7 @@ func (wv *waterfallView) draw(dc *gui.DrawContext) {
 	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition,
 		waterfallLegendNames, left, right)
 
-	wv.lastLeft = left
-	wv.lastRight = right
-	wv.lastTop = top
-	wv.lastBottom = bottom
+	wv.lastPA = plotArea{plotRect{left, right, top, bottom}, nil, wv.yAxis}
 
 	wv.yTicks = wv.yAxis.Ticks(bottom, top)
 

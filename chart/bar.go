@@ -31,19 +31,12 @@ type BarCfg struct {
 }
 
 type barView struct {
-	cfg         BarCfg
+	cfg BarCfg
+	xyBase
 	lastVersion uint64
 	xAxis       *axis.Category
 	yAxis       axis.Axis
 	yTicks      []axis.Tick
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool // legend toggle state
-	// Cached plot bounds for cursor hit-testing.
-	lastLeft, lastRight, lastTop, lastBottom float32
-	lastLB                                   legendBounds
-	win                                      *gui.Window
 }
 
 // Bar creates a bar chart view.
@@ -58,7 +51,27 @@ func Bar(cfg BarCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableCategory(&cfg.BaseCfg, cfg.Series)
 	}
-	return &barView{cfg: cfg}
+	bv := &barView{cfg: cfg}
+	bv.base = &bv.cfg.BaseCfg
+	bv.zoomX = false
+	bv.zoomY = true
+	bv.nearestFn = func(px, py float32) bool {
+		if bv.yAxis == nil {
+			return false
+		}
+		var ok bool
+		if bv.cfg.Horizontal {
+			_, _, ok = bv.hoveredBarHorizontal(px, py,
+				bv.lastPA.Left, bv.lastPA.Right,
+				bv.lastPA.Top, bv.lastPA.Bottom)
+		} else {
+			_, _, ok = bv.hoveredBarVertical(px, py,
+				bv.lastPA.Left, bv.lastPA.Right,
+				bv.lastPA.Top, bv.lastPA.Bottom)
+		}
+		return ok
+	}
+	return bv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -69,36 +82,7 @@ func (bv *barView) chartTheme() *theme.Theme { return bv.cfg.Theme }
 func (bv *barView) Content() []gui.View { return nil }
 
 func (bv *barView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &bv.cfg
-	hv := loadHover(w, c.ID,
-		&bv.hovering, &bv.hoverPx, &bv.hoverPy)
-	var hidV uint64
-	bv.hidden, hidV = loadHiddenState(w, c.ID)
-	bv.lastLB = loadLegendBounds(w, c.ID)
-	bv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	av := loadAnimVersion(w, c.ID)
-	tv := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + av + tv,
-		Clip:          true,
-		OnDraw:        bv.draw,
-		OnClick:       bv.internalClick,
-		OnHover:       bv.internalHover,
-		OnMouseMove:   bv.internalMouseMove,
-		OnMouseUp:     bv.internalMouseUp,
-		OnMouseLeave:  bv.internalMouseLeave,
-		OnMouseScroll: bv.internalScroll,
-		OnGesture:     bv.internalGesture,
-	}).GenerateLayout(w)
+	return bv.generateLayout(w, bv.draw)
 }
 
 // maybeStartTransition starts a transition animation if
@@ -130,102 +114,6 @@ func (bv *barView) cacheTransitionData() {
 			saveTransitionBounds(bv.win, bv.cfg.ID,
 				0, 0, yMin, yMax)
 		}
-	}
-}
-
-// yZoomPA builds a plotArea with nil XAxis for Y-only zoom.
-func (bv *barView) yZoomPA() plotArea {
-	return plotArea{
-		plotRect{bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom},
-		nil, bv.yAxis,
-	}
-}
-
-func (bv *barView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-}
-
-func (bv *barView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-}
-
-func (bv *barView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if bv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, bv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(bv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, bv.cfg.ID, idx)
-		return
-	}
-	if bv.cfg.OnClick != nil {
-		bv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (bv *barView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (bv.cfg.EnablePan || bv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, bv.cfg.ID, bv.yZoomPA(),
-			bv.cfg.EnablePan, bv.cfg.EnableRangeSelect, false, true) {
-		return
-	}
-}
-
-func (bv *barView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if bv.cfg.EnablePan || bv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-	}
-}
-
-func (bv *barView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, bv.cfg.ID) {
-		bv.hovering = false
-		saveHover(w, l, bv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	bv.hoverPx = e.MouseX - l.Shape.X
-	bv.hoverPy = e.MouseY - l.Shape.Y
-	bv.hovering = true
-	saveHover(w, l, bv.cfg.ID, true, bv.hoverPx, bv.hoverPy)
-	if legendHitTest(bv.lastLB, bv.hoverPx, bv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if bv.yAxis != nil {
-		var ok bool
-		if bv.cfg.Horizontal {
-			_, _, ok = bv.hoveredBarHorizontal(bv.hoverPx, bv.hoverPy,
-				bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom)
-		} else {
-			_, _, ok = bv.hoveredBarVertical(bv.hoverPx, bv.hoverPy,
-				bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom)
-		}
-		if ok {
-			w.SetMouseCursorPointingHand()
-		} else {
-			w.SetMouseCursorArrow()
-		}
-	}
-	if bv.cfg.OnHover != nil {
-		bv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (bv *barView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	bv.hovering = false
-	saveHover(w, l, bv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if bv.cfg.OnMouseLeave != nil {
-		bv.cfg.OnMouseLeave(l, e, w)
 	}
 }
 
@@ -363,11 +251,8 @@ func (bv *barView) draw(dc *gui.DrawContext) {
 		left = resolveLeft(ctx, th, left, bottom, top, bv.yAxis)
 	}
 
-	// Cache plot bounds for cursor hit-testing in hover callback.
-	bv.lastLeft = left
-	bv.lastRight = right
-	bv.lastTop = top
-	bv.lastBottom = bottom
+	// Cache plot area for event handler hit-testing.
+	bv.lastPA = plotArea{plotRect{left, right, top, bottom}, nil, bv.yAxis}
 
 	// Annotations.
 	drawAnnotations(ctx, &cfg.Annotations, th,

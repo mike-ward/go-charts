@@ -47,23 +47,14 @@ type boxStats struct {
 }
 
 type boxplotView struct {
-	cfg         BoxPlotCfg
+	cfg BoxPlotCfg
+	xyBase
 	lastVersion uint64
 	stats       []boxStats
 	valid       []bool // valid[i] = computeBoxStats succeeded
 	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool
-	lastLeft    float32
-	lastRight   float32
-	lastTop     float32
-	lastBottom  float32
-	lastLB      legendBounds
-	win         *gui.Window
 }
 
 // BoxPlot creates a box plot chart view.
@@ -75,7 +66,15 @@ func BoxPlot(cfg BoxPlotCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableBoxplot(&cfg.BaseCfg, cfg.Data)
 	}
-	return &boxplotView{cfg: cfg}
+	bv := &boxplotView{cfg: cfg}
+	bv.base = &bv.cfg.BaseCfg
+	bv.zoomX = false
+	bv.zoomY = true
+	bv.nearestFn = func(px, py float32) bool {
+		return px >= bv.lastPA.Left && px <= bv.lastPA.Right &&
+			py >= bv.lastPA.Top && py <= bv.lastPA.Bottom
+	}
+	return bv
 }
 
 // Draw renders the box plot onto dc for headless export.
@@ -86,131 +85,7 @@ func (bv *boxplotView) chartTheme() *theme.Theme { return bv.cfg.Theme }
 func (bv *boxplotView) Content() []gui.View { return nil }
 
 func (bv *boxplotView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &bv.cfg
-	hv := loadHover(w, c.ID, &bv.hovering, &bv.hoverPx, &bv.hoverPy)
-	var hidV uint64
-	bv.hidden, hidV = loadHiddenState(w, c.ID)
-	bv.lastLB = loadLegendBounds(w, c.ID)
-	bv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	animV := loadAnimVersion(w, c.ID)
-	transV := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + animV + transV,
-		Clip:          true,
-		OnDraw:        bv.draw,
-		OnClick:       bv.internalClick,
-		OnHover:       bv.internalHover,
-		OnMouseMove:   bv.internalMouseMove,
-		OnMouseUp:     bv.internalMouseUp,
-		OnMouseLeave:  bv.internalMouseLeave,
-		OnMouseScroll: bv.internalScroll,
-		OnGesture:     bv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (bv *boxplotView) yZoomPA() plotArea {
-	return plotArea{
-		plotRect{bv.lastLeft, bv.lastRight, bv.lastTop, bv.lastBottom},
-		nil, bv.yAxis,
-	}
-}
-
-func (bv *boxplotView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-}
-
-func (bv *boxplotView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-}
-
-func (bv *boxplotView) internalClick(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if bv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, bv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(bv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, bv.cfg.ID, idx)
-		return
-	}
-	if bv.cfg.OnClick != nil {
-		bv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (bv *boxplotView) internalMouseMove(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if (bv.cfg.EnablePan || bv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, bv.cfg.ID, bv.yZoomPA(),
-			bv.cfg.EnablePan, bv.cfg.EnableRangeSelect, false, true) {
-		return
-	}
-}
-
-func (bv *boxplotView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if bv.cfg.EnablePan || bv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, bv.cfg.ID, bv.yZoomPA(), false, true)
-	}
-}
-
-func (bv *boxplotView) internalHover(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	if isDragging(w, bv.cfg.ID) {
-		bv.hovering = false
-		saveHover(w, l, bv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	bv.hoverPx = e.MouseX - l.Shape.X
-	bv.hoverPy = e.MouseY - l.Shape.Y
-	bv.hovering = true
-	saveHover(w, l, bv.cfg.ID, true, bv.hoverPx, bv.hoverPy)
-	if legendHitTest(bv.lastLB, bv.hoverPx, bv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if bv.hoverPx >= bv.lastLeft &&
-		bv.hoverPx <= bv.lastRight &&
-		bv.hoverPy >= bv.lastTop &&
-		bv.hoverPy <= bv.lastBottom {
-		w.SetMouseCursorPointingHand()
-	} else {
-		w.SetMouseCursorArrow()
-	}
-	if bv.cfg.OnHover != nil {
-		bv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (bv *boxplotView) internalMouseLeave(
-	l *gui.Layout, e *gui.Event, w *gui.Window,
-) {
-	e.IsHandled = true
-	bv.hovering = false
-	saveHover(w, l, bv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if bv.cfg.OnMouseLeave != nil {
-		bv.cfg.OnMouseLeave(l, e, w)
-	}
+	return bv.generateLayout(w, bv.draw)
 }
 
 func (bv *boxplotView) draw(dc *gui.DrawContext) {
@@ -257,10 +132,7 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 		cfg.XTickRotation, bv.xAxis.Label())
 	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
 
-	bv.lastLeft = left
-	bv.lastRight = right
-	bv.lastTop = top
-	bv.lastBottom = bottom
+	bv.lastPA = plotArea{plotRect{left, right, top, bottom}, nil, bv.yAxis}
 
 	bv.yTicks = bv.yAxis.Ticks(bottom, top)
 

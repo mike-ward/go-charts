@@ -37,7 +37,8 @@ type LineCfg struct {
 }
 
 type lineView struct {
-	cfg         LineCfg
+	cfg LineCfg
+	xyBase
 	lastVersion uint64
 	xAxis       axis.Axis
 	yAxis       axis.Axis
@@ -46,13 +47,6 @@ type lineView struct {
 	ptsBuf      []float32
 	clipA       []float32 // scratch for clipConvexToRect
 	clipB       []float32
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool // legend toggle state
-	lastPA      plotArea     // cached for cursor hit-testing
-	lastLB      legendBounds // cached for legend click
-	win         *gui.Window  // set in GenerateLayout for StateMap access
 }
 
 // Line creates a line chart view.
@@ -67,7 +61,26 @@ func Line(cfg LineCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableXY(&cfg.BaseCfg, cfg.Series)
 	}
-	return &lineView{cfg: cfg}
+	lv := &lineView{cfg: cfg}
+	lv.base = &lv.cfg.BaseCfg
+	lv.zoomX = true
+	lv.zoomY = true
+	lv.extraVersionFn = func(w *gui.Window) uint64 {
+		return loadScrollVersion(w, lv.cfg.ID)
+	}
+	lv.nearestFn = func(px, py float32) bool {
+		if lv.lastPA.XAxis == nil {
+			return false
+		}
+		_, _, _, _, ok := nearestXYPoint(
+			lv.cfg.Series, lv.lastPA, px, py, 20)
+		if !ok {
+			_, _, _, _, ok = nearestErrorXYPoint(
+				lv.cfg.ErrorSeries, lv.lastPA, px, py, 20)
+		}
+		return ok
+	}
+	return lv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -78,124 +91,7 @@ func (lv *lineView) chartTheme() *theme.Theme { return lv.cfg.Theme }
 func (lv *lineView) Content() []gui.View { return nil }
 
 func (lv *lineView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &lv.cfg
-	hv := loadHover(w, c.ID,
-		&lv.hovering, &lv.hoverPx, &lv.hoverPy)
-	var hidV uint64
-	lv.hidden, hidV = loadHiddenState(w, c.ID)
-	lv.lastLB = loadLegendBounds(w, c.ID)
-	lv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	av := loadAnimVersion(w, c.ID)
-	tv := loadTransitionVersion(w, c.ID)
-	sv := loadScrollVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + av + tv + sv,
-		Clip:          true,
-		OnDraw:        lv.draw,
-		OnClick:       lv.internalClick,
-		OnHover:       lv.internalHover,
-		OnMouseMove:   lv.internalMouseMove,
-		OnMouseUp:     lv.internalMouseUp,
-		OnMouseLeave:  lv.internalMouseLeave,
-		OnMouseScroll: lv.internalScroll,
-		OnGesture:     lv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (lv *lineView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !lv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
-}
-
-func (lv *lineView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !lv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
-}
-
-func (lv *lineView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if lv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, lv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(lv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, lv.cfg.ID, idx)
-		return
-	}
-	if lv.cfg.OnClick != nil {
-		lv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (lv *lineView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (lv.cfg.EnablePan || lv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, lv.cfg.ID, lv.lastPA,
-			lv.cfg.EnablePan, lv.cfg.EnableRangeSelect, true, true) {
-		return
-	}
-}
-
-func (lv *lineView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if lv.cfg.EnablePan || lv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, lv.cfg.ID, lv.lastPA, true, true)
-	}
-}
-
-func (lv *lineView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, lv.cfg.ID) {
-		lv.hovering = false
-		saveHover(w, l, lv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	lv.hoverPx = e.MouseX - l.Shape.X
-	lv.hoverPy = e.MouseY - l.Shape.Y
-	lv.hovering = true
-	saveHover(w, l, lv.cfg.ID, true, lv.hoverPx, lv.hoverPy)
-	if legendHitTest(lv.lastLB, lv.hoverPx, lv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if lv.lastPA.XAxis != nil {
-		_, _, _, _, ok := nearestXYPoint(
-			lv.cfg.Series, lv.lastPA, lv.hoverPx, lv.hoverPy, 20)
-		if !ok {
-			_, _, _, _, ok = nearestErrorXYPoint(
-				lv.cfg.ErrorSeries, lv.lastPA,
-				lv.hoverPx, lv.hoverPy, 20)
-		}
-		if ok {
-			w.SetMouseCursorPointingHand()
-		} else {
-			w.SetMouseCursorArrow()
-		}
-	}
-	if lv.cfg.OnHover != nil {
-		lv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (lv *lineView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	lv.hovering = false
-	saveHover(w, l, lv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if lv.cfg.OnMouseLeave != nil {
-		lv.cfg.OnMouseLeave(l, e, w)
-	}
+	return lv.generateLayout(w, lv.draw)
 }
 
 // cacheTransitionData stores current Y values and axis bounds
@@ -292,40 +188,14 @@ func (lv *lineView) updateAxes() bool {
 		return false
 	}
 
-	if cfg.XAxis != nil {
-		lv.xAxis = cfg.XAxis
-		if hasBounds {
-			lv.xAxis.SetRange(minX, maxX)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		lv.xAxis = axis.NewLinear(
-			axis.LinearCfg{AutoRange: true})
-		lv.xAxis.SetRange(minX, maxX)
+	var ok bool
+	lv.xAxis, ok = autoLinearAxis(cfg.XAxis, minX, maxX, 0, cfg.ID)
+	if !ok {
+		return false
 	}
-
-	if cfg.YAxis != nil {
-		lv.yAxis = cfg.YAxis
-		if hasBounds {
-			lv.yAxis.SetRange(minY, maxY)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		yRange := maxY - minY
-		if yRange == 0 {
-			yRange = 1
-		}
-		minY -= yRange * 0.05
-		maxY += yRange * 0.05
-		lv.yAxis = axis.NewLinear(
-			axis.LinearCfg{AutoRange: true})
-		lv.yAxis.SetRange(minY, maxY)
+	lv.yAxis, ok = autoLinearAxis(cfg.YAxis, minY, maxY, 0.05, cfg.ID)
+	if !ok {
+		return false
 	}
 	lv.lastVersion = cfg.Version
 	return true

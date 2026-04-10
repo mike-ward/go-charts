@@ -149,7 +149,7 @@ func TestCandlestickHiddenSeriesExcludedFromRange(t *testing.T) {
 				}),
 			},
 		},
-		hidden: map[int]bool{0: true, 1: true}, // hide series 0 (up=0, down=1)
+		xyBase: xyBase{hidden: map[int]bool{0: true, 1: true}}, // hide series 0 (up=0, down=1)
 	}
 	cv.cfg.applyDefaults()
 	cv.cfg.XTimeFormat = "01/02"

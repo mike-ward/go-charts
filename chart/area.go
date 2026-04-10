@@ -36,7 +36,8 @@ type AreaCfg struct {
 }
 
 type areaView struct {
-	cfg         AreaCfg
+	cfg AreaCfg
+	xyBase
 	lastVersion uint64
 	xAxis       axis.Axis
 	yAxis       axis.Axis
@@ -47,13 +48,6 @@ type areaView struct {
 	curPtsBuf   []float32
 	clipA       []float32 // scratch for clipConvexToRect
 	clipB       []float32
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool // legend toggle state
-	lastPA      plotArea     // cached for cursor hit-testing
-	lastLB      legendBounds // cached for legend click
-	win         *gui.Window
 }
 
 // Area creates an area chart view.
@@ -71,7 +65,28 @@ func Area(cfg AreaCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableXY(&cfg.BaseCfg, cfg.Series)
 	}
-	return &areaView{cfg: cfg}
+	av := &areaView{cfg: cfg}
+	av.base = &av.cfg.BaseCfg
+	av.zoomX = true
+	av.zoomY = true
+	av.extraVersionFn = func(w *gui.Window) uint64 {
+		return loadScrollVersion(w, av.cfg.ID)
+	}
+	av.nearestFn = func(px, py float32) bool {
+		if av.lastPA.XAxis == nil {
+			return false
+		}
+		var ok bool
+		if av.cfg.Stacked {
+			_, _, _, _, ok = nearestStackedPoint(
+				av.cfg.Series, av.lastPA, px, py, 20)
+		} else {
+			_, _, _, _, ok = nearestXYPoint(
+				av.cfg.Series, av.lastPA, px, py, 20)
+		}
+		return ok
+	}
+	return av
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -82,124 +97,7 @@ func (av *areaView) chartTheme() *theme.Theme { return av.cfg.Theme }
 func (av *areaView) Content() []gui.View { return nil }
 
 func (av *areaView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &av.cfg
-	hv := loadHover(w, c.ID,
-		&av.hovering, &av.hoverPx, &av.hoverPy)
-	var hidV uint64
-	av.hidden, hidV = loadHiddenState(w, c.ID)
-	av.lastLB = loadLegendBounds(w, c.ID)
-	av.win = w
-	zv := loadZoomVersion(w, c.ID)
-	anV := loadAnimVersion(w, c.ID)
-	tv := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + anV + tv + loadScrollVersion(w, c.ID),
-		Clip:          true,
-		OnDraw:        av.draw,
-		OnClick:       av.internalClick,
-		OnHover:       av.internalHover,
-		OnMouseMove:   av.internalMouseMove,
-		OnMouseUp:     av.internalMouseUp,
-		OnMouseLeave:  av.internalMouseLeave,
-		OnMouseScroll: av.internalScroll,
-		OnGesture:     av.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (av *areaView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !av.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, av.cfg.ID, av.lastPA, true, true)
-}
-
-func (av *areaView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !av.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, av.cfg.ID, av.lastPA, true, true)
-}
-
-func (av *areaView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if av.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, av.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(av.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, av.cfg.ID, idx)
-		return
-	}
-	if av.cfg.OnClick != nil {
-		av.cfg.OnClick(l, e, w)
-	}
-}
-
-func (av *areaView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (av.cfg.EnablePan || av.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, av.cfg.ID, av.lastPA,
-			av.cfg.EnablePan, av.cfg.EnableRangeSelect, true, true) {
-		return
-	}
-}
-
-func (av *areaView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if av.cfg.EnablePan || av.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, av.cfg.ID, av.lastPA, true, true)
-	}
-}
-
-func (av *areaView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, av.cfg.ID) {
-		av.hovering = false
-		saveHover(w, l, av.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	av.hoverPx = e.MouseX - l.Shape.X
-	av.hoverPy = e.MouseY - l.Shape.Y
-	av.hovering = true
-	saveHover(w, l, av.cfg.ID, true, av.hoverPx, av.hoverPy)
-	if legendHitTest(av.lastLB, av.hoverPx, av.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if av.lastPA.XAxis != nil {
-		var ok bool
-		if av.cfg.Stacked {
-			_, _, _, _, ok = nearestStackedPoint(
-				av.cfg.Series, av.lastPA, av.hoverPx, av.hoverPy, 20)
-		} else {
-			_, _, _, _, ok = nearestXYPoint(
-				av.cfg.Series, av.lastPA, av.hoverPx, av.hoverPy, 20)
-		}
-		if ok {
-			w.SetMouseCursorPointingHand()
-		} else {
-			w.SetMouseCursorArrow()
-		}
-	}
-	if av.cfg.OnHover != nil {
-		av.cfg.OnHover(l, e, w)
-	}
-}
-
-func (av *areaView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	av.hovering = false
-	saveHover(w, l, av.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if av.cfg.OnMouseLeave != nil {
-		av.cfg.OnMouseLeave(l, e, w)
-	}
+	return av.generateLayout(w, av.draw)
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -253,40 +151,24 @@ func (av *areaView) updateAxes() bool {
 		return false
 	}
 
-	if cfg.XAxis != nil {
-		av.xAxis = cfg.XAxis
-		if hasBounds {
-			av.xAxis.SetRange(minX, maxX)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		av.xAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		av.xAxis.SetRange(minX, maxX)
+	var ok bool
+	av.xAxis, ok = autoLinearAxis(cfg.XAxis, minX, maxX, 0, cfg.ID)
+	if !ok {
+		return false
 	}
-
-	if cfg.YAxis != nil {
-		av.yAxis = cfg.YAxis
-		if hasBounds {
-			av.yAxis.SetRange(minY, maxY)
+	// Stacked Y: only pad the top (minY is already ≥ 0).
+	// Non-stacked: symmetric 5% padding.
+	if cfg.Stacked && hasBounds {
+		r := maxY - minY
+		if r == 0 || math.IsInf(r, 0) {
+			r = 1
 		}
+		av.yAxis, ok = autoLinearAxis(cfg.YAxis, minY, maxY+r*0.05, 0, cfg.ID)
 	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		yRange := maxY - minY
-		if yRange == 0 {
-			yRange = 1
-		}
-		if !cfg.Stacked {
-			minY -= yRange * 0.05
-		}
-		maxY += yRange * 0.05
-		av.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		av.yAxis.SetRange(minY, maxY)
+		av.yAxis, ok = autoLinearAxis(cfg.YAxis, minY, maxY, 0.05, cfg.ID)
+	}
+	if !ok {
+		return false
 	}
 	av.lastVersion = cfg.Version
 	return true

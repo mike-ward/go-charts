@@ -34,20 +34,14 @@ type BubbleCfg struct {
 }
 
 type bubbleView struct {
-	cfg         BubbleCfg
+	cfg BubbleCfg
+	xyBase
 	lastVersion uint64
 	xAxis       axis.Axis
 	yAxis       axis.Axis
 	xTicks      []axis.Tick
 	yTicks      []axis.Tick
 	zMin, zMax  float64
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool
-	lastPA      plotArea
-	lastLB      legendBounds
-	win         *gui.Window
 }
 
 // Bubble creates a bubble chart view.
@@ -65,7 +59,19 @@ func Bubble(cfg BubbleCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableXYZ(&cfg.BaseCfg, cfg.Series)
 	}
-	return &bubbleView{cfg: cfg}
+	bv := &bubbleView{cfg: cfg}
+	bv.base = &bv.cfg.BaseCfg
+	bv.zoomX = true
+	bv.zoomY = true
+	bv.nearestFn = func(px, py float32) bool {
+		if bv.lastPA.XAxis == nil {
+			return false
+		}
+		_, _, _, _, ok := nearestXYZPoint(
+			bv.cfg.Series, bv.lastPA, px, py, bv.cfg.MaxRadius+5)
+		return ok
+	}
+	return bv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -76,119 +82,7 @@ func (bv *bubbleView) chartTheme() *theme.Theme { return bv.cfg.Theme }
 func (bv *bubbleView) Content() []gui.View { return nil }
 
 func (bv *bubbleView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &bv.cfg
-	hv := loadHover(w, c.ID,
-		&bv.hovering, &bv.hoverPx, &bv.hoverPy)
-	var hidV uint64
-	bv.hidden, hidV = loadHiddenState(w, c.ID)
-	bv.lastLB = loadLegendBounds(w, c.ID)
-	bv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	animV := loadAnimVersion(w, c.ID)
-	transV := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + animV + transV,
-		Clip:          true,
-		OnDraw:        bv.draw,
-		OnClick:       bv.internalClick,
-		OnHover:       bv.internalHover,
-		OnMouseMove:   bv.internalMouseMove,
-		OnMouseUp:     bv.internalMouseUp,
-		OnMouseLeave:  bv.internalMouseLeave,
-		OnMouseScroll: bv.internalScroll,
-		OnGesture:     bv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (bv *bubbleView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, bv.cfg.ID, bv.lastPA, true, true)
-}
-
-func (bv *bubbleView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !bv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, bv.cfg.ID, bv.lastPA, true, true)
-}
-
-func (bv *bubbleView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if bv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, bv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(bv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, bv.cfg.ID, idx)
-		return
-	}
-	if bv.cfg.OnClick != nil {
-		bv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (bv *bubbleView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (bv.cfg.EnablePan || bv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, bv.cfg.ID, bv.lastPA,
-			bv.cfg.EnablePan, bv.cfg.EnableRangeSelect, true, true) {
-		return
-	}
-}
-
-func (bv *bubbleView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if bv.cfg.EnablePan || bv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, bv.cfg.ID, bv.lastPA, true, true)
-	}
-}
-
-func (bv *bubbleView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, bv.cfg.ID) {
-		bv.hovering = false
-		saveHover(w, l, bv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	bv.hoverPx = e.MouseX - l.Shape.X
-	bv.hoverPy = e.MouseY - l.Shape.Y
-	bv.hovering = true
-	saveHover(w, l, bv.cfg.ID, true, bv.hoverPx, bv.hoverPy)
-	if legendHitTest(bv.lastLB, bv.hoverPx, bv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if bv.lastPA.XAxis != nil {
-		_, _, _, _, ok := nearestXYZPoint(
-			bv.cfg.Series, bv.lastPA, bv.hoverPx, bv.hoverPy,
-			bv.cfg.MaxRadius+5)
-		if ok {
-			w.SetMouseCursorPointingHand()
-		} else {
-			w.SetMouseCursorArrow()
-		}
-	}
-	if bv.cfg.OnHover != nil {
-		bv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (bv *bubbleView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	bv.hovering = false
-	saveHover(w, l, bv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if bv.cfg.OnMouseLeave != nil {
-		bv.cfg.OnMouseLeave(l, e, w)
-	}
+	return bv.generateLayout(w, bv.draw)
 }
 
 // updateAxes recomputes axes from config or series bounds.
@@ -223,40 +117,14 @@ func (bv *bubbleView) updateAxes() bool {
 		return false
 	}
 
-	if cfg.XAxis != nil {
-		bv.xAxis = cfg.XAxis
-		if hasBounds {
-			bv.xAxis.SetRange(minX, maxX)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		xRange := maxX - minX
-		if xRange == 0 {
-			xRange = 1
-		}
-		bv.xAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		bv.xAxis.SetRange(minX-xRange*0.05, maxX+xRange*0.05)
+	var ok bool
+	bv.xAxis, ok = autoLinearAxis(cfg.XAxis, minX, maxX, 0.05, cfg.ID)
+	if !ok {
+		return false
 	}
-
-	if cfg.YAxis != nil {
-		bv.yAxis = cfg.YAxis
-		if hasBounds {
-			bv.yAxis.SetRange(minY, maxY)
-		}
-	} else {
-		if !hasBounds {
-			slog.Warn("all series empty", "chart", cfg.ID)
-			return false
-		}
-		yRange := maxY - minY
-		if yRange == 0 {
-			yRange = 1
-		}
-		bv.yAxis = axis.NewLinear(axis.LinearCfg{AutoRange: true})
-		bv.yAxis.SetRange(minY-yRange*0.05, maxY+yRange*0.05)
+	bv.yAxis, ok = autoLinearAxis(cfg.YAxis, minY, maxY, 0.05, cfg.ID)
+	if !ok {
+		return false
 	}
 	bv.lastVersion = cfg.Version
 	return true

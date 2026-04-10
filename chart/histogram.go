@@ -44,20 +44,13 @@ type HistogramCfg struct {
 }
 
 type histogramView struct {
-	cfg         HistogramCfg
+	cfg HistogramCfg
+	xyBase
 	lastVersion uint64
 	binEdges    []float64
 	binValues   []float64 // counts or densities
 	xAxis       axis.Axis
 	yAxis       axis.Axis
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	lastLeft    float32
-	lastRight   float32
-	lastTop     float32
-	lastBottom  float32
-	win         *gui.Window
 }
 
 // Histogram creates a histogram chart view.
@@ -69,7 +62,12 @@ func Histogram(cfg HistogramCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableHistogram(&cfg.BaseCfg, cfg.Data, cfg.Bins, cfg.BinEdges, cfg.Normalized)
 	}
-	return &histogramView{cfg: cfg}
+	hv := &histogramView{cfg: cfg}
+	hv.base = &hv.cfg.BaseCfg
+	hv.zoomX = true
+	hv.zoomY = true
+	// No nearestFn: histogram has no per-point cursor upgrade.
+	return hv
 }
 
 // Draw renders the histogram onto dc for headless export.
@@ -80,97 +78,7 @@ func (hv *histogramView) chartTheme() *theme.Theme { return hv.cfg.Theme }
 func (hv *histogramView) Content() []gui.View { return nil }
 
 func (hv *histogramView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &hv.cfg
-	hvr := loadHover(w, c.ID,
-		&hv.hovering, &hv.hoverPx, &hv.hoverPy)
-	hv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	animV := loadAnimVersion(w, c.ID)
-	transV := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hvr + zv + animV + transV,
-		Clip:          true,
-		OnDraw:        hv.draw,
-		OnClick:       hv.internalClick,
-		OnHover:       hv.internalHover,
-		OnMouseMove:   hv.internalMouseMove,
-		OnMouseUp:     hv.internalMouseUp,
-		OnMouseLeave:  hv.internalMouseLeave,
-		OnMouseScroll: hv.internalScroll,
-		OnGesture:     hv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-// zoomPA builds a plotArea from cached bounds for zoom handlers.
-func (hv *histogramView) zoomPA() plotArea {
-	return plotArea{
-		plotRect{hv.lastLeft, hv.lastRight, hv.lastTop, hv.lastBottom},
-		hv.xAxis, hv.yAxis,
-	}
-}
-
-func (hv *histogramView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !hv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
-}
-
-func (hv *histogramView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !hv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
-}
-
-func (hv *histogramView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if hv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, hv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-}
-
-func (hv *histogramView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (hv.cfg.EnablePan || hv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, hv.cfg.ID, hv.zoomPA(),
-			hv.cfg.EnablePan, hv.cfg.EnableRangeSelect, true, true) {
-		return
-	}
-}
-
-func (hv *histogramView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if hv.cfg.EnablePan || hv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, hv.cfg.ID, hv.zoomPA(), true, true)
-	}
-}
-
-func (hv *histogramView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, hv.cfg.ID) {
-		hv.hovering = false
-		saveHover(w, l, hv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	hv.hoverPx = e.MouseX - l.Shape.X
-	hv.hoverPy = e.MouseY - l.Shape.Y
-	hv.hovering = true
-	saveHover(w, l, hv.cfg.ID, true, hv.hoverPx, hv.hoverPy)
-	w.SetMouseCursorArrow()
-}
-
-func (hv *histogramView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	hv.hovering = false
-	saveHover(w, l, hv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
+	return hv.generateLayout(w, hv.draw)
 }
 
 func (hv *histogramView) draw(dc *gui.DrawContext) {
@@ -270,10 +178,7 @@ func (hv *histogramView) draw(dc *gui.DrawContext) {
 		cfg.XTickRotation, hv.xAxis.Label())
 
 	// Cache plot bounds for hover hit-testing.
-	hv.lastLeft = left
-	hv.lastRight = right
-	hv.lastTop = top
-	hv.lastBottom = bottom
+	hv.lastPA = plotArea{plotRect{left, right, top, bottom}, hv.xAxis, hv.yAxis}
 
 	progress := animProgress(hv.win, hv.cfg.ID)
 

@@ -53,21 +53,12 @@ func (c *CandlestickCfg) Validate() error {
 }
 
 type candlestickView struct {
-	cfg         CandlestickCfg
+	cfg CandlestickCfg
+	xyBase
 	lastVersion uint64
 	yAxis       axis.Axis
 	yTicks      []axis.Tick
 	xAxis       *axis.Category
-	hoverPx     float32
-	hoverPy     float32
-	hovering    bool
-	hidden      map[int]bool
-	lastLeft    float32
-	lastRight   float32
-	lastTop     float32
-	lastBottom  float32
-	lastLB      legendBounds
-	win         *gui.Window
 }
 
 // Candlestick creates a candlestick chart view.
@@ -82,7 +73,15 @@ func Candlestick(cfg CandlestickCfg) gui.View {
 	if cfg.ShowDataTable {
 		return dataTableOHLC(&cfg.BaseCfg, cfg.Series, cfg.XTimeFormat)
 	}
-	return &candlestickView{cfg: cfg}
+	cv := &candlestickView{cfg: cfg}
+	cv.base = &cv.cfg.BaseCfg
+	cv.zoomX = false
+	cv.zoomY = true
+	cv.nearestFn = func(px, py float32) bool {
+		return px >= cv.lastPA.Left && px <= cv.lastPA.Right &&
+			py >= cv.lastPA.Top && py <= cv.lastPA.Bottom
+	}
+	return cv
 }
 
 // Draw renders the chart onto dc for headless export.
@@ -93,121 +92,7 @@ func (cv *candlestickView) chartTheme() *theme.Theme { return cv.cfg.Theme }
 func (cv *candlestickView) Content() []gui.View { return nil }
 
 func (cv *candlestickView) GenerateLayout(w *gui.Window) gui.Layout {
-	c := &cv.cfg
-	hv := loadHover(w, c.ID, &cv.hovering, &cv.hoverPx, &cv.hoverPy)
-	var hidV uint64
-	cv.hidden, hidV = loadHiddenState(w, c.ID)
-	cv.lastLB = loadLegendBounds(w, c.ID)
-	cv.win = w
-	zv := loadZoomVersion(w, c.ID)
-	animV := loadAnimVersion(w, c.ID)
-	transV := loadTransitionVersion(w, c.ID)
-	if c.Animate {
-		startEntryAnimation(w, c.ID, c.AnimDuration)
-	}
-	width, height := resolveSize(c.Width, c.Height, w)
-	return gui.DrawCanvas(gui.DrawCanvasCfg{
-		ID:            c.ID,
-		Sizing:        c.Sizing,
-		Width:         width,
-		Height:        height,
-		Version:       c.Version + hv + hidV + zv + animV + transV,
-		Clip:          true,
-		OnDraw:        cv.draw,
-		OnClick:       cv.internalClick,
-		OnHover:       cv.internalHover,
-		OnMouseMove:   cv.internalMouseMove,
-		OnMouseUp:     cv.internalMouseUp,
-		OnMouseLeave:  cv.internalMouseLeave,
-		OnMouseScroll: cv.internalScroll,
-		OnGesture:     cv.internalGesture,
-	}).GenerateLayout(w)
-}
-
-func (cv *candlestickView) yZoomPA() plotArea {
-	return plotArea{
-		plotRect{cv.lastLeft, cv.lastRight, cv.lastTop, cv.lastBottom},
-		nil, cv.yAxis,
-	}
-}
-
-func (cv *candlestickView) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !cv.cfg.EnableZoom {
-		return
-	}
-	handleZoomScroll(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
-}
-
-func (cv *candlestickView) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !cv.cfg.EnableZoom {
-		return
-	}
-	handleZoomGesture(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
-}
-
-func (cv *candlestickView) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if cv.cfg.EnableZoom && handleDoubleClickCheck(w, l, e, cv.cfg.ID) {
-		e.IsHandled = true
-		return
-	}
-	mx := e.MouseX
-	my := e.MouseY
-	if idx := legendHitTest(cv.lastLB, mx, my); idx >= 0 {
-		e.IsHandled = true
-		l.Shape.Version = toggleHidden(w, cv.cfg.ID, idx)
-		return
-	}
-	if cv.cfg.OnClick != nil {
-		cv.cfg.OnClick(l, e, w)
-	}
-}
-
-func (cv *candlestickView) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (cv.cfg.EnablePan || cv.cfg.EnableRangeSelect) &&
-		handleDragHover(w, l, e, cv.cfg.ID, cv.yZoomPA(),
-			cv.cfg.EnablePan, cv.cfg.EnableRangeSelect, false, true) {
-		return
-	}
-}
-
-func (cv *candlestickView) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if cv.cfg.EnablePan || cv.cfg.EnableRangeSelect {
-		handleDragEnd(w, l, e, cv.cfg.ID, cv.yZoomPA(), false, true)
-	}
-}
-
-func (cv *candlestickView) internalHover(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if isDragging(w, cv.cfg.ID) {
-		cv.hovering = false
-		saveHover(w, l, cv.cfg.ID, false, 0, 0)
-		return
-	}
-	e.IsHandled = true
-	cv.hoverPx = e.MouseX - l.Shape.X
-	cv.hoverPy = e.MouseY - l.Shape.Y
-	cv.hovering = true
-	saveHover(w, l, cv.cfg.ID, true, cv.hoverPx, cv.hoverPy)
-	if legendHitTest(cv.lastLB, cv.hoverPx, cv.hoverPy) >= 0 {
-		w.SetMouseCursorPointingHand()
-	} else if cv.hoverPx >= cv.lastLeft && cv.hoverPx <= cv.lastRight &&
-		cv.hoverPy >= cv.lastTop && cv.hoverPy <= cv.lastBottom {
-		w.SetMouseCursorPointingHand()
-	} else {
-		w.SetMouseCursorArrow()
-	}
-	if cv.cfg.OnHover != nil {
-		cv.cfg.OnHover(l, e, w)
-	}
-}
-
-func (cv *candlestickView) internalMouseLeave(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	e.IsHandled = true
-	cv.hovering = false
-	saveHover(w, l, cv.cfg.ID, false, 0, 0)
-	w.SetMouseCursorArrow()
-	if cv.cfg.OnMouseLeave != nil {
-		cv.cfg.OnMouseLeave(l, e, w)
-	}
+	return cv.generateLayout(w, cv.draw)
 }
 
 func (cv *candlestickView) draw(dc *gui.DrawContext) {
@@ -254,10 +139,7 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 		cfg.XTickRotation, cv.xAxis.Label())
 	bottom -= legendBottomReserve(ctx, th, cfg.LegendPosition, names, left, right)
 
-	cv.lastLeft = left
-	cv.lastRight = right
-	cv.lastTop = top
-	cv.lastBottom = bottom
+	cv.lastPA = plotArea{plotRect{left, right, top, bottom}, nil, cv.yAxis}
 
 	cv.yTicks = cv.yAxis.Ticks(bottom, top)
 

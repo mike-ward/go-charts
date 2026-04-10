@@ -1,0 +1,16 @@
+package chart
+
+import (
+	"testing"
+
+	"github.com/mike-ward/go-gui/gui"
+)
+
+// TestGenerateLayout_NilBase verifies that calling generateLayout with a nil
+// base does not panic and returns an inert (zero) layout.
+func TestGenerateLayout_NilBase(t *testing.T) {
+	xb := &xyBase{} // base intentionally left nil
+	// Must not panic.
+	got := xb.generateLayout(nil, func(*gui.DrawContext) {})
+	_ = got
+}
