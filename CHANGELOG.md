@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.2 - 2026-04-10
+
+- Extract `InteractionCfg` from `BaseCfg`; zoom/pan/range-select/animate-transitions
+  fields now live only on XY chart configs
+- Expand axis/scale test coverage: table-driven tests for `axis.Linear`,
+  `axis.Category`, `scale.Linear`, `scale.Log`
+
 ## v0.5.1 - 2026-04-08
 
 - Bump go-gui v0.9.0 → v0.9.1
