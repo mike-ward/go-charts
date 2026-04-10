@@ -126,8 +126,8 @@ func clampZoomRange(
 		dMin -= dMax - origMax
 		dMax = origMax
 	}
-	dMin = math.Max(dMin, origMin)
-	dMax = math.Min(dMax, origMax)
+	dMin = max(dMin, origMin)
+	dMax = min(dMax, origMax)
 	// Enforce minimum span after extent clamping.
 	if dMax-dMin < DefaultMinZoomRange {
 		mid := (dMin + dMax) / 2
@@ -136,8 +136,8 @@ func clampZoomRange(
 		dMax = mid + half
 	}
 	// Re-clamp: min-span expansion may overshoot bounds.
-	dMin = math.Max(dMin, origMin)
-	dMax = math.Min(dMax, origMax)
+	dMin = max(dMin, origMin)
+	dMax = min(dMax, origMax)
 	return dMin, dMax
 }
 
