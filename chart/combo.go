@@ -33,6 +33,7 @@ type ComboSeries struct {
 // series on shared category axes.
 type ComboCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Series holds one or more bar/line series. All series must
 	// have the same number of category values.
@@ -85,6 +86,7 @@ func Combo(cfg ComboCfg) gui.View {
 	}
 	cv := &comboView{cfg: cfg}
 	cv.base = &cv.cfg.BaseCfg
+	cv.interaction = &cv.cfg.InteractionCfg
 	cv.zoomX = false
 	cv.zoomY = true
 	cv.nearestFn = func(px, py float32) bool {

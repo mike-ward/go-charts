@@ -24,6 +24,7 @@ type WaterfallValue struct {
 // WaterfallCfg configures a waterfall chart.
 type WaterfallCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Values holds one entry per bar.
 	Values []WaterfallValue
@@ -100,6 +101,7 @@ func Waterfall(cfg WaterfallCfg) gui.View {
 	}
 	wv := &waterfallView{cfg: cfg}
 	wv.base = &wv.cfg.BaseCfg
+	wv.interaction = &wv.cfg.InteractionCfg
 	wv.zoomX = false
 	wv.zoomY = true
 	wv.nearestFn = func(px, py float32) bool {

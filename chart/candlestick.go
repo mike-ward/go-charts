@@ -21,6 +21,7 @@ var defaultCandleDown = gui.Hex(0xef5350)
 // CandlestickCfg configures a candlestick chart.
 type CandlestickCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series []series.OHLCSeries
@@ -75,6 +76,7 @@ func Candlestick(cfg CandlestickCfg) gui.View {
 	}
 	cv := &candlestickView{cfg: cfg}
 	cv.base = &cv.cfg.BaseCfg
+	cv.interaction = &cv.cfg.InteractionCfg
 	cv.zoomX = false
 	cv.zoomY = true
 	cv.nearestFn = func(px, py float32) bool {

@@ -15,6 +15,7 @@ import (
 // HistogramCfg configures a histogram chart.
 type HistogramCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data holds raw values to bin and count.
 	Data []float64
@@ -64,6 +65,7 @@ func Histogram(cfg HistogramCfg) gui.View {
 	}
 	hv := &histogramView{cfg: cfg}
 	hv.base = &hv.cfg.BaseCfg
+	hv.interaction = &hv.cfg.InteractionCfg
 	hv.zoomX = true
 	hv.zoomY = true
 	// No nearestFn: histogram has no per-point cursor upgrade.

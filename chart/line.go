@@ -14,6 +14,7 @@ import (
 // LineCfg configures a line chart.
 type LineCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series      []series.XY
@@ -63,6 +64,7 @@ func Line(cfg LineCfg) gui.View {
 	}
 	lv := &lineView{cfg: cfg}
 	lv.base = &lv.cfg.BaseCfg
+	lv.interaction = &lv.cfg.InteractionCfg
 	lv.zoomX = true
 	lv.zoomY = true
 	lv.extraVersionFn = func(w *gui.Window) uint64 {

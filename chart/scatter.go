@@ -26,6 +26,7 @@ const (
 // ScatterCfg configures a scatter plot.
 type ScatterCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series      []series.XY
@@ -64,6 +65,7 @@ func Scatter(cfg ScatterCfg) gui.View {
 	}
 	sv := &scatterView{cfg: cfg}
 	sv.base = &sv.cfg.BaseCfg
+	sv.interaction = &sv.cfg.InteractionCfg
 	sv.zoomX = true
 	sv.zoomY = true
 	sv.nearestFn = func(px, py float32) bool {

@@ -15,6 +15,7 @@ import (
 // BubbleCfg configures a bubble chart (scatter with sized markers).
 type BubbleCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series []series.XYZ
@@ -61,6 +62,7 @@ func Bubble(cfg BubbleCfg) gui.View {
 	}
 	bv := &bubbleView{cfg: cfg}
 	bv.base = &bv.cfg.BaseCfg
+	bv.interaction = &bv.cfg.InteractionCfg
 	bv.zoomX = true
 	bv.zoomY = true
 	bv.nearestFn = func(px, py float32) bool {

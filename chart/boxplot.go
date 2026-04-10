@@ -22,6 +22,7 @@ type BoxData struct {
 // BoxPlotCfg configures a box plot chart.
 type BoxPlotCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data holds one BoxData per box (category).
 	Data []BoxData
@@ -68,6 +69,7 @@ func BoxPlot(cfg BoxPlotCfg) gui.View {
 	}
 	bv := &boxplotView{cfg: cfg}
 	bv.base = &bv.cfg.BaseCfg
+	bv.interaction = &bv.cfg.InteractionCfg
 	bv.zoomX = false
 	bv.zoomY = true
 	bv.nearestFn = func(px, py float32) bool {

@@ -8,11 +8,13 @@ import (
 
 // xyBase holds state and event handlers shared by all XY-axis chart types.
 // Embed in a chart view struct to inherit generateLayout and the seven internal
-// event handlers. After constructing the view, set base to point into the
-// view's own cfg (e.g. lv.base = &lv.cfg.BaseCfg); this cannot be done inside
-// xyBase because it does not know which concrete Cfg type embeds it.
+// event handlers. After constructing the view, set base and interaction to
+// point into the view's own cfg (e.g. lv.base = &lv.cfg.BaseCfg;
+// lv.interaction = &lv.cfg.InteractionCfg); this cannot be done inside xyBase
+// because it does not know which concrete Cfg type embeds them.
 type xyBase struct {
-	base *BaseCfg // points into the chart's embedded BaseCfg
+	base        *BaseCfg        // points into the chart's embedded BaseCfg
+	interaction *InteractionCfg // points into the chart's embedded InteractionCfg
 
 	// Per-frame state loaded from/saved to StateMap.
 	hovering bool
@@ -43,8 +45,8 @@ type xyBase struct {
 func (xb *xyBase) generateLayout(
 	w *gui.Window, drawFn func(*gui.DrawContext),
 ) gui.Layout {
-	if xb.base == nil {
-		slog.Error("xyBase.base not set; chart constructor must assign base")
+	if xb.base == nil || xb.interaction == nil {
+		slog.Error("xyBase.base and interaction must be set by chart constructor")
 		return gui.Layout{}
 	}
 	c := xb.base
@@ -83,21 +85,21 @@ func (xb *xyBase) generateLayout(
 }
 
 func (xb *xyBase) internalScroll(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !xb.base.EnableZoom {
+	if !xb.interaction.EnableZoom {
 		return
 	}
 	handleZoomScroll(w, l, e, xb.base.ID, xb.lastPA, xb.zoomX, xb.zoomY)
 }
 
 func (xb *xyBase) internalGesture(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if !xb.base.EnableZoom {
+	if !xb.interaction.EnableZoom {
 		return
 	}
 	handleZoomGesture(w, l, e, xb.base.ID, xb.lastPA, xb.zoomX, xb.zoomY)
 }
 
 func (xb *xyBase) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if xb.base.EnableZoom && handleDoubleClickCheck(w, l, e, xb.base.ID) {
+	if xb.interaction.EnableZoom && handleDoubleClickCheck(w, l, e, xb.base.ID) {
 		e.IsHandled = true
 		return
 	}
@@ -112,16 +114,16 @@ func (xb *xyBase) internalClick(l *gui.Layout, e *gui.Event, w *gui.Window) {
 }
 
 func (xb *xyBase) internalMouseMove(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if (xb.base.EnablePan || xb.base.EnableRangeSelect) &&
+	if (xb.interaction.EnablePan || xb.interaction.EnableRangeSelect) &&
 		handleDragHover(w, l, e, xb.base.ID, xb.lastPA,
-			xb.base.EnablePan, xb.base.EnableRangeSelect,
+			xb.interaction.EnablePan, xb.interaction.EnableRangeSelect,
 			xb.zoomX, xb.zoomY) {
 		return
 	}
 }
 
 func (xb *xyBase) internalMouseUp(l *gui.Layout, e *gui.Event, w *gui.Window) {
-	if xb.base.EnablePan || xb.base.EnableRangeSelect {
+	if xb.interaction.EnablePan || xb.interaction.EnableRangeSelect {
 		handleDragEnd(w, l, e, xb.base.ID, xb.lastPA, xb.zoomX, xb.zoomY)
 	}
 }

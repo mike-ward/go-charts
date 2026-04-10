@@ -466,15 +466,17 @@ chart.Line(chart.LineCfg{
 func demoZoomPan(w *gui.Window) gui.View {
 	zoomBase := func(id, title string) chart.BaseCfg {
 		return chart.BaseCfg{
-			ID:                id,
-			Title:             title,
-			Sizing:            gui.FillFixed,
-			Height:            300,
-			LegendPosition:    &posBottom,
-			EnableZoom:        true,
-			EnablePan:         true,
-			EnableRangeSelect: true,
+			ID:             id,
+			Title:          title,
+			Sizing:         gui.FillFixed,
+			Height:         300,
+			LegendPosition: &posBottom,
 		}
+	}
+	zoomInteraction := chart.InteractionCfg{
+		EnableZoom:        true,
+		EnablePan:         true,
+		EnableRangeSelect: true,
 	}
 
 	return demoWithCode(w, "style-zoom", gui.Column(gui.ContainerCfg{
@@ -483,16 +485,19 @@ func demoZoomPan(w *gui.Window) gui.View {
 		Spacing: gui.SomeF(16),
 		Content: []gui.View{
 			chart.Line(chart.LineCfg{
-				BaseCfg:     zoomBase("zoom-line", "Line — Zoom & Pan"),
-				ShowMarkers: true,
-				Series:      styleSeries(),
+				BaseCfg:        zoomBase("zoom-line", "Line — Zoom & Pan"),
+				InteractionCfg: zoomInteraction,
+				ShowMarkers:    true,
+				Series:         styleSeries(),
 			}),
 			chart.Area(chart.AreaCfg{
-				BaseCfg: zoomBase("zoom-area", "Area — Zoom & Pan"),
-				Series:  styleSeries(),
+				BaseCfg:        zoomBase("zoom-area", "Area — Zoom & Pan"),
+				InteractionCfg: zoomInteraction,
+				Series:         styleSeries(),
 			}),
 			chart.Bar(chart.BarCfg{
-				BaseCfg: zoomBase("zoom-bar", "Bar — Zoom & Pan"),
+				BaseCfg:        zoomBase("zoom-bar", "Bar — Zoom & Pan"),
+				InteractionCfg: zoomInteraction,
 				Series: []series.Category{
 					series.NewCategory(series.CategoryCfg{
 						Name: "Q1",
@@ -515,7 +520,8 @@ func demoZoomPan(w *gui.Window) gui.View {
 				},
 			}),
 			chart.Scatter(chart.ScatterCfg{
-				BaseCfg: zoomBase("zoom-scatter", "Scatter — Zoom & Pan"),
+				BaseCfg:        zoomBase("zoom-scatter", "Scatter — Zoom & Pan"),
+				InteractionCfg: zoomInteraction,
 				Series: []series.XY{
 					series.NewXY(series.XYCfg{
 						Name: "Subjects",
@@ -534,15 +540,17 @@ func demoZoomPan(w *gui.Window) gui.View {
 				},
 			}),
 			chart.Histogram(chart.HistogramCfg{
-				BaseCfg: zoomBase("zoom-hist", "Histogram — Zoom & Pan"),
-				Data:    histData,
+				BaseCfg:        zoomBase("zoom-hist", "Histogram — Zoom & Pan"),
+				InteractionCfg: zoomInteraction,
+				Data:           histData,
 			}),
 		},
 	}), `// All XY chart types support zoom, pan, and range-select.
-// Set EnableZoom, EnablePan, EnableRangeSelect in BaseCfg.
+// Set EnableZoom, EnablePan, EnableRangeSelect in InteractionCfg.
 
 chart.Line(chart.LineCfg{
-    BaseCfg: chart.BaseCfg{
+    BaseCfg: chart.BaseCfg{...},
+    InteractionCfg: chart.InteractionCfg{
         EnableZoom:        true,
         EnablePan:         true,
         EnableRangeSelect: true,

@@ -188,12 +188,14 @@ func demoAnimTransition(w *gui.Window) gui.View {
 				toggle,
 				chart.Line(chart.LineCfg{
 					BaseCfg: chart.BaseCfg{
-						ID:                 "anim-transition",
-						Title:              "Data Transition",
-						Sizing:             gui.FillFixed,
-						Height:             300,
+						ID:      "anim-transition",
+						Title:   "Data Transition",
+						Sizing:  gui.FillFixed,
+						Height:  300,
+						Version: ts.Version,
+					},
+					InteractionCfg: chart.InteractionCfg{
 						AnimateTransitions: true,
-						Version:            ts.Version,
 					},
 					Series: []series.XY{
 						series.NewXY(series.XYCfg{
@@ -206,8 +208,10 @@ func demoAnimTransition(w *gui.Window) gui.View {
 		}),
 		`chart.Line(chart.LineCfg{
     BaseCfg: chart.BaseCfg{
-        AnimateTransitions: true,
         Version: dataVersion,
+    },
+    InteractionCfg: chart.InteractionCfg{
+        AnimateTransitions: true,
     },
     Series: []series.XY{data},
 })`)
@@ -300,11 +304,13 @@ func demoAnimFPS(w *gui.Window) gui.View {
 	return demoWithCode(w, "anim-fps",
 		chart.Line(chart.LineCfg{
 			BaseCfg: chart.BaseCfg{
-				ID:         "anim-fps",
-				Title:      "FPS-Adaptive (1000 pts)",
-				Sizing:     gui.FillFixed,
-				Height:     300,
-				Animate:    true,
+				ID:      "anim-fps",
+				Title:   "FPS-Adaptive (1000 pts)",
+				Sizing:  gui.FillFixed,
+				Height:  300,
+				Animate: true,
+			},
+			InteractionCfg: chart.InteractionCfg{
 				EnableZoom: true,
 				EnablePan:  true,
 			},
@@ -317,7 +323,9 @@ func demoAnimFPS(w *gui.Window) gui.View {
 		}),
 		`chart.Line(chart.LineCfg{
     BaseCfg: chart.BaseCfg{
-        Animate:    true,
+        Animate: true,
+    },
+    InteractionCfg: chart.InteractionCfg{
         EnableZoom: true,
         EnablePan:  true,
     },

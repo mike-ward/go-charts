@@ -36,21 +36,9 @@ type BaseCfg struct {
 	// regions to the chart. Ignored by pie and gauge charts.
 	Annotations Annotations
 
-	// EnableZoom enables scroll-wheel zoom on the chart axes.
-	EnableZoom bool
-	// EnablePan enables LMB-drag panning of the chart axes.
-	EnablePan bool
-	// EnableRangeSelect enables shift+LMB brush-to-zoom.
-	EnableRangeSelect bool
-
 	// Animate enables entry animation on first render. Series
 	// draw in progressively over DefaultAnimDuration.
 	Animate bool
-
-	// AnimateTransitions enables smooth transitions when data
-	// changes (Version bump). Old values interpolate to new
-	// over DefaultTransitionDuration.
-	AnimateTransitions bool
 
 	// ShowDataTable replaces the chart with an accessible data
 	// table showing all series values in tabular form.
@@ -61,6 +49,23 @@ type BaseCfg struct {
 	AnimDuration time.Duration
 
 	Version uint64
+}
+
+// InteractionCfg holds XY-chart-specific interaction flags.
+// Embed in XY chart configs (Line, Bar, Area, Scatter, etc.)
+// alongside BaseCfg. Non-XY charts (Pie, Gauge, Funnel, …)
+// do not embed this.
+type InteractionCfg struct {
+	// EnableZoom enables scroll-wheel zoom on the chart axes.
+	EnableZoom bool
+	// EnablePan enables LMB-drag panning of the chart axes.
+	EnablePan bool
+	// EnableRangeSelect enables shift+LMB brush-to-zoom.
+	EnableRangeSelect bool
+	// AnimateTransitions enables smooth transitions when data
+	// changes (Version bump). Old values interpolate to new
+	// over DefaultTransitionDuration.
+	AnimateTransitions bool
 }
 
 // applyDefaults sets sensible zero-value defaults.

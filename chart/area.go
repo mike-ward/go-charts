@@ -14,6 +14,7 @@ import (
 // AreaCfg configures an area chart.
 type AreaCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series []series.XY
@@ -67,6 +68,7 @@ func Area(cfg AreaCfg) gui.View {
 	}
 	av := &areaView{cfg: cfg}
 	av.base = &av.cfg.BaseCfg
+	av.interaction = &av.cfg.InteractionCfg
 	av.zoomX = true
 	av.zoomY = true
 	av.extraVersionFn = func(w *gui.Window) uint64 {

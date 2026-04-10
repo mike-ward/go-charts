@@ -15,6 +15,7 @@ import (
 // BarCfg configures a bar chart.
 type BarCfg struct {
 	BaseCfg
+	InteractionCfg
 
 	// Data
 	Series []series.Category
@@ -53,6 +54,7 @@ func Bar(cfg BarCfg) gui.View {
 	}
 	bv := &barView{cfg: cfg}
 	bv.base = &bv.cfg.BaseCfg
+	bv.interaction = &bv.cfg.InteractionCfg
 	bv.zoomX = false
 	bv.zoomY = true
 	bv.nearestFn = func(px, py float32) bool {
