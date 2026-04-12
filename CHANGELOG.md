@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.5.3 - 2026-04-12
+
+- Simplify codebase with modern Go 1.26 idioms: `cmp.Or` for defaults,
+  `slices.SortFunc`/`cmp.Compare`, builtin `min`/`max`, `slices.Clone`,
+  `wg.Go`; extract helpers to deduplicate legend, validation, and
+  ring-buffer logic; flatten guards and remove dead code (-285 net lines)
+
 ## v0.5.2 - 2026-04-10
 
 - Extract `InteractionCfg` from `BaseCfg`; zoom/pan/range-select/animate-transitions
