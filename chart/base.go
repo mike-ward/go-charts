@@ -88,10 +88,7 @@ func (b *BaseCfg) Validate() error {
 	if b.Height < 0 {
 		errs = append(errs, "negative Height")
 	}
-	if len(errs) == 0 {
-		return nil
-	}
-	return errors.New("chart: " + strings.Join(errs, "; "))
+	return buildError("chart", errs)
 }
 
 // buildError joins error strings with a prefix, returning nil

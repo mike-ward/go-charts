@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"log/slog"
 	"math"
 
@@ -54,12 +55,8 @@ type areaView struct {
 // Area creates an area chart view.
 func Area(cfg AreaCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.LineWidth == 0 {
-		cfg.LineWidth = DefaultLineWidth
-	}
-	if cfg.Opacity == 0 {
-		cfg.Opacity = DefaultAreaOpacity
-	}
+	cfg.LineWidth = cmp.Or(cfg.LineWidth, DefaultLineWidth)
+	cfg.Opacity = cmp.Or(cfg.Opacity, DefaultAreaOpacity)
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -78,14 +75,13 @@ func Area(cfg AreaCfg) gui.View {
 		if av.lastPA.XAxis == nil {
 			return false
 		}
-		var ok bool
 		if av.cfg.Stacked {
-			_, _, _, _, ok = nearestStackedPoint(
+			_, _, _, _, ok := nearestStackedPoint(
 				av.cfg.Series, av.lastPA, px, py, 20)
-		} else {
-			_, _, _, _, ok = nearestXYPoint(
-				av.cfg.Series, av.lastPA, px, py, 20)
+			return ok
 		}
+		_, _, _, _, ok := nearestXYPoint(
+			av.cfg.Series, av.lastPA, px, py, 20)
 		return ok
 	}
 	return av

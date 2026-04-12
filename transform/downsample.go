@@ -3,6 +3,7 @@ package transform
 import (
 	"fmt"
 	"math"
+	"slices"
 
 	"github.com/mike-ward/go-charts/internal/fmath"
 	"github.com/mike-ward/go-charts/series"
@@ -26,10 +27,8 @@ func LTTB(s series.XY, threshold int) series.XY {
 		return series.XY{}
 	}
 	if threshold >= n || threshold < 3 {
-		pts := make([]series.Point, n)
-		copy(pts, clean)
 		return namedXY(
-			fmt.Sprintf("%s (downsampled)", s.Name()), pts)
+			fmt.Sprintf("%s (downsampled)", s.Name()), slices.Clone(clean))
 	}
 
 	out := make([]series.Point, 0, threshold)

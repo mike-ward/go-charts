@@ -6,6 +6,35 @@ import (
 	"github.com/mike-ward/go-charts/series"
 )
 
+// checkSeriesLengths returns an error string if any series has
+// a different length than the first. Returns "" if all lengths
+// match or there are fewer than 2 entries.
+func checkSeriesLengths(lengths []int) string {
+	if len(lengths) < 2 {
+		return ""
+	}
+	n := lengths[0]
+	for i, l := range lengths[1:] {
+		if l != n {
+			return "series length mismatch: series 0 has " +
+				strconv.Itoa(n) + " values, series " +
+				strconv.Itoa(i+1) + " has " +
+				strconv.Itoa(l)
+		}
+	}
+	return ""
+}
+
+// categoryLengths returns the value counts for each category
+// series.
+func categoryLengths(ss []series.Category) []int {
+	out := make([]int, len(ss))
+	for i, s := range ss {
+		out[i] = len(s.Values)
+	}
+	return out
+}
+
 // Validate checks LineCfg for invalid or contradictory settings.
 // Returns nil when valid.
 func (c *LineCfg) Validate() error {
@@ -41,18 +70,8 @@ func (c *BarCfg) Validate() error {
 	if c.Radius < 0 {
 		errs = append(errs, "negative Radius")
 	}
-	if len(c.Series) > 1 {
-		n := len(c.Series[0].Values)
-		for i, s := range c.Series[1:] {
-			if len(s.Values) != n {
-				errs = append(errs,
-					"series length mismatch: series 0 has "+
-						strconv.Itoa(n)+" values, series "+
-						strconv.Itoa(i+1)+" has "+
-						strconv.Itoa(len(s.Values)))
-				break
-			}
-		}
+	if msg := checkSeriesLengths(categoryLengths(c.Series)); msg != "" {
+		errs = append(errs, msg)
 	}
 	return buildError("chart.Bar", errs)
 }
@@ -226,16 +245,12 @@ func (c *ComboCfg) Validate() error {
 		errs = append(errs, "negative LineWidth")
 	}
 	if len(c.Series) > 1 {
-		n := len(c.Series[0].Values)
-		for i, s := range c.Series[1:] {
-			if len(s.Values) != n {
-				errs = append(errs,
-					"series length mismatch: series 0 has "+
-						strconv.Itoa(n)+" values, series "+
-						strconv.Itoa(i+1)+" has "+
-						strconv.Itoa(len(s.Values)))
-				break
-			}
+		lengths := make([]int, len(c.Series))
+		for i, s := range c.Series {
+			lengths[i] = len(s.Values)
+		}
+		if msg := checkSeriesLengths(lengths); msg != "" {
+			errs = append(errs, msg)
 		}
 	}
 	return buildError("chart.Combo", errs)

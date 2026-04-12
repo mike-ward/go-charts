@@ -121,7 +121,7 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 
 	// Rebuild axes and stats when version changes.
 	if bv.yAxis == nil || cfg.Version != bv.lastVersion {
-		bv.buildAxesAndStats(cfg, th)
+		bv.buildAxesAndStats(cfg)
 		bv.lastVersion = cfg.Version
 	}
 
@@ -265,9 +265,7 @@ func (bv *boxplotView) draw(dc *gui.DrawContext) {
 }
 
 // buildAxesAndStats computes box statistics and rebuilds axes.
-func (bv *boxplotView) buildAxesAndStats(
-	cfg *BoxPlotCfg, _ *theme.Theme,
-) {
+func (bv *boxplotView) buildAxesAndStats(cfg *BoxPlotCfg) {
 	nCat := len(cfg.Data)
 	bv.stats = make([]boxStats, nCat)
 	bv.valid = make([]bool, nCat)

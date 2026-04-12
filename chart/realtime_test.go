@@ -99,16 +99,14 @@ func TestRealTimeSeriesConcurrency(t *testing.T) {
 	})
 	var wg sync.WaitGroup
 	for g := range 10 {
-		wg.Add(1)
-		go func(base int) {
-			defer wg.Done()
+		wg.Go(func() {
 			for i := range 100 {
 				rts.Append(series.Point{
-					X: float64(base*100 + i),
+					X: float64(g*100 + i),
 					Y: float64(i),
 				})
 			}
-		}(g)
+		})
 	}
 	// Concurrent reads.
 	for range 5 {

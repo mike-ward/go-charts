@@ -1,6 +1,7 @@
 package series
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,24 +27,12 @@ type OHLCJSONCfg struct {
 }
 
 func (c *OHLCJSONCfg) applyDefaults() {
-	if c.TimeField == "" {
-		c.TimeField = "time"
-	}
-	if c.OpenField == "" {
-		c.OpenField = "open"
-	}
-	if c.HighField == "" {
-		c.HighField = "high"
-	}
-	if c.LowField == "" {
-		c.LowField = "low"
-	}
-	if c.CloseField == "" {
-		c.CloseField = "close"
-	}
-	if c.TimeLayout == "" {
-		c.TimeLayout = time.RFC3339
-	}
+	c.TimeField = cmp.Or(c.TimeField, "time")
+	c.OpenField = cmp.Or(c.OpenField, "open")
+	c.HighField = cmp.Or(c.HighField, "high")
+	c.LowField = cmp.Or(c.LowField, "low")
+	c.CloseField = cmp.Or(c.CloseField, "close")
+	c.TimeLayout = cmp.Or(c.TimeLayout, time.RFC3339)
 }
 
 func jsonFloat(rec map[string]any, field string, row int,

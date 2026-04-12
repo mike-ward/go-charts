@@ -145,7 +145,7 @@ func TestFunnelNaNInfSkipped(t *testing.T) {
 	maxVal := 0.0
 	total := 0.0
 	for _, s := range fv.cfg.Slices {
-		if math.IsNaN(s.Value) || math.IsInf(s.Value, 0) || s.Value <= 0 {
+		if !finite(s.Value) || s.Value <= 0 {
 			continue
 		}
 		maxVal = max(maxVal, s.Value)

@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -368,20 +369,11 @@ func (wv *waterfallView) resolveColor(kind int) gui.Color {
 	cfg := &wv.cfg
 	switch kind {
 	case waterfallUp:
-		if cfg.UpColor != (gui.Color{}) {
-			return cfg.UpColor
-		}
-		return defaultUpColor
+		return cmp.Or(cfg.UpColor, defaultUpColor)
 	case waterfallDown:
-		if cfg.DownColor != (gui.Color{}) {
-			return cfg.DownColor
-		}
-		return defaultDownColor
+		return cmp.Or(cfg.DownColor, defaultDownColor)
 	default:
-		if cfg.TotalColor != (gui.Color{}) {
-			return cfg.TotalColor
-		}
-		return defaultTotalColor
+		return cmp.Or(cfg.TotalColor, defaultTotalColor)
 	}
 }
 

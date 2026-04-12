@@ -107,14 +107,7 @@ func TestDrawLineAnnotationWithLabel(t *testing.T) {
 		}},
 	}
 	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "target" {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "target"); !ok {
 		t.Error("line annotation label not rendered")
 	}
 }
@@ -205,14 +198,7 @@ func TestDrawRegionAnnotationWithLabel(t *testing.T) {
 		}},
 	}
 	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "zone" {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "zone"); !ok {
 		t.Error("region annotation label not rendered")
 	}
 }
@@ -247,14 +233,7 @@ func TestDrawTextAnnotation(t *testing.T) {
 		}},
 	}
 	drawAnnotations(ctx, &ann, th, pr, xAxis, yAxis)
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "hello" {
-			found = true
-			break
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "hello"); !ok {
 		t.Error("text annotation not rendered")
 	}
 }
@@ -637,13 +616,7 @@ func TestDrawTextAnnotationBackground(t *testing.T) {
 	if len(dc.Batches()) == 0 {
 		t.Fatal("text with background should produce batches")
 	}
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "bg" {
-			found = true
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "bg"); !ok {
 		t.Error("text annotation with background not rendered")
 	}
 }
@@ -663,13 +636,7 @@ func TestDrawLineAnnotationLabelBackground(t *testing.T) {
 		}},
 	}
 	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "ref" {
-			found = true
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "ref"); !ok {
 		t.Error("line annotation label with background not rendered")
 	}
 	// Background rect + line = batches.
@@ -693,13 +660,7 @@ func TestDrawRegionAnnotationLabelBackground(t *testing.T) {
 		}},
 	}
 	drawAnnotations(ctx, &ann, th, pr, nil, yAxis)
-	found := false
-	for _, te := range dc.Texts() {
-		if te.Text == "zone" {
-			found = true
-		}
-	}
-	if !found {
+	if _, ok := findText(dc, "zone"); !ok {
 		t.Error("region label with background not rendered")
 	}
 }

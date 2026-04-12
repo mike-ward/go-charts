@@ -1,11 +1,13 @@
 package series
 
 import (
+	"cmp"
 	"encoding/csv"
 	"errors"
 	"fmt"
 	"io"
 	"math"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -51,10 +53,8 @@ func (c Col) resolve(headers []string) (int, error) {
 	if c.idx > 0 {
 		return c.idx - 1, nil
 	}
-	for i, h := range headers {
-		if h == c.name {
-			return i, nil
-		}
+	if i := slices.Index(headers, c.name); i >= 0 {
+		return i, nil
 	}
 	return 0, fmt.Errorf("column %q not found in headers %v",
 		c.name, headers)
@@ -93,12 +93,11 @@ func readHeader(cr *csv.Reader, cfg CSVCfg) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("reading header: %w", err)
 	}
-	h := make([]string, len(row))
-	for i, v := range row {
-		if cfg.TrimSpace {
-			v = strings.TrimSpace(v)
+	h := slices.Clone(row)
+	if cfg.TrimSpace {
+		for i, v := range h {
+			h[i] = strings.TrimSpace(v)
 		}
-		h[i] = v
 	}
 	return h, nil
 }
@@ -506,10 +505,7 @@ func OHLCFromCSV(
 		return OHLCSeries{}, fmt.Errorf(
 			"series.OHLCFromCSV: %w", errNilReader)
 	}
-	layout := cfg.TimeLayout
-	if layout == "" {
-		layout = time.RFC3339
-	}
+	layout := cmp.Or(cfg.TimeLayout, time.RFC3339)
 	cr := newCSVReader(r, cfg.CSVCfg)
 	headers, err := readHeader(cr, cfg.CSVCfg)
 	if err != nil {

@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -65,9 +66,7 @@ type candlestickView struct {
 // Candlestick creates a candlestick chart view.
 func Candlestick(cfg CandlestickCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.XTimeFormat == "" {
-		cfg.XTimeFormat = "01/02"
-	}
+	cfg.XTimeFormat = cmp.Or(cfg.XTimeFormat, "01/02")
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -128,7 +127,7 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 
 	// Rebuild axes when data version changes.
 	if cv.yAxis == nil || cfg.Version != cv.lastVersion {
-		cv.buildAxes(cfg, th)
+		cv.buildAxes(cfg)
 		cv.lastVersion = cfg.Version
 	}
 
@@ -232,7 +231,7 @@ func (cv *candlestickView) draw(dc *gui.DrawContext) {
 }
 
 // buildAxes rebuilds yAxis and xAxis from current series data.
-func (cv *candlestickView) buildAxes(cfg *CandlestickCfg, _ *theme.Theme) {
+func (cv *candlestickView) buildAxes(cfg *CandlestickCfg) {
 	// Y axis.
 	if cfg.YAxis != nil {
 		cv.yAxis = cfg.YAxis

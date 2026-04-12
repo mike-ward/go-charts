@@ -84,22 +84,10 @@ func (s ErrorXY) Bounds() (minX, maxX, minY, maxY float64) {
 		if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
 			continue
 		}
-		lo := p.X - clampNeg(p.XErr.Low)
-		hi := p.X + clampNeg(p.XErr.High)
-		if lo < minX {
-			minX = lo
-		}
-		if hi > maxX {
-			maxX = hi
-		}
-		lo = p.Y - clampNeg(p.YErr.Low)
-		hi = p.Y + clampNeg(p.YErr.High)
-		if lo < minY {
-			minY = lo
-		}
-		if hi > maxY {
-			maxY = hi
-		}
+		minX = min(minX, p.X-clampNeg(p.XErr.Low))
+		maxX = max(maxX, p.X+clampNeg(p.XErr.High))
+		minY = min(minY, p.Y-clampNeg(p.YErr.Low))
+		maxY = max(maxY, p.Y+clampNeg(p.YErr.High))
 	}
 	return
 }

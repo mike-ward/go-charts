@@ -90,10 +90,10 @@ func (a *Log) Ticks(pixelMin, pixelMax float32) []Tick {
 
 	for exp := int(logMin); exp <= int(logMax); exp++ {
 		major := math.Pow(base, float64(exp))
-		outsideDomain := a.overrideDomain &&
-			(major < dMin*(1-1e-9) || major > dMax*(1+1e-9))
+		insideDomain := !a.overrideDomain ||
+			(major >= dMin*(1-1e-9) && major <= dMax*(1+1e-9))
 
-		if !outsideDomain {
+		if insideDomain {
 			label := formatLogTickValue(major)
 			if a.tickFormat != nil {
 				label = a.tickFormat(major)
@@ -110,14 +110,10 @@ func (a *Log) Ticks(pixelMin, pixelMax float32) []Tick {
 
 		// Minor ticks between this power and the next.
 		// Skip when the major tick was outside the domain.
-		if includeMinor && !outsideDomain && exp < int(logMax) {
+		if includeMinor && insideDomain && exp < int(logMax) {
 			for m := 2; m < intBase; m++ {
 				v := float64(m) * major
 				if v < dMin || v > dMax {
-					continue
-				}
-				if a.overrideDomain &&
-					(v < dMin*(1-1e-9) || v > dMax*(1+1e-9)) {
 					continue
 				}
 				ticks = append(ticks, Tick{

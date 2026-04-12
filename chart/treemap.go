@@ -1,10 +1,11 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
-	"sort"
+	"slices"
 
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/series"
@@ -61,18 +62,10 @@ type treemapView struct {
 // Treemap creates a treemap chart view.
 func Treemap(cfg TreemapCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.CellGap == 0 {
-		cfg.CellGap = DefaultTreemapCellGap
-	}
-	if cfg.MaxDepth == 0 {
-		cfg.MaxDepth = 2
-	}
-	if cfg.HeaderHeight == 0 {
-		cfg.HeaderHeight = DefaultTreemapHeaderHeight
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%.0f"
-	}
+	cfg.CellGap = cmp.Or(cfg.CellGap, DefaultTreemapCellGap)
+	cfg.MaxDepth = cmp.Or(cfg.MaxDepth, 2)
+	cfg.HeaderHeight = cmp.Or(cfg.HeaderHeight, DefaultTreemapHeaderHeight)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%.0f")
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -236,8 +229,8 @@ func (tv *treemapView) squarify(
 	}
 
 	// Sort by area descending.
-	sort.Slice(nodes, func(i, j int) bool {
-		return nodes[i].area > nodes[j].area
+	slices.SortFunc(nodes, func(a, b nodeArea) int {
+		return cmp.Compare(b.area, a.area)
 	})
 
 	totalArea := 0.0

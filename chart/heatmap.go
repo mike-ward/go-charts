@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -59,12 +60,8 @@ func Heatmap(cfg HeatmapCfg) gui.View {
 	if cfg.ColorHigh == (gui.Color{}) {
 		cfg.ColorHigh = gui.Hex(0xD73027)
 	}
-	if cfg.CellGap == 0 {
-		cfg.CellGap = DefaultHeatmapCellGap
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%.1f"
-	}
+	cfg.CellGap = cmp.Or(cfg.CellGap, DefaultHeatmapCellGap)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%.1f")
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -333,9 +330,8 @@ func (hv *heatmapView) draw(dc *gui.DrawContext) {
 	// Tooltip.
 	if hovRow >= 0 {
 		v := data.At(hovRow, hovCol)
-		label := fmt.Sprintf("%s\n%s\n%s",
-			data.Rows()[hovRow], data.Cols()[hovCol],
-			fmt.Sprintf(cfg.ValueFormat, v))
+		label := fmt.Sprintf("%s\n%s\n"+cfg.ValueFormat,
+			data.Rows()[hovRow], data.Cols()[hovCol], v)
 		cx := left + float32(hovCol)*cellW + cellW/2
 		cy := top + float32(hovRow)*cellH + cellH/2
 		drawTooltip(ctx, cx, cy, label, th,

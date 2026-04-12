@@ -1,8 +1,10 @@
 package transform
 
 import (
+	"cmp"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 
 	"github.com/mike-ward/go-charts/internal/fmath"
@@ -47,8 +49,8 @@ func Bin(s series.XY, cfg BinCfg) series.XY {
 	if len(finite) == 0 {
 		return series.XY{}
 	}
-	sort.Slice(finite, func(i, j int) bool {
-		return finite[i].X < finite[j].X
+	slices.SortFunc(finite, func(a, b series.Point) int {
+		return cmp.Compare(a.X, b.X)
 	})
 
 	edges := cfg.Edges
@@ -121,21 +123,9 @@ func aggregate(ys []float64, agg AggFunc) float64 {
 	case AggCount:
 		return float64(len(ys))
 	case AggMin:
-		m := ys[0]
-		for _, y := range ys[1:] {
-			if y < m {
-				m = y
-			}
-		}
-		return m
+		return slices.Min(ys)
 	case AggMax:
-		m := ys[0]
-		for _, y := range ys[1:] {
-			if y > m {
-				m = y
-			}
-		}
-		return m
+		return slices.Max(ys)
 	default: // AggSum
 		s := 0.0
 		for _, y := range ys {

@@ -58,7 +58,7 @@ func TestCandlestickYAxisRange(t *testing.T) {
 	}
 	cv.cfg.applyDefaults()
 	cv.cfg.XTimeFormat = "01/02"
-	cv.buildAxes(&cv.cfg, cv.cfg.Theme)
+	cv.buildAxes(&cv.cfg)
 
 	// min(Low)=90, max(High)=125; with 5% padding the domain should include
 	// values slightly below 90 and slightly above 125.
@@ -95,7 +95,7 @@ func TestCandlestickXAxisLabels(t *testing.T) {
 		},
 	}
 	cv.cfg.applyDefaults()
-	cv.buildAxes(&cv.cfg, cv.cfg.Theme)
+	cv.buildAxes(&cv.cfg)
 
 	ticks := cv.xAxis.Ticks(0, 200)
 	if len(ticks) != 2 {
@@ -153,7 +153,7 @@ func TestCandlestickHiddenSeriesExcludedFromRange(t *testing.T) {
 	}
 	cv.cfg.applyDefaults()
 	cv.cfg.XTimeFormat = "01/02"
-	cv.buildAxes(&cv.cfg, cv.cfg.Theme)
+	cv.buildAxes(&cv.cfg)
 
 	// Transform with pixelMin=400, pixelMax=0 (Y inverted):
 	// values within [90,110] should map between 0 and 400 (exclusive of extremes).
@@ -195,7 +195,7 @@ func TestCandlestickNaNInfExcludedFromRange(t *testing.T) {
 	cv.cfg.applyDefaults()
 	cv.cfg.XTimeFormat = "01/02"
 	// buildAxes must not panic and must ignore the NaN/Inf point.
-	cv.buildAxes(&cv.cfg, cv.cfg.Theme)
+	cv.buildAxes(&cv.cfg)
 
 	pxMin := float32(400)
 	pxMax := float32(0)
@@ -221,5 +221,5 @@ func TestCandlestickEmptyPoints(t *testing.T) {
 	cv.cfg.applyDefaults()
 	cv.cfg.XTimeFormat = "01/02"
 	// Must not panic with empty Points slice.
-	cv.buildAxes(&cv.cfg, cv.cfg.Theme)
+	cv.buildAxes(&cv.cfg)
 }

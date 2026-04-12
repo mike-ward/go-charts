@@ -136,6 +136,11 @@ func Default() *Theme {
 // text, thicker tick marks, and a WCAG-compliant palette.
 func HighContrastTheme() *Theme {
 	t := gui.CurrentTheme()
+	labelTick := gui.TextStyle{
+		Size:     t.TextStyleDef.Size + 1,
+		Color:    t.TextStyleDef.Color,
+		Typeface: t.B1.Typeface,
+	}
 	return &Theme{
 		Background: t.ColorBackground,
 		TitleStyle: gui.TextStyle{
@@ -143,20 +148,12 @@ func HighContrastTheme() *Theme {
 			Color:    t.B1.Color,
 			Typeface: t.B1.Typeface,
 		},
-		LabelStyle: gui.TextStyle{
-			Size:     t.TextStyleDef.Size + 1,
-			Color:    t.TextStyleDef.Color,
-			Typeface: t.B1.Typeface,
-		},
-		TickStyle: gui.TextStyle{
-			Size:     t.TextStyleDef.Size + 1,
-			Color:    t.TextStyleDef.Color,
-			Typeface: t.B1.Typeface,
-		},
-		AxisColor: t.TextStyleDef.Color,
-		AxisWidth: 2,
-		GridColor: gui.RGBA(128, 128, 128, 80),
-		GridWidth: 1,
+		LabelStyle: labelTick,
+		TickStyle:  labelTick,
+		AxisColor:  t.TextStyleDef.Color,
+		AxisWidth:  2,
+		GridColor:  gui.RGBA(128, 128, 128, 80),
+		GridWidth:  1,
 		TickMark: TickMarkStyle{
 			Length: 8,
 			Width:  2,

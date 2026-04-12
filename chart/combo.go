@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -72,12 +73,8 @@ type comboView struct {
 // Combo creates a combo chart view.
 func Combo(cfg ComboCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.BarGap == 0 {
-		cfg.BarGap = DefaultBarGap
-	}
-	if cfg.LineWidth == 0 {
-		cfg.LineWidth = DefaultLineWidth
-	}
+	cfg.BarGap = cmp.Or(cfg.BarGap, DefaultBarGap)
+	cfg.LineWidth = cmp.Or(cfg.LineWidth, DefaultLineWidth)
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}

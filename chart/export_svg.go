@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/mike-ward/go-glyph"
@@ -592,8 +593,5 @@ func isNonFinite32(f float32) bool {
 // excessive allocation from degenerate input.
 func copyPoints(pts []float32) []float32 {
 	const maxPoints = 1 << 20 // ~4 MB
-	n := min(len(pts), maxPoints)
-	cp := make([]float32, n)
-	copy(cp, pts[:n])
-	return cp
+	return slices.Clone(pts[:min(len(pts), maxPoints)])
 }

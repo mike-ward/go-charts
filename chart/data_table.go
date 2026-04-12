@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"strconv"
 	"strings"
@@ -100,11 +101,7 @@ func xyTableData(ss []series.XY) ([]string, [][]string) {
 	headers := make([]string, 0, 1+len(ss))
 	headers = append(headers, "X")
 	for _, s := range ss {
-		name := s.Name()
-		if name == "" {
-			name = "Y"
-		}
-		headers = append(headers, name)
+		headers = append(headers, cmp.Or(s.Name(), "Y"))
 	}
 
 	maxLen := 0
@@ -173,11 +170,7 @@ func categoryTableData(
 	headers := make([]string, 0, 1+len(ss))
 	headers = append(headers, "Label")
 	for _, s := range ss {
-		name := s.Name()
-		if name == "" {
-			name = "Value"
-		}
-		headers = append(headers, name)
+		headers = append(headers, cmp.Or(s.Name(), "Value"))
 	}
 
 	// Use labels from first series as row keys.
@@ -214,9 +207,7 @@ func dataTableCategory(
 func ohlcTableData(
 	ss []series.OHLCSeries, timeFmt string,
 ) ([]string, [][]string) {
-	if timeFmt == "" {
-		timeFmt = "2006-01-02"
-	}
+	timeFmt = cmp.Or(timeFmt, "2006-01-02")
 	headers := []string{"Time", "Open", "High", "Low", "Close", "Volume"}
 	var rows [][]string
 	for _, s := range ss {
@@ -389,11 +380,7 @@ func comboTableData(
 	headers := make([]string, 0, 1+len(ss))
 	headers = append(headers, "Label")
 	for _, s := range ss {
-		name := s.Name()
-		if name == "" {
-			name = "Value"
-		}
-		headers = append(headers, name)
+		headers = append(headers, cmp.Or(s.Name(), "Value"))
 	}
 
 	n := 0
@@ -432,11 +419,7 @@ func radarTableData(
 	headers := make([]string, 0, 1+len(ss))
 	headers = append(headers, "Axis")
 	for _, s := range ss {
-		name := s.Name
-		if name == "" {
-			name = "Value"
-		}
-		headers = append(headers, name)
+		headers = append(headers, cmp.Or(s.Name, "Value"))
 	}
 
 	rows := make([][]string, len(axes))

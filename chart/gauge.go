@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -84,15 +85,9 @@ func (cfg *GaugeCfg) applyGaugeDefaults() {
 	if cfg.Min == 0 && cfg.Max == 0 {
 		cfg.Max = 100
 	}
-	if cfg.ArcAngle == 0 {
-		cfg.ArcAngle = DefaultGaugeArcAngle
-	}
-	if cfg.InnerRatio == 0 {
-		cfg.InnerRatio = DefaultGaugeInnerRatio
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%.0f"
-	}
+	cfg.ArcAngle = cmp.Or(cfg.ArcAngle, DefaultGaugeArcAngle)
+	cfg.InnerRatio = cmp.Or(cfg.InnerRatio, DefaultGaugeInnerRatio)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%.0f")
 }
 
 // Validate checks GaugeCfg for invalid settings.
@@ -195,15 +190,15 @@ func gaugeStartAngle(arcAngle float32) float32 {
 }
 
 // gaugeValueFraction returns the clamped fraction of value
-// within [min, max].
-func gaugeValueFraction(value, min, max float64) float64 {
-	if max == min ||
-		math.IsNaN(value) || math.IsNaN(min) || math.IsNaN(max) ||
-		math.IsInf(min, 0) || math.IsInf(max, 0) {
+// within [lo, hi].
+func gaugeValueFraction(value, lo, hi float64) float64 {
+	if hi == lo ||
+		math.IsNaN(value) || math.IsNaN(lo) || math.IsNaN(hi) ||
+		math.IsInf(lo, 0) || math.IsInf(hi, 0) {
 		return 0
 	}
-	f := (value - min) / (max - min)
-	return math.Max(0, math.Min(1, f))
+	f := (value - lo) / (hi - lo)
+	return max(0, min(1, f))
 }
 
 // gaugeHitTest returns true if (mx, my) is within the gauge arc

@@ -1,9 +1,10 @@
 package chart
 
 import (
+	"cmp"
 	"log/slog"
 	"math"
-	"sort"
+	"slices"
 
 	"github.com/mike-ward/go-charts/axis"
 	"github.com/mike-ward/go-charts/render"
@@ -340,8 +341,8 @@ func (bv *bubbleView) drawBubbles(
 
 	// Sort Z descending (largest first) so smaller bubbles
 	// draw on top.
-	sort.Slice(items, func(i, j int) bool {
-		return items[i].radius > items[j].radius
+	slices.SortFunc(items, func(a, b bubbleDrawItem) int {
+		return cmp.Compare(b.radius, a.radius)
 	})
 
 	for _, it := range items {

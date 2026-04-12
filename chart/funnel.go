@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 
@@ -58,15 +59,9 @@ type funnelView struct {
 // Funnel creates a funnel chart view.
 func Funnel(cfg FunnelCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.SegmentGap == 0 {
-		cfg.SegmentGap = DefaultFunnelSegmentGap
-	}
-	if cfg.MinWidthRatio == 0 {
-		cfg.MinWidthRatio = 0.25
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%.0f"
-	}
+	cfg.SegmentGap = cmp.Or(cfg.SegmentGap, DefaultFunnelSegmentGap)
+	cfg.MinWidthRatio = cmp.Or(cfg.MinWidthRatio, 0.25)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%.0f")
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}

@@ -101,18 +101,10 @@ func (s XY) Bounds() (minX, maxX, minY, maxY float64) {
 		if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
 			continue
 		}
-		if p.X < minX {
-			minX = p.X
-		}
-		if p.X > maxX {
-			maxX = p.X
-		}
-		if p.Y < minY {
-			minY = p.Y
-		}
-		if p.Y > maxY {
-			maxY = p.Y
-		}
+		minX = min(minX, p.X)
+		maxX = max(maxX, p.X)
+		minY = min(minY, p.Y)
+		maxY = max(maxY, p.Y)
 	}
 	return
 }

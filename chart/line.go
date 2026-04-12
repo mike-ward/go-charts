@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"log/slog"
 	"math"
 
@@ -53,9 +54,7 @@ type lineView struct {
 // Line creates a line chart view.
 func Line(cfg LineCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.LineWidth == 0 {
-		cfg.LineWidth = DefaultLineWidth
-	}
+	cfg.LineWidth = cmp.Or(cfg.LineWidth, DefaultLineWidth)
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}

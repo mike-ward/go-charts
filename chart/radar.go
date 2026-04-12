@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
@@ -442,10 +443,7 @@ func (rv *radarView) draw(dc *gui.DrawContext) {
 		}
 
 		// Outline (close the polygon).
-		closed := make([]float32, len(pts)+2)
-		copy(closed, pts)
-		closed[len(pts)] = pts[0]
-		closed[len(pts)+1] = pts[1]
+		closed := slices.Concat(pts, pts[:2])
 		ctx.Polyline(closed, color, cfg.LineWidth)
 
 		// Vertex markers.

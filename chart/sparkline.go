@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
 	"math"
@@ -113,18 +114,10 @@ func applySparklineDefaults(cfg *SparklineCfg) {
 	if cfg.Sizing == gui.FillFill {
 		cfg.Sizing = gui.FillFixed
 	}
-	if cfg.Height == 0 {
-		cfg.Height = DefaultSparklineHeight
-	}
-	if cfg.LineWidth == 0 {
-		cfg.LineWidth = DefaultSparklineLineWidth
-	}
-	if cfg.MarkerRadius == 0 {
-		cfg.MarkerRadius = DefaultSparklineMarkerRadius
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%g"
-	}
+	cfg.Height = cmp.Or(cfg.Height, DefaultSparklineHeight)
+	cfg.LineWidth = cmp.Or(cfg.LineWidth, DefaultSparklineLineWidth)
+	cfg.MarkerRadius = cmp.Or(cfg.MarkerRadius, DefaultSparklineMarkerRadius)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%g")
 	// Shallow-copy theme and zero padding for sparklines.
 	th := *cfg.Theme
 	th.PaddingTop = 0
@@ -539,7 +532,7 @@ func (sv *sparklineView) drawBars(
 	}
 
 	// Reference Y for bar baseline.
-	refVal := float64(0)
+	refVal := 0.0
 	if (cfg.ShowReferenceLine || cfg.BandColoring) &&
 		finite(cfg.ReferenceValue) {
 		refVal = cfg.ReferenceValue

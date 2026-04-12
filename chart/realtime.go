@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	fmath "github.com/mike-ward/go-charts/internal/fmath"
+	"github.com/mike-ward/go-charts/internal/fmath"
 	"github.com/mike-ward/go-charts/series"
 	"github.com/mike-ward/go-gui/gui"
 )
@@ -54,15 +54,9 @@ func NewRealTimeSeries(cfg RealTimeSeriesCfg) *RealTimeSeries {
 	}
 }
 
-// Append adds a single data point. If MaxLen is set and the
-// buffer is full, the oldest point is overwritten in O(1).
-// Non-finite (NaN/Inf) points are silently dropped.
-// Thread-safe.
-func (rts *RealTimeSeries) Append(p series.Point) {
-	if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
-		return
-	}
-	rts.mu.Lock()
+// insertOne appends a single point to the ring buffer without
+// locking. Caller must hold rts.mu.
+func (rts *RealTimeSeries) insertOne(p series.Point) {
 	if rts.maxLen > 0 {
 		idx := (rts.head + rts.count) % rts.maxLen
 		rts.buf[idx] = p
@@ -75,6 +69,18 @@ func (rts *RealTimeSeries) Append(p series.Point) {
 		rts.buf = append(rts.buf, p)
 		rts.count++
 	}
+}
+
+// Append adds a single data point. If MaxLen is set and the
+// buffer is full, the oldest point is overwritten in O(1).
+// Non-finite (NaN/Inf) points are silently dropped.
+// Thread-safe.
+func (rts *RealTimeSeries) Append(p series.Point) {
+	if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
+		return
+	}
+	rts.mu.Lock()
+	rts.insertOne(p)
 	rts.version++
 	rts.mu.Unlock()
 }
@@ -91,18 +97,7 @@ func (rts *RealTimeSeries) AppendBatch(pts []series.Point) {
 		if !fmath.Finite(p.X) || !fmath.Finite(p.Y) {
 			continue
 		}
-		if rts.maxLen > 0 {
-			idx := (rts.head + rts.count) % rts.maxLen
-			rts.buf[idx] = p
-			if rts.count < rts.maxLen {
-				rts.count++
-			} else {
-				rts.head = (rts.head + 1) % rts.maxLen
-			}
-		} else {
-			rts.buf = append(rts.buf, p)
-			rts.count++
-		}
+		rts.insertOne(p)
 	}
 	rts.version++
 	rts.mu.Unlock()

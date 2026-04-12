@@ -1,9 +1,10 @@
 package chart
 
 import (
+	"cmp"
 	"fmt"
 	"log/slog"
-	"sort"
+	"slices"
 
 	"github.com/mike-ward/go-charts/render"
 	"github.com/mike-ward/go-charts/theme"
@@ -80,15 +81,9 @@ type sankeyView struct {
 // Sankey creates a Sankey diagram view.
 func Sankey(cfg SankeyCfg) gui.View {
 	cfg.applyDefaults()
-	if cfg.NodeWidth == 0 {
-		cfg.NodeWidth = DefaultSankeyNodeWidth
-	}
-	if cfg.NodeGap == 0 {
-		cfg.NodeGap = DefaultSankeyNodeGap
-	}
-	if cfg.ValueFormat == "" {
-		cfg.ValueFormat = "%.0f"
-	}
+	cfg.NodeWidth = cmp.Or(cfg.NodeWidth, DefaultSankeyNodeWidth)
+	cfg.NodeGap = cmp.Or(cfg.NodeGap, DefaultSankeyNodeGap)
+	cfg.ValueFormat = cmp.Or(cfg.ValueFormat, "%.0f")
 	if err := cfg.Validate(); err != nil {
 		slog.Warn("invalid config", "error", err)
 	}
@@ -333,13 +328,13 @@ func sankeyLayoutNodes(
 		}
 
 		// Sort by throughput descending for stable layout.
-		sort.Slice(indices, func(a, b int) bool {
-			ta := sankeyNodeThroughput(&nodes[indices[a]])
-			tb := sankeyNodeThroughput(&nodes[indices[b]])
-			if ta != tb {
-				return ta > tb
+		slices.SortFunc(indices, func(a, b int) int {
+			if c := cmp.Compare(
+				sankeyNodeThroughput(&nodes[b]),
+				sankeyNodeThroughput(&nodes[a])); c != 0 {
+				return c
 			}
-			return indices[a] < indices[b]
+			return cmp.Compare(a, b)
 		})
 
 		y := top

@@ -1,6 +1,7 @@
 package axis
 
 import (
+	"cmp"
 	"math"
 	"time"
 
@@ -32,17 +33,12 @@ type TimeCfg struct {
 
 // NewTime creates a time axis.
 func NewTime(cfg TimeCfg) *Time {
-	af := cfg.Format == ""
-	format := cfg.Format
-	if format == "" {
-		format = "2006-01-02"
-	}
 	return &Time{
 		title:      cfg.Title,
 		min:        cfg.Min,
 		max:        cfg.Max,
-		format:     format,
-		autoFormat: af,
+		format:     cmp.Or(cfg.Format, "2006-01-02"),
+		autoFormat: cfg.Format == "",
 		tickFormat: cfg.TickFormat,
 	}
 }

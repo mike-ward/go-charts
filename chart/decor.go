@@ -1,6 +1,7 @@
 package chart
 
 import (
+	"cmp"
 	"math"
 	"strings"
 
@@ -54,22 +55,10 @@ func newLegendStyle(ctx *render.Context, th *theme.Theme) legendStyle {
 	if !bgColor.IsSet() {
 		bgColor = gui.RGBA(0, 0, 0, 120)
 	}
-	swatchSize := ls.SwatchSize
-	if swatchSize == 0 {
-		swatchSize = 12
-	}
-	padding := ls.Padding
-	if padding == 0 {
-		padding = 6
-	}
-	itemGap := ls.ItemGap
-	if itemGap == 0 {
-		itemGap = 4
-	}
-	rowGap := ls.RowGap
-	if rowGap == 0 {
-		rowGap = 2
-	}
+	swatchSize := cmp.Or(ls.SwatchSize, float32(12))
+	padding := cmp.Or(ls.Padding, float32(6))
+	itemGap := cmp.Or(ls.ItemGap, float32(4))
+	rowGap := cmp.Or(ls.RowGap, float32(2))
 	fh := ctx.FontHeight(style)
 	return legendStyle{
 		Style:      style,
@@ -83,24 +72,45 @@ func newLegendStyle(ctx *render.Context, th *theme.Theme) legendStyle {
 	}
 }
 
+// drawLegendEntry renders a single legend entry (swatch +
+// optional strikethrough + label) at the given position.
+func drawLegendEntry(
+	ctx *render.Context, e legendEntry, lp legendStyle,
+	hidden bool, sx, ey float32,
+) {
+	color := e.Color
+	ts := lp.Style
+	if hidden {
+		color = dimColor(color, HoverDimAlpha)
+		ts.Color = gui.RGBA(
+			lp.Style.Color.R, lp.Style.Color.G,
+			lp.Style.Color.B, HoverDimAlpha)
+	}
+	sy := ey + (lp.RowH-lp.SwatchSize)/2
+	ctx.FilledRoundedRect(sx, sy,
+		lp.SwatchSize, lp.SwatchSize, 2, color)
+	if hidden {
+		mid := sy + lp.SwatchSize/2
+		ctx.Line(sx-1, mid, sx+lp.SwatchSize+1, mid,
+			gui.RGBA(200, 200, 200, 180), 1.5)
+	}
+	tx := sx + lp.SwatchSize + lp.ItemGap
+	ty := ey + (lp.RowH-lp.FH)/2
+	ctx.Text(tx, ty, e.Name, ts)
+}
+
 // resolvedTickMark returns the tick mark visual properties,
 // falling back to axis defaults from the theme.
 func resolvedTickMark(
 	th *theme.Theme,
 ) (length, width float32, color gui.Color) {
 	tms := th.TickMark
-	length = tms.Length
-	if length == 0 {
-		length = DefaultTickLength
-	}
+	length = cmp.Or(tms.Length, DefaultTickLength)
 	color = tms.Color
 	if !color.IsSet() {
 		color = th.AxisColor
 	}
-	width = tms.Width
-	if width == 0 {
-		width = th.AxisWidth
-	}
+	width = cmp.Or(tms.Width, th.AxisWidth)
 	return
 }
 
@@ -255,31 +265,15 @@ func legendRightReserve(
 	return lp.Padding*2 + lp.SwatchSize + lp.ItemGap + maxW + 8
 }
 
-// legendTopReserve returns the vertical space to add to the top
-// edge of the plot area when LegendTop is active. Returns 0 for
-// all other positions.
-func legendTopReserve(
-	ctx *render.Context, th *theme.Theme,
-	posOverride *theme.LegendPosition,
-	names []string,
-	left, right float32,
-) float32 {
-	pos := th.Legend.Position
-	if posOverride != nil {
-		pos = *posOverride
-	}
-	if pos != theme.LegendTop {
-		return 0
-	}
-
-	lp := newLegendStyle(ctx, th)
-
-	// Count rows needed for the horizontal layout.
+// countHorizontalRows counts the number of rows and whether any
+// named entries exist for a horizontal legend layout.
+func countHorizontalRows(
+	ctx *render.Context, lp legendStyle,
+	names []string, availW float32,
+) (nRows int, any bool) {
 	const interItemGap = float32(12)
-	availW := right - left
-	nRows := 1
+	nRows = 1
 	rowW := float32(0)
-	any := false
 	for _, n := range names {
 		if n == "" {
 			continue
@@ -298,10 +292,30 @@ func legendTopReserve(
 			rowW += addition
 		}
 	}
+	return
+}
+
+// legendTopReserve returns the vertical space to add to the top
+// edge of the plot area when LegendTop is active. Returns 0 for
+// all other positions.
+func legendTopReserve(
+	ctx *render.Context, th *theme.Theme,
+	posOverride *theme.LegendPosition,
+	names []string,
+	left, right float32,
+) float32 {
+	pos := th.Legend.Position
+	if posOverride != nil {
+		pos = *posOverride
+	}
+	if pos != theme.LegendTop {
+		return 0
+	}
+	lp := newLegendStyle(ctx, th)
+	nRows, any := countHorizontalRows(ctx, lp, names, right-left)
 	if !any {
 		return 0
 	}
-	// box height + gap below legend
 	return lp.Padding*2 +
 		float32(nRows)*lp.RowH +
 		float32(max(nRows-1, 0))*lp.RowGap + 8
@@ -323,32 +337,8 @@ func legendBottomReserve(
 	if pos != theme.LegendBottom {
 		return 0
 	}
-
 	lp := newLegendStyle(ctx, th)
-
-	const interItemGap = float32(12)
-	availW := right - left
-	nRows := 1
-	rowW := float32(0)
-	any := false
-	for _, n := range names {
-		if n == "" {
-			continue
-		}
-		any = true
-		tw := ctx.TextWidth(n, lp.Style)
-		w := lp.SwatchSize + lp.ItemGap + tw
-		addition := w
-		if rowW > 0 {
-			addition += interItemGap
-		}
-		if rowW > 0 && rowW+addition > availW {
-			nRows++
-			rowW = w
-		} else {
-			rowW += addition
-		}
-	}
+	nRows, any := countHorizontalRows(ctx, lp, names, right-left)
 	if !any {
 		return 0
 	}
@@ -448,33 +438,8 @@ func drawLegend(
 			Height: lp.RowH,
 		}
 
-		isHidden := hidden[e.Index]
-		color := e.Color
-		textStyle := lp.Style
-		if isHidden {
-			color = dimColor(color, HoverDimAlpha)
-			textStyle.Color = gui.RGBA(
-				lp.Style.Color.R, lp.Style.Color.G,
-				lp.Style.Color.B, HoverDimAlpha)
-		}
-
-		// Color swatch.
-		sx := bx + lp.Padding
-		sy := ey + (lp.RowH-lp.SwatchSize)/2
-		ctx.FilledRoundedRect(sx, sy,
-			lp.SwatchSize, lp.SwatchSize, 2, color)
-
-		// Strikethrough for hidden entries.
-		if isHidden {
-			mid := sy + lp.SwatchSize/2
-			ctx.Line(sx-1, mid, sx+lp.SwatchSize+1, mid,
-				gui.RGBA(200, 200, 200, 180), 1.5)
-		}
-
-		// Label.
-		tx := sx + lp.SwatchSize + lp.ItemGap
-		ty := ey + (lp.RowH-lp.FH)/2
-		ctx.Text(tx, ty, e.Name, textStyle)
+		drawLegendEntry(ctx, e, lp, hidden[e.Index],
+			bx+lp.Padding, ey)
 	}
 
 	return lb
@@ -565,32 +530,7 @@ func drawLegendBottom(
 				Height: lp.RowH,
 			}
 
-			isHidden := hidden[e.Index]
-			color := e.Color
-			ts := lp.Style
-			if isHidden {
-				color = dimColor(color, HoverDimAlpha)
-				ts.Color = gui.RGBA(
-					lp.Style.Color.R, lp.Style.Color.G,
-					lp.Style.Color.B, HoverDimAlpha)
-			}
-
-			// Color swatch.
-			sy := ey + (lp.RowH-lp.SwatchSize)/2
-			ctx.FilledRoundedRect(x, sy,
-				lp.SwatchSize, lp.SwatchSize, 2, color)
-
-			if isHidden {
-				mid := sy + lp.SwatchSize/2
-				ctx.Line(x-1, mid, x+lp.SwatchSize+1, mid,
-					gui.RGBA(200, 200, 200, 180), 1.5)
-			}
-
-			// Label.
-			tx := x + lp.SwatchSize + lp.ItemGap
-			ty := ey + (lp.RowH-lp.FH)/2
-			ctx.Text(tx, ty, e.Name, ts)
-
+			drawLegendEntry(ctx, e, lp, hidden[e.Index], x, ey)
 			x += items[i].width
 		}
 	}
@@ -677,30 +617,7 @@ func drawLegendTop(
 				Height: lp.RowH,
 			}
 
-			isHidden := hidden[e.Index]
-			color := e.Color
-			ts := lp.Style
-			if isHidden {
-				color = dimColor(color, HoverDimAlpha)
-				ts.Color = gui.RGBA(
-					lp.Style.Color.R, lp.Style.Color.G,
-					lp.Style.Color.B, HoverDimAlpha)
-			}
-
-			sy := ey + (lp.RowH-lp.SwatchSize)/2
-			ctx.FilledRoundedRect(x, sy,
-				lp.SwatchSize, lp.SwatchSize, 2, color)
-
-			if isHidden {
-				mid := sy + lp.SwatchSize/2
-				ctx.Line(x-1, mid, x+lp.SwatchSize+1, mid,
-					gui.RGBA(200, 200, 200, 180), 1.5)
-			}
-
-			tx := x + lp.SwatchSize + lp.ItemGap
-			ty := ey + (lp.RowH-lp.FH)/2
-			ctx.Text(tx, ty, e.Name, ts)
-
+			drawLegendEntry(ctx, e, lp, hidden[e.Index], x, ey)
 			x += items[i].width
 		}
 	}
@@ -754,30 +671,8 @@ func drawLegendRight(
 			Height: lp.RowH,
 		}
 
-		isHidden := hidden[e.Index]
-		color := e.Color
-		ts := lp.Style
-		if isHidden {
-			color = dimColor(color, HoverDimAlpha)
-			ts.Color = gui.RGBA(
-				lp.Style.Color.R, lp.Style.Color.G,
-				lp.Style.Color.B, HoverDimAlpha)
-		}
-
-		sx := bx + lp.Padding
-		sy := ey + (lp.RowH-lp.SwatchSize)/2
-		ctx.FilledRoundedRect(sx, sy,
-			lp.SwatchSize, lp.SwatchSize, 2, color)
-
-		if isHidden {
-			mid := sy + lp.SwatchSize/2
-			ctx.Line(sx-1, mid, sx+lp.SwatchSize+1, mid,
-				gui.RGBA(200, 200, 200, 180), 1.5)
-		}
-
-		tx := sx + lp.SwatchSize + lp.ItemGap
-		ty := ey + (lp.RowH-lp.FH)/2
-		ctx.Text(tx, ty, e.Name, ts)
+		drawLegendEntry(ctx, e, lp, hidden[e.Index],
+			bx+lp.Padding, ey)
 	}
 
 	return lb
@@ -861,18 +756,9 @@ func drawCrosshair(
 	if !color.IsSet() {
 		color = gui.RGBA(128, 128, 128, 160)
 	}
-	width := cs.Width
-	if width == 0 {
-		width = 1
-	}
-	dashLen := cs.DashLen
-	if dashLen == 0 {
-		dashLen = 6
-	}
-	gapLen := cs.GapLen
-	if gapLen == 0 {
-		gapLen = 4
-	}
+	width := cmp.Or(cs.Width, float32(1))
+	dashLen := cmp.Or(cs.DashLen, float32(6))
+	gapLen := cmp.Or(cs.GapLen, float32(4))
 	ctx.DashedLine(mx, pr.Top, mx, pr.Bottom, color, width, dashLen, gapLen)
 	ctx.DashedLine(pr.Left, my, pr.Right, my, color, width, dashLen, gapLen)
 }

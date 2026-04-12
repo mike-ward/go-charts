@@ -39,41 +39,41 @@ func (s *Log) Base() float64 { return s.base }
 // Transform implements Scale. Non-finite values and non-positive
 // domain/value return pixelMin.
 func (s *Log) Transform(value float64, pixelMin, pixelMax float32) float32 {
-	if value <= 0 || s.min <= 0 || s.max <= s.min ||
-		!fmath.Finite(value) {
-		if value <= 0 {
-			slog.Debug("log scale: non-positive value",
-				"value", value)
-		}
-		if s.min <= 0 {
-			slog.Debug("log scale: non-positive domain min",
-				"min", s.min)
-		}
+	if value <= 0 {
+		slog.Debug("log scale: non-positive value", "value", value)
 		return pixelMin
 	}
-	logBase := math.Log(s.base)
-	logMin := math.Log(s.min) / logBase
-	logMax := math.Log(s.max) / logBase
+	if !fmath.Finite(value) {
+		return pixelMin
+	}
+	if s.min <= 0 {
+		slog.Debug("log scale: non-positive domain min", "min", s.min)
+		return pixelMin
+	}
+	if s.max <= s.min {
+		return pixelMin
+	}
+	logMin := s.logb(s.min)
+	logMax := s.logb(s.max)
 	if logMax == logMin {
 		return pixelMin
 	}
-	logVal := math.Log(value) / logBase
-	t := (logVal - logMin) / (logMax - logMin)
+	t := (s.logb(value) - logMin) / (logMax - logMin)
 	return pixelMin + float32(t)*(pixelMax-pixelMin)
 }
 
 // Invert implements Scale.
 func (s *Log) Invert(pixel, pixelMin, pixelMax float32) float64 {
-	if pixelMax == pixelMin || s.min <= 0 {
-		if s.min <= 0 {
-			slog.Debug("log scale: non-positive domain min in Invert",
-				"min", s.min)
-		}
+	if pixelMax == pixelMin {
 		return s.min
 	}
-	logBase := math.Log(s.base)
-	logMin := math.Log(s.min) / logBase
-	logMax := math.Log(s.max) / logBase
+	if s.min <= 0 {
+		slog.Debug("log scale: non-positive domain min in Invert",
+			"min", s.min)
+		return s.min
+	}
+	logMin := s.logb(s.min)
+	logMax := s.logb(s.max)
 	if logMax == logMin {
 		slog.Debug("log scale: degenerate domain in Invert",
 			"min", s.min, "max", s.max)
@@ -82,4 +82,8 @@ func (s *Log) Invert(pixel, pixelMin, pixelMax float32) float64 {
 	t := float64(pixel-pixelMin) / float64(pixelMax-pixelMin)
 	logVal := logMin + t*(logMax-logMin)
 	return math.Pow(s.base, logVal)
+}
+
+func (s *Log) logb(v float64) float64 {
+	return math.Log(v) / math.Log(s.base)
 }
