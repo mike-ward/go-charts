@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.5.4 - 2026-04-13
+
+- Bump go-glyph v1.6.4 → v1.6.5
+- Bump go-gui v0.9.1 → v0.9.7
+
 ## v0.5.3 - 2026-04-12
 
 - Simplify codebase with modern Go 1.26 idioms: `cmp.Or` for defaults,
