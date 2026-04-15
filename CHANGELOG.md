@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.5.5 - 2026-04-15
+
+- Bump go-gui v0.9.7 → v0.12.0
+
 ## v0.5.4 - 2026-04-13
 
 - Bump go-glyph v1.6.4 → v1.6.5
