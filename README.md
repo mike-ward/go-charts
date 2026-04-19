@@ -86,31 +86,31 @@ go run ./examples/showcase
 
 ## Chart Types
 
-| Type        | Function              | Type        | Function              |
-|-------------|-----------------------|-------------|-----------------------|
-| Line        | `chart.Line()`        | Box Plot    | `chart.BoxPlot()`     |
-| Bar         | `chart.Bar()`         | Waterfall   | `chart.Waterfall()`   |
-| Area        | `chart.Area()`        | Combo       | `chart.Combo()`       |
-| Scatter     | `chart.Scatter()`     | Radar       | `chart.Radar()`       |
-| Bubble      | `chart.Bubble()`      | Heatmap     | `chart.Heatmap()`     |
-| Pie/Donut   | `chart.Pie()`         | Treemap     | `chart.Treemap()`     |
-| Gauge       | `chart.Gauge()`       | Funnel      | `chart.Funnel()`      |
-| Candlestick | `chart.Candlestick()` | Sankey      | `chart.Sankey()`      |
-| Histogram   | `chart.Histogram()`   | Sparkline   | `chart.Sparkline()`   |
+| Type        | Function              | Type      | Function            |
+| ----------- | --------------------- | --------- | ------------------- |
+| Line        | `chart.Line()`        | Box Plot  | `chart.BoxPlot()`   |
+| Bar         | `chart.Bar()`         | Waterfall | `chart.Waterfall()` |
+| Area        | `chart.Area()`        | Combo     | `chart.Combo()`     |
+| Scatter     | `chart.Scatter()`     | Radar     | `chart.Radar()`     |
+| Bubble      | `chart.Bubble()`      | Heatmap   | `chart.Heatmap()`   |
+| Pie/Donut   | `chart.Pie()`         | Treemap   | `chart.Treemap()`   |
+| Gauge       | `chart.Gauge()`       | Funnel    | `chart.Funnel()`    |
+| Candlestick | `chart.Candlestick()` | Sankey    | `chart.Sankey()`    |
+| Histogram   | `chart.Histogram()`   | Sparkline | `chart.Sparkline()` |
 
 See [doc/ROADMAP.md](doc/ROADMAP.md) for planned features.
 
 ## Packages
 
-| Package     | Description                                                           |
-|-------------|-----------------------------------------------------------------------|
-| `chart`     | Chart widgets and headless PNG/SVG export                             |
-| `axis`      | Linear, Log, Time, and Category axes with auto-tick generation        |
+| Package     | Description                                                            |
+| ----------- | ---------------------------------------------------------------------- |
+| `chart`     | Chart widgets and headless PNG/SVG export                              |
+| `axis`      | Linear, Log, Time, and Category axes with auto-tick generation         |
 | `series`    | Data types: XY, XYZ, Category, OHLC, Grid, TreeNode + CSV/JSON parsers |
-| `scale`     | Data-to-pixel mapping: Linear, Log                                    |
-| `theme`     | Color palettes and visual styling                                     |
-| `transform` | Moving averages, regression, envelopes, LTTB, binning                 |
-| `render`    | `DrawContext` adapter for chart primitives                            |
+| `scale`     | Data-to-pixel mapping: Linear, Log                                     |
+| `theme`     | Color palettes and visual styling                                      |
+| `transform` | Moving averages, regression, envelopes, LTTB, binning                  |
+| `render`    | `DrawContext` adapter for chart primitives                             |
 
 ## Requirements
 
