@@ -3,8 +3,8 @@ module github.com/mike-ward/go-charts
 go 1.26.0
 
 require (
-	github.com/mike-ward/go-glyph v1.6.5
-	github.com/mike-ward/go-gui v0.12.7
+	github.com/mike-ward/go-glyph v1.7.0
+	github.com/mike-ward/go-gui v0.17.0
 )
 
 require (
