@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.5.8 - 2026-05-17
+
+- Bump go-gui v0.17.0 → v0.19.1 (scroll phase bridge, context menu focus fix,
+  animation heartbeat, Metal autorelease fix)
+- Bump go-glyph v1.7.0 → v1.7.1
+
 ## v0.5.7 - 2026-04-30
 
 - Bump go-gui v0.12.7 → v0.17.0
